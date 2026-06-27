@@ -77,8 +77,9 @@ type ParseErr = { code: string; status: number; message: string };
 function asObject(body: unknown): Record<string, unknown> | null {
   return typeof body === 'object' && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>) : null;
 }
+const MAX_REQUEST_ID = 128;
 function reqId(o: Record<string, unknown>): string | null {
-  return typeof o.requestId === 'string' ? o.requestId : null;
+  return typeof o.requestId === 'string' && o.requestId.length <= MAX_REQUEST_ID ? o.requestId : null;
 }
 
 export class ControlService {
@@ -133,9 +134,10 @@ export class ControlService {
   private async run(action: ControlAction, orcId: string, paneId: string, parsed: ParsedInput | ParsedKey | ParsedInterrupt): Promise<ControlOutcomeResponse> {
     const { expected, requestId } = parsed;
 
-    // Gate 3 — orc resolution
+    // Gate 3 — orc resolution (cold start = not-yet-published → 503, not an abort)
+    if (this.runtime.snapshotVersion === 0) return this.err(503, 'snapshot_not_ready', 'snapshot not ready');
     const orc = this.runtime.getOrc(orcId);
-    if (!orc) return this.abort(action, orcId, paneId, expected.tmuxTarget, 'target_gone', 404, 'orc_not_found', requestId, parsed);
+    if (!orc) return this.abort(action, orcId, paneId, expected.tmuxTarget, 'orc_not_found', 404, 'orc_not_found', requestId, parsed);
     // Gate 4 — controllability
     if (orc.status === 'terminated' || orc.status === 'stale') {
       return this.abort(action, orcId, paneId, orc.tmuxTarget, 'not_controllable', 409, 'not_controllable', requestId, parsed);
@@ -225,13 +227,14 @@ export class ControlService {
     const prev = this.locks.get(paneId) ?? Promise.resolve();
     let release: () => void = () => {};
     const gate = new Promise<void>((r) => (release = r));
-    this.locks.set(paneId, prev.then(() => gate));
+    const mine = prev.then(() => gate);
+    this.locks.set(paneId, mine);
     return prev.then(async () => {
       try {
         return await fn();
       } finally {
         release();
-        if (this.locks.get(paneId) === prev.then(() => gate)) this.locks.delete(paneId);
+        if (this.locks.get(paneId) === mine) this.locks.delete(paneId); // free when no waiter chained
       }
     });
   }
