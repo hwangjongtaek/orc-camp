@@ -81,6 +81,8 @@ export class ScanRunner {
   private priors = new Map<string, PriorOrcState>();
   private lastOrcsByPaneId = new Map<string, Orc>();
   private retained = new Map<string, { orc: Orc; firstMs: number }>();
+  /** Per-orc redacted capture tail from the latest published cycle (SPEC-101 §2.11 preview). */
+  private lastCaptures = new Map<string, string[]>();
 
   constructor(private readonly deps: ScanRuntimeDeps) {}
 
@@ -146,7 +148,24 @@ export class ScanRunner {
       this.priors = nextPriors;
       this.lastOrcsByPaneId = liveOrcsByPaneId;
     }
+
+    // Retain the redacted capture tail per orc for the lazy preview endpoint.
+    const paneById = new Map(inventory.panes.map((p) => [p.paneId, p]));
+    const captures = new Map<string, string[]>();
+    for (const camp of result.camps) {
+      for (const orc of camp.orcs) {
+        const pane = paneById.get(orc.paneId);
+        captures.set(orc.paneId, pane?.capture ? pane.capture.lines : []);
+      }
+    }
+    this.lastCaptures = captures;
+
     return result;
+  }
+
+  /** Redacted capture tail (oldest→newest) for an orc paneId, or null if none retained. */
+  captureTailFor(paneId: string): string[] | null {
+    return this.lastCaptures.get(paneId) ?? null;
   }
 
   /** S-GONE retention (SPEC-004 §3.7): emit disappeared orcs as `terminated` for T_term. */

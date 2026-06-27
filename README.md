@@ -71,7 +71,22 @@ npm run build        # dist/cli.js 번들 → bin: orc-camp
 - **read-only 불변식**: tmux 호출은 `tmuxExec` allowlist(`list-sessions`/`list-windows`/`list-panes`/`capture-pane` + `-V`)로 제한되며 상태 변경 command를 절대 호출하지 않는다(SPEC-006 §2.6). process introspection(`ps`)도 고정 argv·`shell:false`다.
 - **privacy chokepoint**: capture/`cmdline`/`cwd`/`paneTitle`은 소비 전 단일 `redact()`/`sanitizeCapture()` 경계를 통과한다. 원문은 파일/log/`--json` 어디에도 저장되지 않는다(SPEC-006).
 - **모듈 ↔ spec 매핑**: `src/redaction`+`src/tmux/exec.ts`(SPEC-006) · `src/tmux/inventory.ts`+`introspect.ts`(SPEC-002) · `src/detection`(SPEC-003) · `src/status`(SPEC-004) · `src/assemble.ts`+`src/render`(SPEC-005) · `src/cli.ts`+`src/scan.ts`(SPEC-001). 모듈 간 결합은 의존성 주입으로만 이뤄져 각 모듈이 `src/types.ts`(frozen 계약)에만 의존한다.
-- **검증 현황**: 139 tests 통과(unit + integration, 결정적), 실제 tmux 3.6b에서 102 pane/28 session read-only 실증. live e2e/latency/calibration 측정(SPEC-007 M1~M5)은 비-게이트 후속 작업.
+- **검증 현황**: 167 tests 통과(unit + integration + measurement, 결정적), e2e 6종(실 tmux). 실 환경 측정(SPEC-007 M1~M5)으로 detection 보정·status 검증·latency p95 807ms(101 pane) 완료.
+
+## 구현 — local server (Epic 2, SPEC-100~101)
+
+scan 도메인 모델(`ScanResult`)을 재사용해 HTTP로 노출하는 local-first server. `ScanRunner`를 interval로 돌려 in-memory snapshot을 유지하고 token-gated REST로 serve한다(런타임 의존성 여전히 0 — Node 내장 `http`).
+
+```bash
+npm run serve        # 127.0.0.1 bind, token-bearing URL을 stdout에 출력
+npm run doctor       # 환경 health 5종 점검 (fail→exit 1)
+orc-camp serve --port 4123 --no-open        # default는 browser 자동 open
+```
+
+- **보안 경계(SPEC-100)**: `127.0.0.1` 기본 bind, CSPRNG startup token(메모리 전용·비영속), 상수시간 `Authorization: Bearer` 검증, CORS allowlist, **Host-header 검증(DNS rebinding 방어)**, 외부 bind는 `--allow-external` + warning 필수.
+- **REST API(SPEC-101)**: `GET /api/health`(token-exempt liveness) · `GET /api/snapshot`(ScanResult + `snapshotVersion`/ETag/304) · `GET /api/camps/:id` · `GET /api/orcs/:id/preview`(token + exposure 이중 gate, redacted tail만) · `POST /api/refresh`(coalesce/rate-limit, tmux는 read-only). 모든 read는 token 요구(D-024).
+- **snapshot runtime**: 변경 tick당 `snapshotVersion +1`(diff engine), last-good/stale fallback 재사용, `runtimeEpoch`로 restart 식별. 보안 경계는 security-privacy-engineer 감사 **PASS(P0 0·P1 0)**.
+- **후속(미구현)**: WebSocket realtime(SPEC-102), dashboard SPA(Epic 3), control actions(SPEC-400).
 
 ## 초기 범위
 

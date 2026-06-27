@@ -16,7 +16,9 @@
   },
   "scripts": {
     "scan": "tsx src/cli.ts",
-    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/cli.js",
+    "serve": "tsx src/main.ts serve",
+    "doctor": "tsx src/main.ts doctor",
+    "build": "esbuild src/main.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",

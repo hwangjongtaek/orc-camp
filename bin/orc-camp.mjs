@@ -1,12 +1,8 @@
 #!/usr/bin/env node
-// Thin launcher for the compiled CLI. The only command in the scan slice is `scan`.
-// (Run `npm run build` first; for dev use `npm run scan`.)
-import { run } from '../dist/cli.js';
+// Thin launcher for the compiled CLI dispatcher.
+// (Run `npm run build` first; for dev use `npm run scan` / `npm run serve`.)
+import { main } from '../dist/main.js';
 
-const argv = process.argv.slice(2);
-// Accept an optional leading `scan` subcommand for forward-compat with `serve`/`doctor`.
-const args = argv[0] === 'scan' ? argv.slice(1) : argv;
-
-run(args).then((code) => {
+main(process.argv.slice(2)).then((code) => {
   process.exitCode = code;
 });
