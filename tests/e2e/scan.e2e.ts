@@ -13,6 +13,9 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { ScanRunner, createDefaultDeps } from '../../src/scan';
+
+const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 const run = promisify(execFile);
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -106,6 +109,33 @@ describe.skipIf(!AVAILABLE)('e2e: orc-camp scan vs live tmux (TC-E-*)', () => {
     await scan(['--json']);
     const after = (await tmux(['list-panes', '-t', SESSION, '-F', fmt])).stdout;
     expect(after).toBe(before);
+  });
+
+  it('TC-E-WAITING: a static (y/n) prompt pane is classified `waiting` over 2 cycles', async () => {
+    // Controlled waiting scenario: a pane stuck at a (y/n) prompt (read blocks),
+    // titled as an agent so it is detected. Two scan cycles give the prior needed
+    // for the static-prompt → waiting rule (SPEC-004 §3.3). Definitively probes the
+    // PoC's #1 risk metric (waiting recall) on a realistic prompt.
+    const WS = `orccampE2Ewait_${process.pid}_${Date.now()}`;
+    try {
+      await tmux(['new-session', '-d', '-s', WS, '-x', '200', '-y', '50', "printf 'Apply this patch? (y/n) '; read x; sleep 600"]);
+      const { stdout } = await tmux(['list-panes', '-t', WS, '-F', '#{pane_id}']);
+      const wpane = stdout.trim().split('\n')[0] ?? '';
+      await tmux(['select-pane', '-t', wpane, '-T', 'claude-code agent']);
+      await wait(600); // let the prompt render
+
+      const runner = new ScanRunner(createDefaultDeps());
+      await runner.scanOnce(); // cycle 1: establishes prior (no change yet)
+      await wait(800);
+      const r2 = await runner.scanOnce(); // cycle 2: prompt static vs prior → waiting
+
+      const orc = r2.camps.flatMap((c) => c.orcs).find((o) => o.paneId === wpane);
+      expect(orc, 'the prompt pane should be detected as an orc').toBeTruthy();
+      expect(orc!.status).toBe('waiting');
+      expect(orc!.statusConfidence).toBeGreaterThanOrEqual(0.5); // MEDIUM+ for a generic prompt
+    } finally {
+      await tmux(['kill-session', '-t', WS]).catch(() => {});
+    }
   });
 
   it('TC-E-LATENCY(sanity): scanDurationMs is reported and bounded', async () => {
