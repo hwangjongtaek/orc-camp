@@ -41,6 +41,8 @@ vite.config.*.timestamp-*
 
 # ── Tests / coverage (Vitest + Playwright) ───────────────────────────
 coverage/
+# Locally-captured real-pane measurement data (never committed — privacy)
+tests/measurement/.local/
 .nyc_output/
 test-results/
 playwright-report/

@@ -265,8 +265,9 @@ interface LabeledPaneSample {
   - **M3 calibration**: agentType·status 모두 band별 정답률 비감소(monotonic) 충족.
   - **M5 redaction**: secret-recall 1.0 (확정 목표) · false-redaction-rate 0% (≤ τ 0.05) · banner 토큰 비-redaction + redacted 출력에서 detection 발화(coherence).
   - **M4 latency (live tmux, 실측)**: **101 pane**(20 pane 목표의 5배)에서 p50 **730ms** · p95 **807ms** · mean 768ms (24 cycle, warmup 2 제외). 가설 p95<1s를 5배 규모에서도 충족.
+  - **M1 live (실 환경 비-circular, `scripts/measure-detection-live.mts`, data gitignored)**: 101 pane에서 **직접 command 0/101**(전부 wrapper+title — `pane_current_command` 비신뢰성 실증). command-only objective truth 대비 측정으로 **Tier-C output banner의 bare-word(`\bcodex\b`/`\bclaude\b`) FP**를 검출 → distinctive product marker로 보정([[SPEC-003-agent-detection]] §6, 2026-06-27). 결과 over-detection **17→12**(spurious codex banner 5건 제거; 잔여 12 = title 기반 실제 Claude Code 11 + low-conf 1, 모두 ≤0.60). measure→fix→re-measure 루프 1회 완결.
 
-> 주의: M1~M3·M5의 100%는 **curated 데이터셋 기준**이며 가설을 "기각하지 않음"을 의미할 뿐 실증이 아니다. 실 pane 라벨링 후 수치가 가설을 실제로 검증/보정한다. M4만 실 환경 비-circular 실측이다.
+> 주의: M1~M3·M5(fixture)의 100%는 **curated 데이터셋 기준**이며 가설을 "기각하지 않음"을 의미할 뿐 실증이 아니다. M1 live·M4만 실 환경 측정이다. 실 pane 라벨링 후 수치가 가설을 실제로 검증/보정한다. M4만 실 환경 비-circular 실측이다.
 
 ## 3. Behavior rules
 

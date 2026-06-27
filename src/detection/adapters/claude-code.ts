@@ -35,8 +35,18 @@ const GENERIC_RUNTIMES = new Set([
 /** claude-code signature in argv/title (G-WRAP / G-TITLE) — hypothesis. */
 const CLAUDE_SIGNATURE = /@anthropic-ai\/claude-code|claude-code|\bclaude\b/i;
 
-/** claude-code banner / prompt markers in output tail (G-OUT) — hypothesis. */
-const CLAUDE_BANNER = /claude code|anthropic|welcome to claude|do you want to proceed\?/i;
+/**
+ * claude-code OUTPUT banner / prompt markers (G-OUT, Tier C) — hypothesis.
+ * Calibration (2026-06-27, SPEC-003 §6): the loose bare single-word marker
+ * (`anthropic`) was REMOVED from the OUTPUT path. Live M1 measurement showed
+ * single-word tokens false-fire on non-agent panes (`nvim`/`zsh`) whose captured
+ * content merely mentions the product. OUTPUT now requires a DISTINCTIVE marker
+ * (`welcome to claude`, two-word `claude code`, the `@anthropic-ai/claude-code`
+ * package id, or the permission prompt). The TITLE/cmdline signature
+ * (`CLAUDE_SIGNATURE`) intentionally keeps the bare word — title matches measured
+ * correct — and is unaffected by this calibration.
+ */
+const CLAUDE_BANNER = /welcome to claude|claude code|@anthropic-ai\/claude-code|do you want to proceed\?/i;
 
 /** Direct command basenames that ARE claude-code (G-CMD). */
 const CLAUDE_COMMANDS = new Set(['claude', 'claude-code']);

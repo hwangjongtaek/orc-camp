@@ -2,7 +2,7 @@
 spec: SPEC-003
 title: Agent type 핑거프린팅
 status: approved
-updated: 2026-06-26
+updated: 2026-06-27
 requirements: [R-ORC-001, R-ORC-002, R-ORC-007]
 decisions: [D-012, D-020]
 tags:
@@ -226,6 +226,10 @@ confidence band와 실제 정답률은 단조 증가해야 한다([[14-MVP-PoC-S
 > 본 spec은 1차 슬라이스 `R-ORC` 중 type 축(001/002/007)만 다룬다. R-ORC-003/004/005/006(status·summary·lifecycle)은 [[SPEC-004-status-inference]] 책임이다. 전체 매트릭스는 [[SPEC-007-test-validation]]이 통합한다.
 
 ## 6. Open Questions / Conflicts
+
+### Resolved / Calibration
+
+- **G-OUT bare-word banner FP (2026-06-27, calibration)** — sanctioned §3.1/§6 hypothesis 보정. [[SPEC-007-test-validation]] M1 live 측정(실제 101-pane 환경, read-only·redacted)에서 Tier-C OUTPUT banner가 비-agent pane(`nvim`/`zsh`)을 over-detect함을 확인했다. 원인: OUTPUT pattern이 **단일 bare 토큰**(`\bcodex\b`, 그리고 claude 쪽의 단어 `anthropic`)에 발화 — 이 repo는 orc/codex를 다루므로 해당 단어를 편집·표시하는 일반 pane이 매칭됐다(모두 LOW, output-only cap ≤0.60이나 precision 저하). 보정: **OUTPUT(G-OUT) banner만** distinctive product marker로 tighten한다(codex: `openai codex`/`@openai/codex`/`codex-cli`/approval prompt; claude-code: `welcome to claude`/two-word `claude code`/`@anthropic-ai/claude-code`/permission prompt). **command(G-CMD)·title/cmdline signature(G-WRAP/G-TITLE)는 변경하지 않는다** — title 매칭은 측정상 정확했다(wrapper로 실행돼 `command=zsh`/title=`✳ Claude Code`인 실제 세션). 또한 실측에서 `pane_current_command`가 신뢰 불가임을 확인했다(101 pane 중 0개가 literal `claude`/`codex`를 직접 실행 — 전부 wrapper). 따라서 노이즈 OUTPUT 경로만 **tighten**하고 다른 경로를 loosen하지 않는다. (회귀 테스트: bare `codex`/`claude` + 비-agent command + 무-기타-신호 → `detectOrc(...) === null`.)
 
 ### Open Questions (PoC 검증 대상)
 

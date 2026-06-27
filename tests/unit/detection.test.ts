@@ -141,6 +141,61 @@ describe('SPEC-003-AC-06 output banner only → concrete type, cap ≤ 0.60', ()
   });
 });
 
+// --- Calibration regression (2026-06-27) — bare-word output banner FP --------
+// SPEC-003 §6: live M1 measurement on a real 101-pane environment showed the
+// Tier-C OUTPUT banner false-firing on non-agent panes (nvim/zsh) whose captured
+// content merely MENTIONS the bare word "codex"/"claude" (this repo is about orcs
+// /codex, so editor/shell panes showing these files tripped it). The output path
+// now requires a DISTINCTIVE product marker; a bare word alone must NOT detect.
+
+describe('SPEC-003 calibration — bare-word output banner no longer detects', () => {
+  it('bare "codex" in output with a non-agent command (nvim) → null', () => {
+    const r = detectOrc(
+      makePane({ command: 'nvim', recentOutput: ['editing docs', 'the codex spec mentions orcs'] }),
+      defaultDetectors,
+    );
+    expect(r).toBeNull();
+  });
+
+  it('bare "claude" in output with a non-agent command (nvim) → null', () => {
+    const r = detectOrc(
+      makePane({ command: 'nvim', recentOutput: ['notes about claude and anthropic in this repo'] }),
+      defaultDetectors,
+    );
+    expect(r).toBeNull();
+  });
+
+  it('distinctive product markers in output still detect (output-only, capped)', () => {
+    const codexHit = detectOrc(
+      makePane({ command: 'node', recentOutput: ['OpenAI Codex', 'working on your request'] }),
+      defaultDetectors,
+    ) as OrcCandidate;
+    expect(codexHit.agentType).toBe('codex');
+    expect(codexHit.agentTypeConfidence).toBeLessThanOrEqual(0.6);
+
+    const claudeHit = detectOrc(
+      makePane({ command: 'node', recentOutput: ['Welcome to Claude Code'] }),
+      defaultDetectors,
+    ) as OrcCandidate;
+    expect(claudeHit.agentType).toBe('claude-code');
+    expect(claudeHit.agentTypeConfidence).toBeLessThanOrEqual(0.6);
+  });
+
+  it('approval/permission prompts in output still detect (distinctive markers)', () => {
+    const codexApproval = detectOrc(
+      makePane({ command: 'node', recentOutput: ['Approve this command?'] }),
+      defaultDetectors,
+    ) as OrcCandidate;
+    expect(codexApproval.agentType).toBe('codex');
+
+    const claudePermission = detectOrc(
+      makePane({ command: 'node', recentOutput: ['Do you want to proceed?'] }),
+      defaultDetectors,
+    ) as OrcCandidate;
+    expect(claudePermission.agentType).toBe('claude-code');
+  });
+});
+
 // --- AC-07 — open for extension ---------------------------------------------
 
 describe('SPEC-003-AC-07 new adapter extends detection without edits', () => {

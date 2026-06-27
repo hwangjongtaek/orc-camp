@@ -30,8 +30,16 @@ const GENERIC_RUNTIMES = new Set([
 /** codex signature in argv/title (G-WRAP / G-TITLE) — hypothesis. */
 const CODEX_SIGNATURE = /@openai\/codex|codex-cli|\bcodex\b/i;
 
-/** codex banner / approval-prompt markers in output tail (G-OUT) — hypothesis. */
-const CODEX_BANNER = /openai codex|\bcodex\b|allow command\?|approve this command\?/i;
+/**
+ * codex OUTPUT banner / approval-prompt markers (G-OUT, Tier C) — hypothesis.
+ * Calibration (2026-06-27, SPEC-003 §6): the bare word `\bcodex\b` was REMOVED
+ * from the OUTPUT path. Live M1 measurement showed it false-fires on non-agent
+ * panes (`nvim`/`zsh`) whose captured content merely mentions the word "codex".
+ * OUTPUT now requires a DISTINCTIVE product marker. The TITLE/cmdline signature
+ * (`CODEX_SIGNATURE`) intentionally keeps the bare word — title matches measured
+ * correct — and is unaffected by this calibration.
+ */
+const CODEX_BANNER = /openai codex|@openai\/codex|codex-cli|approve this command\?|allow command\?/i;
 
 /** Direct command basenames that ARE codex (G-CMD). */
 const CODEX_COMMANDS = new Set(['codex']);
