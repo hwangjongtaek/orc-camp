@@ -1,0 +1,32 @@
+{
+  "name": "orc-camp",
+  "version": "0.1.0",
+  "description": "Local-first CLI dashboard that visualizes tmux sessions as camps and AI-agent sessions as orcs. PoC slice: `orc-camp scan` (read-only tmux + agent discovery).",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "orc-camp": "./bin/orc-camp.mjs"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "scan": "tsx src/cli.ts",
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/cli.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
