@@ -1,0 +1,569 @@
+/* Global app styling. All color/spacing/font come from tokens.css variables (SPEC-202 B1). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--oc-color-surface-base);
+  color: var(--oc-color-text);
+  font-family: var(--oc-font-ui);
+  font-size: var(--oc-font-size-body);
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+h1 {
+  font-size: var(--oc-font-size-heading);
+}
+h2 {
+  font-size: 18px;
+}
+h3 {
+  font-size: 15px;
+}
+
+a {
+  color: var(--oc-color-accent);
+}
+
+button {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: var(--oc-focus-ring);
+  outline-offset: 2px;
+}
+
+img {
+  image-rendering: pixelated;
+}
+
+/* --- App shell --- */
+.oc-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.oc-header {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-3);
+  padding: var(--oc-space-2) var(--oc-space-4);
+  background: var(--oc-color-surface-raised);
+  border-bottom: 1px solid var(--oc-color-border);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.oc-header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-2);
+  font-family: var(--oc-font-pixel);
+  font-size: 16px;
+  text-decoration: none;
+  color: var(--oc-color-text);
+}
+.oc-header__spacer {
+  flex: 1;
+}
+.oc-header__nav {
+  display: flex;
+  gap: var(--oc-space-2);
+  align-items: center;
+}
+
+.oc-main {
+  flex: 1;
+  padding: var(--oc-space-4);
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* --- Buttons --- */
+.oc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-1);
+  min-height: 28px;
+  padding: var(--oc-space-1) var(--oc-space-3);
+  border-radius: var(--oc-radius-pixel);
+  border: 1px solid var(--oc-color-border);
+  background: var(--oc-color-surface-raised);
+  color: var(--oc-color-text);
+  cursor: pointer;
+}
+.oc-btn:hover {
+  border-color: var(--oc-color-accent);
+}
+.oc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.oc-btn--primary {
+  background: var(--oc-color-primary);
+  border-color: var(--oc-color-primary);
+  color: #1a1206;
+  font-weight: 600;
+}
+.oc-btn--danger {
+  background: var(--oc-color-danger);
+  border-color: var(--oc-color-danger);
+  color: #fff;
+}
+
+/* --- Banners (layer B overlays) --- */
+.oc-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-2);
+  padding: var(--oc-space-2) var(--oc-space-4);
+  border-radius: var(--oc-radius-card);
+  margin-bottom: var(--oc-space-3);
+  border: 1px solid var(--oc-color-border);
+}
+.oc-banner--disconnected {
+  background: rgba(201, 76, 76, 0.16);
+  border-color: var(--oc-color-danger);
+}
+.oc-banner--stale {
+  background: rgba(214, 164, 63, 0.16);
+  border-color: var(--oc-color-warning);
+}
+.oc-banner--error {
+  background: rgba(201, 76, 76, 0.12);
+  border-color: var(--oc-color-danger);
+}
+.oc-banner__label {
+  font-weight: 600;
+}
+.oc-banner__spacer {
+  flex: 1;
+}
+
+/* --- Status summary bar --- */
+.oc-summarybar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oc-space-2);
+  padding: var(--oc-space-3);
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-card);
+  margin-bottom: var(--oc-space-4);
+}
+
+/* --- Status badge / chip (SPEC-202 §2.2) --- */
+.oc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-1);
+  padding: 1px var(--oc-space-2);
+  border-radius: var(--oc-radius-pixel);
+  font-size: var(--oc-font-size-label);
+  border: 2px solid var(--oc-color-border);
+  background: var(--oc-color-surface-base);
+  white-space: nowrap;
+}
+.oc-status__glyph {
+  font-weight: 700;
+  line-height: 1;
+}
+.oc-status__count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.oc-status__conf {
+  color: var(--oc-color-text-muted);
+  font-size: 11px;
+}
+.oc-status--zero {
+  opacity: 0.45;
+}
+/* status-specific accent color (boosted by border-style; never the sole signal) */
+.oc-status--active {
+  border-color: var(--oc-color-accent);
+  border-style: solid;
+}
+.oc-status--waiting {
+  border-color: var(--oc-color-warning);
+  border-style: solid;
+}
+.oc-status--idle {
+  border-color: var(--oc-color-border);
+  border-style: solid;
+}
+.oc-status--stale {
+  border-color: var(--oc-color-warning);
+  border-style: dashed;
+}
+.oc-status--error {
+  border-color: var(--oc-color-danger);
+  border-style: double;
+}
+.oc-status--unknown {
+  border-color: var(--oc-color-text-muted);
+  border-style: dotted;
+}
+.oc-status--terminated {
+  border-color: var(--oc-color-text-muted);
+  border-style: dotted;
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+/* --- Camp list grid --- */
+.oc-camp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--oc-space-3);
+}
+.oc-card {
+  display: block;
+  text-align: left;
+  width: 100%;
+  padding: var(--oc-space-3);
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-card);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.oc-card:hover,
+.oc-card:focus-visible {
+  border-color: var(--oc-color-accent);
+}
+.oc-card__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--oc-space-2);
+  margin-bottom: var(--oc-space-1);
+}
+.oc-card__id {
+  font-family: var(--oc-font-mono);
+  font-size: 11px;
+  color: var(--oc-color-text-muted);
+}
+.oc-card__meta {
+  display: flex;
+  gap: var(--oc-space-3);
+  font-size: 12px;
+  color: var(--oc-color-text-muted);
+  margin-bottom: var(--oc-space-2);
+}
+.oc-card__statuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oc-space-1);
+}
+
+/* --- Camp detail layout (3-pane) --- */
+.oc-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--oc-space-3);
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .oc-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.oc-detail__header {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-3);
+  margin-bottom: var(--oc-space-3);
+  flex-wrap: wrap;
+}
+.oc-detail__id {
+  font-family: var(--oc-font-mono);
+  font-size: 12px;
+  color: var(--oc-color-text-muted);
+}
+
+/* --- Camp scene (lanes/slots) --- */
+.oc-scene {
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-card);
+  padding: var(--oc-space-3);
+}
+.oc-lane {
+  margin-bottom: var(--oc-space-3);
+}
+.oc-lane__header {
+  font-size: 12px;
+  color: var(--oc-color-text-muted);
+  border-bottom: 1px dashed var(--oc-color-border);
+  padding-bottom: var(--oc-space-1);
+  margin-bottom: var(--oc-space-2);
+}
+.oc-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oc-space-3);
+}
+.oc-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--oc-space-1);
+  padding: var(--oc-space-1);
+  border: 2px solid transparent;
+  border-radius: var(--oc-radius-pixel);
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+}
+.oc-slot:hover {
+  border-color: var(--oc-color-border);
+}
+.oc-slot--selected {
+  border-color: var(--oc-color-accent);
+}
+.oc-slot__target {
+  font-family: var(--oc-font-mono);
+  font-size: 10px;
+  color: var(--oc-color-text-muted);
+}
+
+/* --- Sprite --- */
+.oc-sprite {
+  position: relative;
+  display: inline-block;
+  /* width/height set inline from manifest frame_size, downscaled */
+}
+.oc-sprite__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.oc-sprite__overlay {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.oc-sprite__placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: repeating-conic-gradient(
+      var(--oc-color-surface-base) 0% 25%,
+      var(--oc-color-surface-raised) 0% 50%
+    )
+    50% / 12px 12px;
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  font-size: 10px;
+  color: var(--oc-color-text-muted);
+  text-align: center;
+}
+
+/* --- Inspector --- */
+.oc-inspector {
+  position: sticky;
+  top: 64px;
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-card);
+  padding: var(--oc-space-3);
+}
+.oc-field {
+  margin-bottom: var(--oc-space-2);
+}
+.oc-field__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  color: var(--oc-color-text-muted);
+}
+.oc-field__value {
+  font-size: 13px;
+  word-break: break-word;
+}
+.oc-field__value--mono {
+  font-family: var(--oc-font-mono);
+  font-size: 12px;
+}
+.oc-estimated {
+  color: var(--oc-color-warning);
+  font-size: 11px;
+  margin-left: var(--oc-space-1);
+}
+
+/* --- Terminal preview --- */
+.oc-preview {
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  background: var(--oc-color-surface-base);
+  margin-top: var(--oc-space-2);
+}
+.oc-preview__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-2);
+  padding: var(--oc-space-1) var(--oc-space-2);
+  border-bottom: 1px solid var(--oc-color-border);
+  font-size: 11px;
+}
+.oc-preview__badges {
+  display: flex;
+  gap: var(--oc-space-1);
+  margin-left: auto;
+}
+.oc-tag {
+  font-size: 10px;
+  padding: 0 var(--oc-space-1);
+  border: 1px solid var(--oc-color-border);
+  border-radius: 3px;
+  color: var(--oc-color-text-muted);
+}
+.oc-tag--redacted {
+  border-color: var(--oc-color-warning);
+  color: var(--oc-color-warning);
+}
+.oc-preview__text {
+  margin: 0;
+  padding: var(--oc-space-2);
+  font-family: var(--oc-font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+  user-select: text;
+}
+.oc-preview__empty {
+  padding: var(--oc-space-3);
+  color: var(--oc-color-text-muted);
+  font-size: 12px;
+}
+
+/* --- Empty / loading states --- */
+.oc-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--oc-space-2);
+  padding: var(--oc-space-5);
+  min-height: 50vh;
+  color: var(--oc-color-text-muted);
+}
+.oc-state__title {
+  color: var(--oc-color-text);
+}
+.oc-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--oc-color-border);
+  border-top-color: var(--oc-color-primary);
+  border-radius: 50%;
+  animation: oc-spin 0.9s linear infinite;
+}
+@keyframes oc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Activity rail --- */
+.oc-activity {
+  margin-top: var(--oc-space-3);
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-card);
+  padding: var(--oc-space-3);
+}
+.oc-activity__item {
+  font-size: 12px;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--oc-color-border);
+  display: flex;
+  gap: var(--oc-space-2);
+}
+.oc-activity__time {
+  color: var(--oc-color-text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* --- Settings --- */
+.oc-form {
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-3);
+}
+.oc-form__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-1);
+}
+.oc-form input[type='number'],
+.oc-form input[type='range'] {
+  font: inherit;
+}
+
+.oc-muted {
+  color: var(--oc-color-text-muted);
+}
+.oc-mono {
+  font-family: var(--oc-font-mono);
+}
+.oc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Reduced motion (SPEC-202 §2.5 M2/M4) --- */
+@media (prefers-reduced-motion: reduce) {
+  .oc-spinner {
+    animation: none;
+  }
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

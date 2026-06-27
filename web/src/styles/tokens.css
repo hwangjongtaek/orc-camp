@@ -1,0 +1,38 @@
+/*
+ * SPEC-202 §2.1 — design token consumption interface.
+ * Variable NAMES/roles are owned by SPEC-202; VALUES are owned by DESIGN.md.
+ * Components must reference these variables, never raw hex/px literals.
+ */
+:root {
+  /* Color (values = DESIGN.md Color) */
+  --oc-color-surface-base: #171c1f; /* ink */
+  --oc-color-surface-raised: #262d2f; /* charcoal */
+  --oc-color-primary: #d6723f; /* ember */
+  --oc-color-accent: #4aa3df; /* mana */
+  --oc-color-success: #4f6f52; /* moss */
+  --oc-color-text: #f3e7c4; /* parchment */
+  --oc-color-text-muted: #d8c9a3; /* bone */
+  --oc-color-danger: #c94c4c; /* danger */
+  --oc-color-warning: #d6a43f; /* warning */
+  --oc-color-border: rgba(216, 201, 163, 0.24); /* assumption: bone @ 24% */
+
+  /* Spacing / radius (values = DESIGN.md Spacing) */
+  --oc-space-1: 4px;
+  --oc-space-2: 8px;
+  --oc-space-3: 12px; /* assumption: scale interpolation */
+  --oc-space-4: 16px;
+  --oc-space-5: 24px;
+  --oc-radius-card: 8px;
+  --oc-radius-pixel: 4px;
+
+  /* Typography (values = DESIGN.md Typography) */
+  --oc-font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --oc-font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --oc-font-pixel: 'Courier New', monospace; /* placeholder pixel face */
+
+  --oc-font-size-heading: 22px;
+  --oc-font-size-body: 14px;
+  --oc-font-size-label: 12px;
+
+  --oc-focus-ring: 2px solid var(--oc-color-accent);
+}
