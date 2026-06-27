@@ -1,0 +1,444 @@
+{
+  "group_id": null,
+  "states": [
+    {
+      "character": {
+        "id": "77acab26-ab4b-4d11-94b8-37c4c32e76b8",
+        "name": "Orc High Warchief Mascot",
+        "prompt": "original pixel art orc high warchief mascot for a dark fantasy developer dashboard, broad muscular veteran orc silhouette, warm olive green skin with bronze shadows, long black hair tied in a high topknot with loose mane, oversized ivory tusks, fierce battle shout expression, asymmetrical spiked iron shoulder armor, heavy fur trim, rugged leather straps, abstract bone trophy belt, massive single-bladed battle axe with a generic crescent blade silhouette, red-black metal accents, ember highlights, confident camp leader stance, low top-down RPG character sprite, readable silhouette at small size, 120x120 character, transparent background, crisp pixel art, no text, no logo, not based on any existing game character",
+        "size": {
+          "width": 232,
+          "height": 232
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-06-25T06:12:06.339818+00:00"
+      },
+      "folder": "Orc_High_Warchief_Mascot",
+      "frames": {
+        "rotations": {
+          "south": "Orc_High_Warchief_Mascot/rotations/south.png",
+          "south-east": "Orc_High_Warchief_Mascot/rotations/south-east.png",
+          "east": "Orc_High_Warchief_Mascot/rotations/east.png",
+          "north-east": "Orc_High_Warchief_Mascot/rotations/north-east.png",
+          "north": "Orc_High_Warchief_Mascot/rotations/north.png",
+          "north-west": "Orc_High_Warchief_Mascot/rotations/north-west.png",
+          "west": "Orc_High_Warchief_Mascot/rotations/west.png",
+          "south-west": "Orc_High_Warchief_Mascot/rotations/south-west.png"
+        },
+        "animations": {
+          "raising_the_massive_axe_and_breathing_with_battle-": {
+            "south": [
+              "Orc_High_Warchief_Mascot/animations/raising_the_massive_axe_and_breathing_with_battle-/south/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/raising_the_massive_axe_and_breathing_with_battle-/south/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/raising_the_massive_axe_and_breathing_with_battle-/south/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/raising_the_massive_axe_and_breathing_with_battle-/south/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/raising_the_massive_axe_and_breathing_with_battle-/south/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/raising_the_massive_axe_and_breathing_with_battle-/south/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/raising_the_massive_axe_and_breathing_with_battle-/south/frame_006.png"
+            ]
+          },
+          "slumping_tiredly_with_a_slow_heavy_idle_axe_lowere": {
+            "south": [
+              "Orc_High_Warchief_Mascot/animations/slumping_tiredly_with_a_slow_heavy_idle_axe_lowere/south/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/slumping_tiredly_with_a_slow_heavy_idle_axe_lowere/south/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/slumping_tiredly_with_a_slow_heavy_idle_axe_lowere/south/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/slumping_tiredly_with_a_slow_heavy_idle_axe_lowere/south/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/slumping_tiredly_with_a_slow_heavy_idle_axe_lowere/south/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/slumping_tiredly_with_a_slow_heavy_idle_axe_lowere/south/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/slumping_tiredly_with_a_slow_heavy_idle_axe_lowere/south/frame_006.png"
+            ]
+          },
+          "stale_inactive_loop_dimmed_tired_pose_slow_low-ene": {
+            "south-east": [
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-east/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north-west/frame_006.png"
+            ],
+            "south-west": [
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-west/frame_006.png"
+            ],
+            "north": [
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north/frame_006.png"
+            ]
+          },
+          "staggering_with_a_sharp_alarm_reaction_tense_shoul": {
+            "south": [
+              "Orc_High_Warchief_Mascot/animations/staggering_with_a_sharp_alarm_reaction_tense_shoul/south/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/staggering_with_a_sharp_alarm_reaction_tense_shoul/south/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/staggering_with_a_sharp_alarm_reaction_tense_shoul/south/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/staggering_with_a_sharp_alarm_reaction_tense_shoul/south/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/staggering_with_a_sharp_alarm_reaction_tense_shoul/south/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/staggering_with_a_sharp_alarm_reaction_tense_shoul/south/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/staggering_with_a_sharp_alarm_reaction_tense_shoul/south/frame_006.png"
+            ]
+          },
+          "stale_inactive_standing_loop_upper-body_only_motio": {
+            "west": [
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_006.png"
+            ],
+            "east": [
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/north-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/north-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/north-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/north-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/north-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/north-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/stale_inactive_standing_loop_upper-body_only_motio/north-east/frame_006.png"
+            ]
+          },
+          "idle_breathing_loop_subtle_chest_breathing_slight": {
+            "south-west": [
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_006.png"
+            ],
+            "south": [
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_006.png"
+            ],
+            "east": [
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_006.png"
+            ],
+            "west": [
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_006.png"
+            ],
+            "north": [
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_006.png"
+            ]
+          },
+          "active_working_loop_quick_focused_working_motion_h": {
+            "south-east": [
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_006.png"
+            ],
+            "south-west": [
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_006.png"
+            ],
+            "north": [
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_006.png"
+            ],
+            "east": [
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/east/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_006.png"
+            ],
+            "west": [
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/active_working_loop_quick_focused_working_motion_h/west/frame_006.png"
+            ]
+          },
+          "waiting_alertly_while_shifting_weight_slightly_hol": {
+            "south": [
+              "Orc_High_Warchief_Mascot/animations/waiting_alertly_while_shifting_weight_slightly_hol/south/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_alertly_while_shifting_weight_slightly_hol/south/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_alertly_while_shifting_weight_slightly_hol/south/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_alertly_while_shifting_weight_slightly_hol/south/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_alertly_while_shifting_weight_slightly_hol/south/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_alertly_while_shifting_weight_slightly_hol/south/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_alertly_while_shifting_weight_slightly_hol/south/frame_006.png"
+            ]
+          },
+          "clear_walking_patrol_cycle_with_visible_leg_motion": {
+            "north": [
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_006.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_007.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_008.png"
+            ],
+            "north-east": [
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_006.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_007.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_008.png"
+            ],
+            "north-west": [
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_006.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_007.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_008.png"
+            ],
+            "east": [
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_006.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_007.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_008.png"
+            ],
+            "west": [
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_006.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_007.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_008.png"
+            ]
+          },
+          "waiting_for_input_loop_small_idle_bounce_curious_p": {
+            "south-west": [
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_006.png"
+            ],
+            "north": [
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_006.png"
+            ],
+            "east": [
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_006.png"
+            ],
+            "west": [
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_006.png"
+            ]
+          },
+          "clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a": {
+            "south-east": [
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east/frame_006.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east/frame_007.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east/frame_008.png"
+            ],
+            "south": [
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south/frame_006.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south/frame_007.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south/frame_008.png"
+            ],
+            "south-west": [
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west/frame_000.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west/frame_001.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west/frame_002.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west/frame_003.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west/frame_004.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west/frame_005.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west/frame_006.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west/frame_007.png",
+              "Orc_High_Warchief_Mascot/animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west/frame_008.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.0",
+  "export_date": "2026-06-25T11:32:08.624687"
+}

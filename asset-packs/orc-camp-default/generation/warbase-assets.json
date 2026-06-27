@@ -1,0 +1,100 @@
+{
+  "generated_at": "2026-06-25",
+  "tool": "PixelLab MCP",
+  "asset_pack": "orc-camp-default",
+  "concept": "original orc city warbase and rugged wartable command surface",
+  "summary": {
+    "wartable_warbase_props": 16,
+    "warbase_terrain_tiles": 16,
+    "ui_frames": 1,
+    "backgrounds": 1,
+    "local_png_files": 34
+  },
+  "notes": [
+    "The source concept references an orc city warbase and wartable mood, but prompts and asset names avoid existing game locations, exact city silhouettes, faction symbols, readable maps, and text.",
+    "The full 16:9 warbase sunset dashboard background was generated with the image generation tool and packaged into backgrounds/warbase-sunset-dashboard.png.",
+    "The first attempt to download prop review frames raced with select_object_frames and some source frame URLs returned 404 after review cleanup. Final local prop files were re-downloaded from the promoted object IDs."
+  ],
+  "backgrounds": {
+    "warbase-sunset-dashboard": {
+      "file": "backgrounds/warbase-sunset-dashboard.png",
+      "source_reference": "/Users/jongtaek.hwang/Downloads/ogrimar.png",
+      "generation_source": "image generation",
+      "size": [1672, 941],
+      "safe_area": [390, 520, 890, 330],
+      "sha256": "d26a79b64988d2c001d40d3a2d0236136d19c6ec701245e19585daf2121a4160",
+      "bytes": 2613264,
+      "prompt_source": "12-PixelLab-Prompts.md > Generated Warbase Sunset Dashboard Background"
+    }
+  },
+  "tilesets": {
+    "orc-warbase-terrain-square-topdown": {
+      "kind": "tiles_pro",
+      "pixellab_tiles_pro_id": "7dbf641c-b3f6-4e4d-937f-19a9a071b88c",
+      "status": "completed",
+      "description": "1). red clay canyon ground tile for an original dark fantasy orc city warbase 2). cracked stone courtyard tile 3). dark timber platform tile 4). black iron grate tile 5). scorched forge floor tile 6). dusty packed path tile 7). bone and rope boundary edge tile 8). ember-lit stone tile 9). red clay dust variation 10). cracked canyon stone variation 11). dark timber plank variation 12). iron spike floor accent 13). ash and ember ground 14). worn command room floor 15). palisade shadow edge 16). teal utility magic floor accent",
+      "type": "square_topdown",
+      "view": "top-down",
+      "tile_size": [32, 32],
+      "variations": 16,
+      "download": "https://api.pixellab.ai/mcp/tiles-pro/7dbf641c-b3f6-4e4d-937f-19a9a071b88c/download",
+      "root": "tiles/orc-warbase-terrain-square-topdown",
+      "tiles": [
+        {"index": 0, "key": "red-clay-canyon-ground", "file": "tile-00-red-clay-canyon-ground.png"},
+        {"index": 1, "key": "cracked-stone-courtyard", "file": "tile-01-cracked-stone-courtyard.png"},
+        {"index": 2, "key": "dark-timber-platform", "file": "tile-02-dark-timber-platform.png"},
+        {"index": 3, "key": "black-iron-grate", "file": "tile-03-black-iron-grate.png"},
+        {"index": 4, "key": "scorched-forge-floor", "file": "tile-04-scorched-forge-floor.png"},
+        {"index": 5, "key": "dusty-packed-path", "file": "tile-05-dusty-packed-path.png"},
+        {"index": 6, "key": "bone-rope-boundary-edge", "file": "tile-06-bone-rope-boundary-edge.png"},
+        {"index": 7, "key": "ember-lit-stone", "file": "tile-07-ember-lit-stone.png"},
+        {"index": 8, "key": "red-clay-dust", "file": "tile-08-red-clay-dust.png"},
+        {"index": 9, "key": "cracked-canyon-stone", "file": "tile-09-cracked-canyon-stone.png"},
+        {"index": 10, "key": "dark-timber-plank", "file": "tile-10-dark-timber-plank.png"},
+        {"index": 11, "key": "iron-spike-floor-accent", "file": "tile-11-iron-spike-floor-accent.png"},
+        {"index": 12, "key": "ash-ember-ground", "file": "tile-12-ash-ember-ground.png"},
+        {"index": 13, "key": "worn-command-room-floor", "file": "tile-13-worn-command-room-floor.png"},
+        {"index": 14, "key": "palisade-shadow-edge", "file": "tile-14-palisade-shadow-edge.png"},
+        {"index": 15, "key": "teal-utility-magic-accent", "file": "tile-15-teal-utility-magic-accent.png"}
+      ]
+    }
+  },
+  "objects": {
+    "wartable-warbase": {
+      "source_review_object_id": "169d4c1a-4e9a-4116-87c4-32826149fc5f",
+      "tag": "orc-camp-wartable-warbase-props",
+      "status": "completed",
+      "view": "top-down",
+      "size": [64, 64],
+      "root": "objects/wartable-warbase",
+      "items": [
+        {"index": 0, "key": "rectangular-wartable", "pixellab_object_id": "dfb98be8-36bc-4ded-af86-93b935490899", "file": "rectangular-wartable.png"},
+        {"index": 1, "key": "round-command-table", "pixellab_object_id": "c7189e51-0da5-46ed-8526-e22541160f08", "file": "round-command-table.png"},
+        {"index": 2, "key": "red-clay-floor-marker", "pixellab_object_id": "f8a620be-8253-4caa-a48c-c20218a21ecc", "file": "red-clay-floor-marker.png"},
+        {"index": 3, "key": "iron-spike-barricade", "pixellab_object_id": "a557f983-1be2-4959-86fc-c73bf748d25e", "file": "iron-spike-barricade.png"},
+        {"index": 4, "key": "timber-palisade-corner", "pixellab_object_id": "653e997f-1db2-4240-84f9-925ed0e6364c", "file": "timber-palisade-corner.png"},
+        {"index": 5, "key": "ember-brazier", "pixellab_object_id": "41bcbd04-424c-44ab-b448-a451e575c80c", "file": "ember-brazier.png"},
+        {"index": 6, "key": "teal-utility-post", "pixellab_object_id": "47409c4d-20bb-4371-b6dc-a4a19166ae20", "file": "teal-utility-post.png"},
+        {"index": 7, "key": "bone-marker-set", "pixellab_object_id": "26335668-f786-4f4f-9e95-e3c7256c0f3b", "file": "bone-marker-set.png"},
+        {"index": 8, "key": "rolled-blank-map", "pixellab_object_id": "4b4131ec-01d8-4ffe-a411-a13614f204f8", "file": "rolled-blank-map.png"},
+        {"index": 9, "key": "dagger-command-token", "pixellab_object_id": "c1ee1fe3-80e0-456f-8950-59970bd2adad", "file": "dagger-command-token.png"},
+        {"index": 10, "key": "hide-awning-post", "pixellab_object_id": "a3787a31-3b74-453c-bf61-2f53ed4dfaa4", "file": "hide-awning-post.png"},
+        {"index": 11, "key": "red-clay-supply-urn", "pixellab_object_id": "fe5f632c-6dcb-4cef-af58-e18716193683", "file": "red-clay-supply-urn.png"},
+        {"index": 12, "key": "forge-coal-tray", "pixellab_object_id": "87d8372a-05e3-475b-bb34-ed23ebc3ddcf", "file": "forge-coal-tray.png"},
+        {"index": 13, "key": "warbase-boundary-stone", "pixellab_object_id": "31b123a7-de1d-4dc9-bb9f-e32953c5dfeb", "file": "warbase-boundary-stone.png"},
+        {"index": 14, "key": "blank-tactical-board", "pixellab_object_id": "6bddbdae-e1f2-4c30-98e5-5a8d07245036", "file": "blank-tactical-board.png"},
+        {"index": 15, "key": "command-crate", "pixellab_object_id": "b94749d1-8d5e-41e9-91a8-49930bff15e3", "file": "command-crate.png"}
+      ]
+    }
+  },
+  "ui": {
+    "wartable-command-dock": {
+      "pixellab_map_object_id": "241e5b72-44de-4251-a63e-868d8d491628",
+      "status": "completed",
+      "root": "ui/frames",
+      "file": "wartable-command-dock-frame.png",
+      "size": [320, 96],
+      "stretch": "9-slice candidate; verify slicing before CSS border-image use"
+    }
+  }
+}

@@ -1,0 +1,330 @@
+{
+  "generated_at": "2026-06-25",
+  "tool": "PixelLab MCP",
+  "asset_pack": "orc-camp-default",
+  "summary": {
+    "prop_objects": 16,
+    "status_ui_objects": 16,
+    "terrain_tiles": 16,
+    "local_png_files": 48
+  },
+  "failed_attempts": [
+    {
+      "kind": "topdown_tileset",
+      "pixellab_tileset_id": "a3b51570-9970-486c-9367-d3252e80985c",
+      "status": "failed",
+      "error": "unknown error",
+      "handling": "Replaced with square_topdown tiles_pro fallback 0c9705cb-1efc-4953-9046-60c530481739."
+    }
+  ],
+  "tilesets": {
+    "orc-camp-terrain-square-topdown": {
+      "kind": "tiles_pro",
+      "pixellab_tiles_pro_id": "0c9705cb-1efc-4953-9046-60c530481739",
+      "status": "completed",
+      "description": "1). moss ground tile for a dark fantasy orc camp developer dashboard 2). packed dirt path tile 3). stone path tile 4). wooden platform tile 5). scorched campfire ground tile 6). hide tent floor tile 7). muddy moss edge tile 8). root and pebble ground tile",
+      "type": "square_topdown",
+      "view": "top-down",
+      "tile_size": [32, 32],
+      "variations": 16,
+      "download": "https://api.pixellab.ai/mcp/tiles-pro/0c9705cb-1efc-4953-9046-60c530481739/download",
+      "root": "tiles/orc-camp-terrain-square-topdown",
+      "tiles": [
+        {
+          "index": 0,
+          "key": "moss-ground",
+          "file": "tile-00-moss-ground.png"
+        },
+        {
+          "index": 1,
+          "key": "packed-dirt",
+          "file": "tile-01-packed-dirt.png"
+        },
+        {
+          "index": 2,
+          "key": "stone-path",
+          "file": "tile-02-stone-path.png"
+        },
+        {
+          "index": 3,
+          "key": "wooden-platform",
+          "file": "tile-03-wooden-platform.png"
+        },
+        {
+          "index": 4,
+          "key": "scorched-ground",
+          "file": "tile-04-scorched-ground.png"
+        },
+        {
+          "index": 5,
+          "key": "hide-floor",
+          "file": "tile-05-hide-floor.png"
+        },
+        {
+          "index": 6,
+          "key": "muddy-moss-edge",
+          "file": "tile-06-muddy-moss-edge.png"
+        },
+        {
+          "index": 7,
+          "key": "root-pebble-ground",
+          "file": "tile-07-root-pebble-ground.png"
+        },
+        {
+          "index": 8,
+          "key": "variation-08",
+          "file": "tile-08-variation.png"
+        },
+        {
+          "index": 9,
+          "key": "variation-09",
+          "file": "tile-09-variation.png"
+        },
+        {
+          "index": 10,
+          "key": "variation-10",
+          "file": "tile-10-variation.png"
+        },
+        {
+          "index": 11,
+          "key": "variation-11",
+          "file": "tile-11-variation.png"
+        },
+        {
+          "index": 12,
+          "key": "variation-12",
+          "file": "tile-12-variation.png"
+        },
+        {
+          "index": 13,
+          "key": "variation-13",
+          "file": "tile-13-variation.png"
+        },
+        {
+          "index": 14,
+          "key": "variation-14",
+          "file": "tile-14-variation.png"
+        },
+        {
+          "index": 15,
+          "key": "variation-15",
+          "file": "tile-15-variation.png"
+        }
+      ]
+    }
+  },
+  "objects": {
+    "props": {
+      "source_review_object_id": "f6aeae0e-0a70-45ed-829f-5aaf4ca85ef0",
+      "tag": "orc-camp-props",
+      "status": "completed",
+      "view": "top-down",
+      "size": [64, 64],
+      "root": "objects/props",
+      "items": [
+        {
+          "index": 0,
+          "key": "campfire",
+          "pixellab_object_id": "2a35e8ec-2dba-468c-9775-ceb1eeb5bdbe",
+          "file": "campfire.png"
+        },
+        {
+          "index": 1,
+          "key": "command-tent",
+          "pixellab_object_id": "586fe452-c490-40b2-84bb-a90cddaecab6",
+          "file": "command-tent.png"
+        },
+        {
+          "index": 2,
+          "key": "workbench",
+          "pixellab_object_id": "090edf6a-8fef-46c3-a64d-f98520064430",
+          "file": "workbench.png"
+        },
+        {
+          "index": 3,
+          "key": "tool-rack",
+          "pixellab_object_id": "d3d247a6-5182-4497-8308-90b90a2605f1",
+          "file": "tool-rack.png"
+        },
+        {
+          "index": 4,
+          "key": "log-pile",
+          "pixellab_object_id": "5fc2b0f2-5e99-458d-bf3e-0e531460b884",
+          "file": "log-pile.png"
+        },
+        {
+          "index": 5,
+          "key": "supply-crate",
+          "pixellab_object_id": "9cf7c304-3ee8-4bc4-bd21-55c9378b9671",
+          "file": "supply-crate.png"
+        },
+        {
+          "index": 6,
+          "key": "utility-totem",
+          "pixellab_object_id": "a95f7e43-61c4-49b7-ba49-5e11578b2323",
+          "file": "utility-totem.png"
+        },
+        {
+          "index": 7,
+          "key": "notice-board",
+          "pixellab_object_id": "656d1f85-920d-4dd6-9461-e0a59e8ba08a",
+          "file": "notice-board.png"
+        },
+        {
+          "index": 8,
+          "key": "forge-anvil",
+          "pixellab_object_id": "2244357f-50cd-49b1-98e8-26e67b2fac34",
+          "file": "forge-anvil.png"
+        },
+        {
+          "index": 9,
+          "key": "training-dummy",
+          "pixellab_object_id": "91a8ba1a-680a-4ecb-88c3-69932bead031",
+          "file": "training-dummy.png"
+        },
+        {
+          "index": 10,
+          "key": "bedroll",
+          "pixellab_object_id": "62bfdbce-b492-47e0-b3ad-2477bf8b1767",
+          "file": "bedroll.png"
+        },
+        {
+          "index": 11,
+          "key": "banner-pole",
+          "pixellab_object_id": "5ff99cb4-2731-4857-8897-135e994e10de",
+          "file": "banner-pole.png"
+        },
+        {
+          "index": 12,
+          "key": "barrel",
+          "pixellab_object_id": "f5542530-2b5f-4e6d-962a-3e8c9fb07f14",
+          "file": "barrel.png"
+        },
+        {
+          "index": 13,
+          "key": "stone-marker",
+          "pixellab_object_id": "ed0f23d3-10e3-4d4b-95c8-0ba0956b166d",
+          "file": "stone-marker.png"
+        },
+        {
+          "index": 14,
+          "key": "rope-coil",
+          "pixellab_object_id": "791b284c-7557-456a-82b4-9cb2f7a16a9e",
+          "file": "rope-coil.png"
+        },
+        {
+          "index": 15,
+          "key": "locked-chest",
+          "pixellab_object_id": "78edfc90-ead4-48a2-bb88-7f91d439bb22",
+          "file": "locked-chest.png"
+        }
+      ]
+    },
+    "status-ui": {
+      "source_review_object_id": "3d53bf5a-c24c-4a6d-a120-cd849d538d8b",
+      "tag": "orc-camp-status-ui",
+      "status": "completed",
+      "view": "top-down",
+      "size": [64, 64],
+      "root": "objects/status-ui",
+      "items": [
+        {
+          "index": 0,
+          "key": "active-spark",
+          "pixellab_object_id": "439af773-eadd-4ac9-aa43-1c5e47aa9e63",
+          "file": "active-spark.png"
+        },
+        {
+          "index": 1,
+          "key": "waiting-bubble",
+          "pixellab_object_id": "c32625d9-88d8-4fe6-8184-48733c30d140",
+          "file": "waiting-bubble.png"
+        },
+        {
+          "index": 2,
+          "key": "error-burst",
+          "pixellab_object_id": "44fa412f-7fdf-4fce-9ef6-5c200b36c088",
+          "file": "error-burst.png"
+        },
+        {
+          "index": 3,
+          "key": "stale-clock",
+          "pixellab_object_id": "346ace4d-795f-4954-9c14-99b25aac2796",
+          "file": "stale-clock.png"
+        },
+        {
+          "index": 4,
+          "key": "terminated-ghost",
+          "pixellab_object_id": "33c4d65c-1a75-4b30-aced-599049b3d80a",
+          "file": "terminated-ghost.png"
+        },
+        {
+          "index": 5,
+          "key": "idle-glow",
+          "pixellab_object_id": "68ef15d9-54b2-40c0-95d9-8b46185b48d4",
+          "file": "idle-glow.png"
+        },
+        {
+          "index": 6,
+          "key": "unknown-charm",
+          "pixellab_object_id": "b31e4f44-83ef-498e-8669-b9d9267df591",
+          "file": "unknown-charm.png"
+        },
+        {
+          "index": 7,
+          "key": "send-arrow",
+          "pixellab_object_id": "95065723-ca21-4ee0-9697-4446e4c4fa09",
+          "file": "send-arrow.png"
+        },
+        {
+          "index": 8,
+          "key": "interrupt-hand",
+          "pixellab_object_id": "a2cd049c-b9d8-4c56-99cb-dc0adb151da0",
+          "file": "interrupt-hand.png"
+        },
+        {
+          "index": 9,
+          "key": "refresh-arrows",
+          "pixellab_object_id": "281fcdf3-ac81-4820-99c8-aafeef9f7627",
+          "file": "refresh-arrows.png"
+        },
+        {
+          "index": 10,
+          "key": "settings-gear",
+          "pixellab_object_id": "3f2ac90e-38f0-48d3-9d95-3c0941167f66",
+          "file": "settings-gear.png"
+        },
+        {
+          "index": 11,
+          "key": "copy-parchment",
+          "pixellab_object_id": "897509ba-0833-4b31-9614-f6eeec23a2e6",
+          "file": "copy-parchment.png"
+        },
+        {
+          "index": 12,
+          "key": "attach-hook",
+          "pixellab_object_id": "0d64ac57-2ae3-41bc-b907-6a1f1366506f",
+          "file": "attach-hook.png"
+        },
+        {
+          "index": 13,
+          "key": "lock",
+          "pixellab_object_id": "f0a10568-b507-4aa2-b748-d55f7403f03d",
+          "file": "lock.png"
+        },
+        {
+          "index": 14,
+          "key": "visibility-eye",
+          "pixellab_object_id": "4a8d175b-2cca-4bec-8bee-d1e545f55d0f",
+          "file": "visibility-eye.png"
+        },
+        {
+          "index": 15,
+          "key": "pause-bones",
+          "pixellab_object_id": "830fa134-bd61-4cb5-9296-ebae566f9993",
+          "file": "pause-bones.png"
+        }
+      ]
+    }
+  }
+}

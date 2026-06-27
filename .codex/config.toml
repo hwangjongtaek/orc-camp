@@ -1,0 +1,20 @@
+# Project-scoped MCP configuration for Orc Camp.
+# Keep real tokens out of git. Set AUTH_HEADER in the shell/session before launching Codex:
+#   export AUTH_HEADER="Bearer <pixellab-token>"
+
+[mcp_servers.pixellab]
+command = "npx"
+args = [
+  "mcp-remote@latest",
+  "https://api.pixellab.ai/mcp",
+  "--transport",
+  "http-only",
+  "--header",
+  "Authorization:${AUTH_HEADER}"
+]
+
+[mcp_servers.pixellab.tools.agent_help]
+approval_mode = "approve"
+
+[mcp_servers.pixellab.tools.delete_animation]
+approval_mode = "approve"

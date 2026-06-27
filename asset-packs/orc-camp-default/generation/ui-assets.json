@@ -1,0 +1,234 @@
+{
+  "generated_at": "2026-06-25",
+  "tool": "PixelLab MCP",
+  "asset_pack": "orc-camp-default",
+  "summary": {
+    "selection_markers": 16,
+    "frames": 7,
+    "buttons": 4,
+    "state_accents": 3,
+    "review_only": 1,
+    "local_png_files": 31
+  },
+  "notes": [
+    "UI assets are visual skin layers only. Text, focus handling, keyboard interaction, accessible labels, and layout remain web UI responsibilities.",
+    "Map object downloads auto-delete from PixelLab after roughly 8 hours, so local PNG files are the runtime source of truth.",
+    "Frame and button assets are 9-slice candidates and still need slice-region verification before CSS border-image usage."
+  ],
+  "failed_or_retried_attempts": [
+    {
+      "kind": "submission",
+      "status": "rate_limited",
+      "handling": "Retried in smaller batches after current jobs completed."
+    },
+    {
+      "kind": "map_object",
+      "status": "validation_failed",
+      "error": "create_map_object view must be low top-down, high top-down, or side.",
+      "handling": "Retried loading and empty-state assets with view=low top-down."
+    },
+    {
+      "kind": "camp_card_frame",
+      "pixellab_map_object_id": "d82a73ba-e3da-440d-93bb-8e96ae1424ed",
+      "status": "needs-review",
+      "file": "ui/frames/camp-card-frame-needs-review.png",
+      "handling": "Regenerated with a stricter hollow-card-frame prompt. Final asset is c96f313a-940d-4c1f-b545-05addc0d528b."
+    }
+  ],
+  "selection_markers": {
+    "source_review_object_id": "157c57db-8acc-476e-9581-ce3830a170b3",
+    "tag": "orc-camp-ui-selection-markers",
+    "size": [64, 64],
+    "root": "ui/selection-markers",
+    "items": [
+      {
+        "index": 0,
+        "key": "selected-orc",
+        "pixellab_object_id": "99729015-0e12-47db-8c79-02d26681ca3e",
+        "file": "selected-orc.png"
+      },
+      {
+        "index": 1,
+        "key": "hover-orc",
+        "pixellab_object_id": "bedab731-1ac2-4bdf-b756-4e7d75ae837a",
+        "file": "hover-orc.png"
+      },
+      {
+        "index": 2,
+        "key": "active-target",
+        "pixellab_object_id": "eec25776-eefb-4c84-a929-b39273542417",
+        "file": "active-target.png"
+      },
+      {
+        "index": 3,
+        "key": "danger-target",
+        "pixellab_object_id": "75007a68-6754-4649-b1c4-bdeaddac4f50",
+        "file": "danger-target.png"
+      },
+      {
+        "index": 4,
+        "key": "attach-target",
+        "pixellab_object_id": "377380d2-e36b-49da-9be9-e41bf739b2c2",
+        "file": "attach-target.png"
+      },
+      {
+        "index": 5,
+        "key": "stale-target",
+        "pixellab_object_id": "b48edaa4-af64-4a9a-8ae4-63de69ed359d",
+        "file": "stale-target.png"
+      },
+      {
+        "index": 6,
+        "key": "unknown-target",
+        "pixellab_object_id": "3430907f-e5d0-4236-a29b-ac5b93e27079",
+        "file": "unknown-target.png"
+      },
+      {
+        "index": 7,
+        "key": "drop-zone",
+        "pixellab_object_id": "45c1a832-ac49-4265-a607-f07849c4fbbe",
+        "file": "drop-zone.png"
+      },
+      {
+        "index": 8,
+        "key": "focus-reticle",
+        "pixellab_object_id": "3954c89f-b5f2-49d0-b9d7-cf3eade03ef7",
+        "file": "focus-reticle.png"
+      },
+      {
+        "index": 9,
+        "key": "current-pane",
+        "pixellab_object_id": "012de0cc-24f9-41b6-8597-fb0b2a1bc977",
+        "file": "current-pane.png"
+      },
+      {
+        "index": 10,
+        "key": "window-lane-divider",
+        "pixellab_object_id": "576ad669-9f3f-4b53-9300-e1d9d6c65a7d",
+        "file": "window-lane-divider.png"
+      },
+      {
+        "index": 11,
+        "key": "camp-boundary",
+        "pixellab_object_id": "18849e47-6ab3-4cda-a518-38e53ec20fe9",
+        "file": "camp-boundary.png"
+      },
+      {
+        "index": 12,
+        "key": "agent-spawn",
+        "pixellab_object_id": "3fb939f7-4912-4421-b618-75bdfedbbc7f",
+        "file": "agent-spawn.png"
+      },
+      {
+        "index": 13,
+        "key": "activity-pulse",
+        "pixellab_object_id": "b7504f5e-68f6-4b54-b130-34a388e6e7a9",
+        "file": "activity-pulse.png"
+      },
+      {
+        "index": 14,
+        "key": "disconnected-marker",
+        "pixellab_object_id": "df350759-e857-469b-b7a1-91e0f3b50079",
+        "file": "disconnected-marker.png"
+      },
+      {
+        "index": 15,
+        "key": "reconnect-marker",
+        "pixellab_object_id": "fe9000cd-ec03-400f-9f0f-82b7ec446e4f",
+        "file": "reconnect-marker.png"
+      }
+    ]
+  },
+  "map_objects": {
+    "frames": [
+      {
+        "key": "inspector-panel",
+        "pixellab_map_object_id": "8c0be1d8-447c-43db-89ac-51b7779b94e8",
+        "file": "ui/frames/inspector-panel-frame.png",
+        "size": [192, 256]
+      },
+      {
+        "key": "activity-log-panel",
+        "pixellab_map_object_id": "6c4fd00d-a173-40fe-87d6-5f2426c40b65",
+        "file": "ui/frames/activity-log-panel-frame.png",
+        "size": [192, 256]
+      },
+      {
+        "key": "terminal-preview",
+        "pixellab_map_object_id": "37ab9a44-6aa6-41d6-a65e-93e1833f068e",
+        "file": "ui/frames/terminal-preview-frame.png",
+        "size": [256, 160]
+      },
+      {
+        "key": "settings-panel",
+        "pixellab_map_object_id": "b04c126d-c3ea-4226-9d59-9b7adaa4c8e7",
+        "file": "ui/frames/settings-panel-frame.png",
+        "size": [192, 192]
+      },
+      {
+        "key": "command-dock",
+        "pixellab_map_object_id": "0efea1da-577c-4a11-a32d-53c463b812cb",
+        "file": "ui/frames/command-dock-frame.png",
+        "size": [320, 96]
+      },
+      {
+        "key": "danger-confirm-modal",
+        "pixellab_map_object_id": "22484f0d-12f1-457d-8d47-0cfdb70ac01b",
+        "file": "ui/frames/danger-confirm-modal-frame.png",
+        "size": [256, 160]
+      },
+      {
+        "key": "camp-card",
+        "pixellab_map_object_id": "c96f313a-940d-4c1f-b545-05addc0d528b",
+        "file": "ui/frames/camp-card-frame.png",
+        "size": [192, 112]
+      }
+    ],
+    "buttons": [
+      {
+        "key": "primary",
+        "pixellab_map_object_id": "66562bf8-8389-4c69-959f-12875d83221b",
+        "file": "ui/buttons/primary-button.png",
+        "size": [96, 32]
+      },
+      {
+        "key": "secondary",
+        "pixellab_map_object_id": "32c5b1c2-9686-4fed-8b25-80908e0f0037",
+        "file": "ui/buttons/secondary-button.png",
+        "size": [96, 32]
+      },
+      {
+        "key": "danger",
+        "pixellab_map_object_id": "216bc906-7dcd-4a10-a827-4e9fd58e9447",
+        "file": "ui/buttons/danger-button.png",
+        "size": [96, 32]
+      },
+      {
+        "key": "disabled",
+        "pixellab_map_object_id": "4341e9a9-3209-4ba0-8f81-cc0328dc2ab1",
+        "file": "ui/buttons/disabled-button.png",
+        "size": [96, 32]
+      }
+    ],
+    "states": [
+      {
+        "key": "loading-campfire",
+        "pixellab_map_object_id": "18df0840-72cc-44c4-8ec7-675b704df8ae",
+        "file": "ui/states/loading-campfire.png",
+        "size": [96, 96]
+      },
+      {
+        "key": "empty-camp-marker",
+        "pixellab_map_object_id": "dccca6fe-3883-40ef-afdf-b10714099c48",
+        "file": "ui/states/empty-camp-marker.png",
+        "size": [128, 96]
+      },
+      {
+        "key": "disconnected-banner",
+        "pixellab_map_object_id": "5e0dafa4-a265-4b8d-a2bc-f1ed22684319",
+        "file": "ui/states/disconnected-banner.png",
+        "size": [256, 48]
+      }
+    ]
+  }
+}

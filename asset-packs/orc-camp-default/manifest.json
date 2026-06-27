@@ -1,0 +1,1241 @@
+{
+  "id": "orc-camp-default",
+  "name": "Orc Camp Default",
+  "version": "0.1.0",
+  "created_at": "2026-06-25",
+  "source": "pixellab",
+  "generation_status": {
+    "state": "closed",
+    "closed_at": "2026-06-26",
+    "note": "Asset generation for this version is closed. Further improvements happen via asset pack version bumps. Deferred enhancements are tracked in docs/13-PixelLab-Asset-Registry.md (Deferred to Future Versions).",
+    "character_count": 5,
+    "deferred_enhancements_ref": "docs/13-PixelLab-Asset-Registry.md#deferred-to-future-versions-보강-여지"
+  },
+  "license": {
+    "commercial_use": "unknown",
+    "redistribution": "unknown",
+    "attribution_required": "unknown",
+    "terms_url": "https://www.pixellab.ai/"
+  },
+  "palette": {
+    "file": "palette.json",
+    "transparent_color": null
+  },
+  "exports": {
+    "orc-high-warchief-mascot": {
+      "zip": "generation/exports/orc-high-warchief-mascot-77acab26-2026-06-25.zip",
+      "sha256": "b5d75fa7b848e66f422a2bb62fcc52ae651508a6f0b3fd352b939fcdc09bcd9c",
+      "bytes": 5694896,
+      "extracted_root": "sprites/orc-high-warchief-mascot",
+      "pixellab_metadata": "sprites/orc-high-warchief-mascot/metadata.json",
+      "extracted_file_count": 312,
+      "png_file_count": 311
+    },
+    "orc-claude-storm-shaman": {
+      "zip": "generation/exports/orc-claude-storm-shaman-5a2661d9-2026-06-26.zip",
+      "sha256": "36883f32de9553ec29442513d8040f8990f6b8a9006832f66ae2e5bc6c6e1eec",
+      "bytes": 5964464,
+      "extracted_root": "sprites/orc-claude-storm-shaman",
+      "pixellab_metadata": "sprites/orc-claude-storm-shaman/metadata.json",
+      "extracted_file_count": 361,
+      "png_file_count": 360
+    },
+    "orc-codex-field-engineer": {
+      "zip": "generation/exports/orc-codex-field-engineer-3b1c381a-2026-06-26.zip",
+      "sha256": "3a1b1ed09d8bd3cd34f0ee84e50e575a5eea121aaf7645edecec56be92fe64c1",
+      "bytes": 4524043,
+      "extracted_root": "sprites/orc-codex-field-engineer",
+      "pixellab_metadata": "sprites/orc-codex-field-engineer/metadata.json",
+      "extracted_file_count": 361,
+      "png_file_count": 360
+    },
+    "orc-unknown": {
+      "zip": "generation/exports/orc-unknown-50519f63-2026-06-26.zip",
+      "sha256": "304ee28cc9d117ba3075cbf34ff15fc0cb23cb6e5c081c587b807db6b2e60675",
+      "bytes": 5147978,
+      "extracted_root": "sprites/orc-unknown",
+      "pixellab_metadata": "sprites/orc-unknown/metadata.json",
+      "extracted_file_count": 361,
+      "png_file_count": 360
+    },
+    "orc-iron-commander": {
+      "zip": "generation/exports/orc-iron-commander-b9a2dbff-2026-06-26.zip",
+      "sha256": "856c78648f800af7c7757b2e02af05a9e99b8e04c83d008954df4dfca876f28c",
+      "bytes": 6155189,
+      "extracted_root": "sprites/orc-iron-commander",
+      "pixellab_metadata": "sprites/orc-iron-commander/metadata.json",
+      "extracted_file_count": 361,
+      "png_file_count": 360
+    }
+  },
+  "generation": {
+    "character_export_metadata": "generation/export-metadata.json",
+    "orc_claude_storm_shaman_export_metadata": "generation/export-metadata-orc-claude-storm-shaman.json",
+    "orc_codex_field_engineer_export_metadata": "generation/export-metadata-orc-codex-field-engineer.json",
+    "orc_unknown_export_metadata": "generation/export-metadata-orc-unknown.json",
+    "orc_iron_commander_export_metadata": "generation/export-metadata-orc-iron-commander.json",
+    "non_character_assets": "generation/non-character-assets.json",
+    "ui_assets": "generation/ui-assets.json",
+    "warbase_assets": "generation/warbase-assets.json"
+  },
+  "characters": {
+    "orc-high-warchief-mascot": {
+      "display_name": "Orc High Warchief Mascot",
+      "pixellab_character_id": "77acab26-ab4b-4d11-94b8-37c4c32e76b8",
+      "role": "main mascot, selected camp leader",
+      "root": "sprites/orc-high-warchief-mascot/Orc_High_Warchief_Mascot",
+      "frame_size": [232, 232],
+      "scale": 1,
+      "anchor": [116, 208],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "idle": {
+          "pixellab_animation": "breathing-idle",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south",
+            "east": "animations/idle_breathing_loop_subtle_chest_breathing_slight/east",
+            "north": "animations/idle_breathing_loop_subtle_chest_breathing_slight/north",
+            "west": "animations/idle_breathing_loop_subtle_chest_breathing_slight/west",
+            "south-east": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east",
+            "north-east": "animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east",
+            "north-west": "animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west",
+            "south-west": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west"
+          }
+        },
+        "roaming": {
+          "pixellab_animation": "roaming",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south",
+            "east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/east",
+            "north": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north",
+            "west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/west",
+            "south-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-east",
+            "north-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east",
+            "north-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west",
+            "south-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion-e9d6c22a/south-west"
+          }
+        },
+        "active": {
+          "pixellab_animation": "active",
+          "frames": 7,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/raising_the_massive_axe_and_breathing_with_battle-/south",
+            "east": "animations/active_working_loop_quick_focused_working_motion_h/east",
+            "north": "animations/active_working_loop_quick_focused_working_motion_h/north",
+            "west": "animations/active_working_loop_quick_focused_working_motion_h/west",
+            "south-east": "animations/active_working_loop_quick_focused_working_motion_h/south-east",
+            "north-east": "animations/active_working_loop_quick_focused_working_motion_h/north-east",
+            "north-west": "animations/active_working_loop_quick_focused_working_motion_h/north-west",
+            "south-west": "animations/active_working_loop_quick_focused_working_motion_h/south-west"
+          }
+        },
+        "waiting": {
+          "pixellab_animation": "waiting",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting_alertly_while_shifting_weight_slightly_hol/south",
+            "east": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/east",
+            "north": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/north",
+            "west": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/west",
+            "south-east": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east",
+            "north-east": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east",
+            "north-west": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west",
+            "south-west": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west"
+          }
+        },
+        "error": {
+          "pixellab_animation": "error",
+          "frames": 7,
+          "fps": 6,
+          "frame_pattern": "frame_%03d.png",
+          "coverage": "south-only",
+          "folders": {
+            "south": "animations/staggering_with_a_sharp_alarm_reaction_tense_shoul/south"
+          }
+        },
+        "stale": {
+          "pixellab_animation": "stale",
+          "frames": 7,
+          "fps": 3,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/slumping_tiredly_with_a_slow_heavy_idle_axe_lowere/south",
+            "east": "animations/stale_inactive_standing_loop_upper-body_only_motio/east",
+            "north": "animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north",
+            "west": "animations/stale_inactive_standing_loop_upper-body_only_motio/west",
+            "south-east": "animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-east",
+            "north-east": "animations/stale_inactive_standing_loop_upper-body_only_motio/north-east",
+            "north-west": "animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/north-west",
+            "south-west": "animations/stale_inactive_loop_dimmed_tired_pose_slow_low-ene/south-west"
+          }
+        },
+        "terminated": {
+          "coverage": "none",
+          "runtime_behavior": "static fallback plus status effect only",
+          "note": "PixelLab falling-back-death is deprecated for this product and must not be used."
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_000.png"
+      }
+    },
+    "orc-claude-storm-shaman": {
+      "display_name": "Orc Claude Storm Shaman",
+      "pixellab_character_id": "5a2661d9-524f-431b-ba7d-619e44bb885d",
+      "role": "Claude agent session character, storm shaman strategist",
+      "root": "sprites/orc-claude-storm-shaman/Orc_Claude_Storm_Shaman",
+      "frame_size": [232, 232],
+      "scale": 1,
+      "anchor": [116, 208],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "idle": {
+          "pixellab_animation": "breathing-idle",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south",
+            "east": "animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/east",
+            "north": "animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north",
+            "west": "animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/west",
+            "south-east": "animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-east",
+            "north-east": "animations/stationary_breathing_idle_loop_seen_from_a_rear_th/north-east",
+            "north-west": "animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north-west",
+            "south-west": "animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-west"
+          }
+        },
+        "roaming": {
+          "pixellab_animation": "roaming",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south",
+            "east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/east",
+            "north": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north",
+            "west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/west",
+            "south-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east",
+            "north-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east",
+            "north-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west",
+            "south-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west"
+          }
+        },
+        "active": {
+          "pixellab_animation": "active",
+          "frames": 7,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/active_storm_shaman_casting_and_monitoring_loop_wi/south",
+            "east": "animations/active_storm_shaman_casting_and_monitoring_loop_wi/east",
+            "north": "animations/active_storm_shaman_casting_and_monitoring_loop_wi/north",
+            "west": "animations/active_storm_shaman_casting_and_monitoring_loop_wi/west",
+            "south-east": "animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-east",
+            "north-east": "animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-east",
+            "north-west": "animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-west",
+            "south-west": "animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-west"
+          }
+        },
+        "waiting": {
+          "pixellab_animation": "waiting",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south",
+            "east": "animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/east",
+            "north": "animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north",
+            "west": "animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/west",
+            "south-east": "animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-east",
+            "north-east": "animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-east",
+            "north-west": "animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-west",
+            "south-west": "animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-west"
+          }
+        },
+        "stale": {
+          "pixellab_animation": "stale",
+          "frames": 7,
+          "fps": 3,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south",
+            "east": "animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/east",
+            "north": "animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north",
+            "west": "animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/west",
+            "south-east": "animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-east",
+            "north-east": "animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north-east",
+            "north-west": "animations/static_stale_idle_loop_for_an_inactive_storm_shama/north-west",
+            "south-west": "animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-west"
+          }
+        },
+        "error": {
+          "pixellab_animation": "error",
+          "frames": 7,
+          "fps": 6,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south",
+            "east": "animations/error_alert_loop_for_a_storm_shaman_strategist_sho/east",
+            "north": "animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north",
+            "west": "animations/error_alert_loop_for_a_storm_shaman_strategist_sho/west",
+            "south-east": "animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-east",
+            "north-east": "animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-east",
+            "north-west": "animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-west",
+            "south-west": "animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-west"
+          }
+        },
+        "terminated": {
+          "coverage": "none",
+          "runtime_behavior": "static fallback plus status effect only",
+          "note": "PixelLab falling-back-death is deprecated for this product and must not be used."
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south/frame_000.png"
+      }
+    },
+    "orc-codex-field-engineer": {
+      "display_name": "Orc Codex Field Engineer",
+      "pixellab_character_id": "3b1c381a-a2ee-4afd-97de-21fa69d50e0a",
+      "role": "Codex agent session character, field engineer",
+      "root": "sprites/orc-codex-field-engineer/Orc_Codex_Field_Engineer",
+      "frame_size": [232, 232],
+      "scale": 1,
+      "anchor": [116, 208],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "idle": {
+          "pixellab_animation": "breathing-idle",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/south",
+            "east": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/east",
+            "north": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/north",
+            "west": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/west",
+            "south-east": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/south-east",
+            "north-east": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/north-east",
+            "north-west": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/north-west",
+            "south-west": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/south-west"
+          }
+        },
+        "roaming": {
+          "pixellab_animation": "roaming",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south",
+            "east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/east",
+            "north": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north",
+            "west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/west",
+            "south-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east",
+            "north-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east",
+            "north-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west",
+            "south-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west"
+          }
+        },
+        "active": {
+          "pixellab_animation": "active",
+          "frames": 7,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/active_working_loop_focused_field_engineer_operati/south",
+            "east": "animations/active_working_loop_focused_field_engineer_operati/east",
+            "north": "animations/active_working_loop_focused_field_engineer_operati/north",
+            "west": "animations/active_working_loop_focused_field_engineer_operati/west",
+            "south-east": "animations/active_working_loop_focused_field_engineer_operati/south-east",
+            "north-east": "animations/active_working_loop_focused_field_engineer_operati/north-east",
+            "north-west": "animations/active_working_loop_focused_field_engineer_operati/north-west",
+            "south-west": "animations/active_working_loop_focused_field_engineer_operati/south-west"
+          }
+        },
+        "waiting": {
+          "pixellab_animation": "waiting",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting_expectant_idle_loop_field_engineer_glances-c3638d09/south",
+            "east": "animations/waiting_expectant_idle_loop_field_engineer_glances-c3638d09/east",
+            "north": "animations/waiting_expectant_idle_loop_field_engineer_glances/north",
+            "west": "animations/waiting_expectant_idle_loop_field_engineer_glances-c3638d09/west",
+            "south-east": "animations/waiting_expectant_idle_loop_field_engineer_glances-c3638d09/south-east",
+            "north-east": "animations/waiting_expectant_idle_loop_field_engineer_glances-c3638d09/north-east",
+            "north-west": "animations/waiting_expectant_idle_loop_field_engineer_glances-c3638d09/north-west",
+            "south-west": "animations/waiting_expectant_idle_loop_field_engineer_glances-c3638d09/south-west"
+          }
+        },
+        "stale": {
+          "pixellab_animation": "stale",
+          "frames": 7,
+          "fps": 3,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/stale_inactive_standing_loop_upper-body_only_motio/south",
+            "east": "animations/stale_inactive_standing_loop_upper-body_only_motio/east",
+            "north": "animations/stale_inactive_standing_loop_upper-body_only_motio/north",
+            "west": "animations/stale_inactive_standing_loop_upper-body_only_motio/west",
+            "south-east": "animations/stale_inactive_standing_loop_upper-body_only_motio/south-east",
+            "north-east": "animations/stale_inactive_standing_loop_upper-body_only_motio/north-east",
+            "north-west": "animations/stale_inactive_standing_loop_upper-body_only_motio/north-west",
+            "south-west": "animations/stale_inactive_standing_loop_upper-body_only_motio/south-west"
+          }
+        },
+        "error": {
+          "pixellab_animation": "error",
+          "frames": 7,
+          "fps": 6,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/error_alert_loop_short_startled_pose_red_warning_f/south",
+            "east": "animations/error_alert_loop_short_startled_pose_red_warning_f/east",
+            "north": "animations/error_alert_loop_short_startled_pose_red_warning_f/north",
+            "west": "animations/error_alert_loop_short_startled_pose_red_warning_f/west",
+            "south-east": "animations/error_alert_loop_short_startled_pose_red_warning_f/south-east",
+            "north-east": "animations/error_alert_loop_short_startled_pose_red_warning_f/north-east",
+            "north-west": "animations/error_alert_loop_from_a_north-west_rear_three-quar/north-west",
+            "south-west": "animations/error_alert_loop_short_startled_pose_red_warning_f/south-west"
+          }
+        },
+        "terminated": {
+          "coverage": "none",
+          "runtime_behavior": "static fallback plus status effect only",
+          "note": "PixelLab falling-back-death is deprecated for this product and must not be used."
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/south/frame_000.png"
+      }
+    },
+    "orc-unknown": {
+      "display_name": "Orc Unknown Grunt",
+      "pixellab_character_id": "50519f63-0f39-49da-9782-f75b93b8152c",
+      "role": "agent-type-undetermined pane character, generic camp grunt",
+      "root": "sprites/orc-unknown/Orc_Unknown_Grunt",
+      "frame_size": [228, 228],
+      "scale": 1,
+      "anchor": [114, 204],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "idle": {
+          "pixellab_animation": "breathing-idle",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south",
+            "east": "animations/idle_breathing_loop_subtle_chest_breathing_slight/east",
+            "north": "animations/idle_breathing_loop_subtle_chest_breathing_slight/north",
+            "west": "animations/idle_breathing_loop_subtle_chest_breathing_slight/west",
+            "south-east": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east",
+            "north-east": "animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east",
+            "north-west": "animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west",
+            "south-west": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west"
+          }
+        },
+        "roaming": {
+          "pixellab_animation": "roaming",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south",
+            "east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/east",
+            "north": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north",
+            "west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/west",
+            "south-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east",
+            "north-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east",
+            "north-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west",
+            "south-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west"
+          }
+        },
+        "active": {
+          "pixellab_animation": "active",
+          "frames": 7,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/active_working_loop_quick_focused_working_motion_h/south",
+            "east": "animations/active_working_loop_quick_focused_working_motion_h/east",
+            "north": "animations/active_working_loop_quick_focused_working_motion_h/north",
+            "west": "animations/active_working_loop_quick_focused_working_motion_h/west",
+            "south-east": "animations/active_working_loop_quick_focused_working_motion_h/south-east",
+            "north-east": "animations/active_working_loop_quick_focused_working_motion_h/north-east",
+            "north-west": "animations/active_working_loop_quick_focused_working_motion_h/north-west",
+            "south-west": "animations/active_working_loop_quick_focused_working_motion_h/south-west"
+          }
+        },
+        "waiting": {
+          "pixellab_animation": "waiting",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/south",
+            "east": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/east",
+            "north": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/north",
+            "west": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/west",
+            "south-east": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east",
+            "north-east": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east",
+            "north-west": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west",
+            "south-west": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west"
+          }
+        },
+        "stale": {
+          "pixellab_animation": "stale",
+          "frames": 7,
+          "fps": 3,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/stale_inactive_standing_loop_upper-body_only_motio/south",
+            "east": "animations/stale_inactive_standing_loop_upper-body_only_motio/east",
+            "north": "animations/stale_inactive_standing_loop_upper-body_only_motio/north",
+            "west": "animations/stale_inactive_standing_loop_upper-body_only_motio/west",
+            "south-east": "animations/stale_inactive_standing_loop_upper-body_only_motio/south-east",
+            "north-east": "animations/stale_inactive_standing_loop_upper-body_only_motio/north-east",
+            "north-west": "animations/stale_inactive_standing_loop_upper-body_only_motio/north-west",
+            "south-west": "animations/stale_inactive_standing_loop_upper-body_only_motio/south-west"
+          }
+        },
+        "error": {
+          "pixellab_animation": "error",
+          "frames": 7,
+          "fps": 6,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/error_alert_loop_short_startled_pose_red_warning_f/south",
+            "east": "animations/error_alert_loop_short_startled_pose_red_warning_f/east",
+            "north": "animations/error_alert_loop_short_startled_pose_red_warning_f/north",
+            "west": "animations/error_alert_loop_short_startled_pose_red_warning_f/west",
+            "south-east": "animations/error_alert_loop_short_startled_pose_red_warning_f/south-east",
+            "north-east": "animations/error_alert_loop_short_startled_pose_red_warning_f/north-east",
+            "north-west": "animations/error_alert_loop_short_startled_pose_red_warning_f/north-west",
+            "south-west": "animations/error_alert_loop_short_startled_pose_red_warning_f/south-west"
+          }
+        },
+        "terminated": {
+          "coverage": "none",
+          "runtime_behavior": "static fallback plus status effect only",
+          "note": "PixelLab falling-back-death is deprecated for this product and must not be used."
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_000.png"
+      }
+    },
+    "orc-iron-commander": {
+      "display_name": "Orc Iron Commander",
+      "pixellab_character_id": "b9a2dbff-d392-4703-9555-3ac2e1cf8df2",
+      "role": "interrupt/control/command symbol, iron commander",
+      "root": "sprites/orc-iron-commander/Orc_Iron_Commander",
+      "frame_size": [236, 236],
+      "scale": 1,
+      "anchor": [118, 212],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "idle": {
+          "pixellab_animation": "breathing-idle",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south",
+            "east": "animations/idle_breathing_loop_subtle_chest_breathing_slight/east",
+            "north": "animations/idle_breathing_loop_subtle_chest_breathing_slight/north",
+            "west": "animations/idle_breathing_loop_subtle_chest_breathing_slight/west",
+            "south-east": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east",
+            "north-east": "animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east",
+            "north-west": "animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west",
+            "south-west": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west"
+          }
+        },
+        "roaming": {
+          "pixellab_animation": "roaming",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south",
+            "east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/east",
+            "north": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north",
+            "west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/west",
+            "south-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east",
+            "north-east": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east",
+            "north-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west",
+            "south-west": "animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west"
+          }
+        },
+        "active": {
+          "pixellab_animation": "active",
+          "frames": 7,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/active_working_loop_quick_focused_working_motion_h/south",
+            "east": "animations/active_working_loop_quick_focused_working_motion_h/east",
+            "north": "animations/active_working_loop_quick_focused_working_motion_h/north",
+            "west": "animations/active_working_loop_quick_focused_working_motion_h/west",
+            "south-east": "animations/active_working_loop_quick_focused_working_motion_h/south-east",
+            "north-east": "animations/active_working_loop_quick_focused_working_motion_h/north-east",
+            "north-west": "animations/active_working_loop_quick_focused_working_motion_h/north-west",
+            "south-west": "animations/active_working_loop_quick_focused_working_motion_h/south-west"
+          }
+        },
+        "waiting": {
+          "pixellab_animation": "waiting",
+          "frames": 7,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/south",
+            "east": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/east",
+            "north": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/north",
+            "west": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/west",
+            "south-east": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east",
+            "north-east": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east",
+            "north-west": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west",
+            "south-west": "animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west"
+          }
+        },
+        "stale": {
+          "pixellab_animation": "stale",
+          "frames": 7,
+          "fps": 3,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/stale_inactive_standing_loop_upper-body_only_motio/south",
+            "east": "animations/stale_inactive_standing_loop_upper-body_only_motio/east",
+            "north": "animations/stale_inactive_standing_loop_upper-body_only_motio/north",
+            "west": "animations/stale_inactive_standing_loop_upper-body_only_motio/west",
+            "south-east": "animations/stale_inactive_standing_loop_upper-body_only_motio/south-east",
+            "north-east": "animations/stationary_stale_idle_loop_seen_from_a_rear_three-/north-east",
+            "north-west": "animations/stale_inactive_standing_loop_upper-body_only_motio/north-west",
+            "south-west": "animations/stale_inactive_standing_loop_upper-body_only_motio/south-west"
+          }
+        },
+        "error": {
+          "pixellab_animation": "error",
+          "frames": 7,
+          "fps": 6,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/error_alert_loop_short_startled_pose_red_warning_f/south",
+            "east": "animations/error_alert_loop_short_startled_pose_red_warning_f/east",
+            "north": "animations/error_alert_loop_short_startled_pose_red_warning_f/north",
+            "west": "animations/error_alert_loop_short_startled_pose_red_warning_f/west",
+            "south-east": "animations/error_alert_loop_short_startled_pose_red_warning_f/south-east",
+            "north-east": "animations/stationary_error_alert_loop_seen_from_a_rear_three/north-east",
+            "north-west": "animations/error_alert_loop_short_startled_pose_red_warning_f/north-west",
+            "south-west": "animations/error_alert_loop_short_startled_pose_red_warning_f/south-west"
+          }
+        },
+        "terminated": {
+          "coverage": "none",
+          "runtime_behavior": "static fallback plus status effect only",
+          "note": "PixelLab falling-back-death is deprecated for this product and must not be used."
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_000.png"
+      }
+    }
+  },
+  "backgrounds": {
+    "warbase-sunset-dashboard": {
+      "display_name": "Warbase Sunset Dashboard Background",
+      "file": "backgrounds/warbase-sunset-dashboard.png",
+      "source_reference": "/Users/jongtaek.hwang/Downloads/ogrimar.png",
+      "generation_source": "image generation",
+      "prompt_source": "12-PixelLab-Prompts.md#generated-warbase-sunset-dashboard-background",
+      "logical_size": [1672, 941],
+      "aspect_ratio": "16:9",
+      "safe_area": [390, 520, 890, 330],
+      "sha256": "d26a79b64988d2c001d40d3a2d0236136d19c6ec701245e19585daf2121a4160",
+      "bytes": 2613264,
+      "usage": "camp detail background; place orc sprites in the lower-center safe area and keep UI panels on edges"
+    }
+  },
+  "tilesets": {
+    "orc-camp-terrain-square-topdown": {
+      "display_name": "Orc Camp Terrain Square Topdown",
+      "pixellab_tiles_pro_id": "0c9705cb-1efc-4953-9046-60c530481739",
+      "type": "tiles_pro",
+      "tile_shape": "square_topdown",
+      "view": "top-down",
+      "tile_size": [32, 32],
+      "tile_count": 16,
+      "root": "tiles/orc-camp-terrain-square-topdown",
+      "tiles": {
+        "moss-ground": "tile-00-moss-ground.png",
+        "packed-dirt": "tile-01-packed-dirt.png",
+        "stone-path": "tile-02-stone-path.png",
+        "wooden-platform": "tile-03-wooden-platform.png",
+        "scorched-ground": "tile-04-scorched-ground.png",
+        "hide-floor": "tile-05-hide-floor.png",
+        "muddy-moss-edge": "tile-06-muddy-moss-edge.png",
+        "root-pebble-ground": "tile-07-root-pebble-ground.png",
+        "variation-08": "tile-08-variation.png",
+        "variation-09": "tile-09-variation.png",
+        "variation-10": "tile-10-variation.png",
+        "variation-11": "tile-11-variation.png",
+        "variation-12": "tile-12-variation.png",
+        "variation-13": "tile-13-variation.png",
+        "variation-14": "tile-14-variation.png",
+        "variation-15": "tile-15-variation.png"
+      },
+      "source": "generation/non-character-assets.json"
+    },
+    "orc-warbase-terrain-square-topdown": {
+      "display_name": "Orc Warbase Terrain Square Topdown",
+      "pixellab_tiles_pro_id": "7dbf641c-b3f6-4e4d-937f-19a9a071b88c",
+      "type": "tiles_pro",
+      "tile_shape": "square_topdown",
+      "view": "top-down",
+      "tile_size": [32, 32],
+      "tile_count": 16,
+      "root": "tiles/orc-warbase-terrain-square-topdown",
+      "tiles": {
+        "red-clay-canyon-ground": "tile-00-red-clay-canyon-ground.png",
+        "cracked-stone-courtyard": "tile-01-cracked-stone-courtyard.png",
+        "dark-timber-platform": "tile-02-dark-timber-platform.png",
+        "black-iron-grate": "tile-03-black-iron-grate.png",
+        "scorched-forge-floor": "tile-04-scorched-forge-floor.png",
+        "dusty-packed-path": "tile-05-dusty-packed-path.png",
+        "bone-rope-boundary-edge": "tile-06-bone-rope-boundary-edge.png",
+        "ember-lit-stone": "tile-07-ember-lit-stone.png",
+        "red-clay-dust": "tile-08-red-clay-dust.png",
+        "cracked-canyon-stone": "tile-09-cracked-canyon-stone.png",
+        "dark-timber-plank": "tile-10-dark-timber-plank.png",
+        "iron-spike-floor-accent": "tile-11-iron-spike-floor-accent.png",
+        "ash-ember-ground": "tile-12-ash-ember-ground.png",
+        "worn-command-room-floor": "tile-13-worn-command-room-floor.png",
+        "palisade-shadow-edge": "tile-14-palisade-shadow-edge.png",
+        "teal-utility-magic-accent": "tile-15-teal-utility-magic-accent.png"
+      },
+      "source": "generation/non-character-assets.json"
+    }
+  },
+  "objects": {
+    "props": {
+      "display_name": "Orc Camp Props",
+      "source_review_object_id": "f6aeae0e-0a70-45ed-829f-5aaf4ca85ef0",
+      "tag": "orc-camp-props",
+      "size": [64, 64],
+      "root": "objects/props",
+      "items": {
+        "campfire": {
+          "pixellab_object_id": "2a35e8ec-2dba-468c-9775-ceb1eeb5bdbe",
+          "file": "campfire.png"
+        },
+        "command-tent": {
+          "pixellab_object_id": "586fe452-c490-40b2-84bb-a90cddaecab6",
+          "file": "command-tent.png"
+        },
+        "workbench": {
+          "pixellab_object_id": "090edf6a-8fef-46c3-a64d-f98520064430",
+          "file": "workbench.png"
+        },
+        "tool-rack": {
+          "pixellab_object_id": "d3d247a6-5182-4497-8308-90b90a2605f1",
+          "file": "tool-rack.png"
+        },
+        "log-pile": {
+          "pixellab_object_id": "5fc2b0f2-5e99-458d-bf3e-0e531460b884",
+          "file": "log-pile.png"
+        },
+        "supply-crate": {
+          "pixellab_object_id": "9cf7c304-3ee8-4bc4-bd21-55c9378b9671",
+          "file": "supply-crate.png"
+        },
+        "utility-totem": {
+          "pixellab_object_id": "a95f7e43-61c4-49b7-ba49-5e11578b2323",
+          "file": "utility-totem.png"
+        },
+        "notice-board": {
+          "pixellab_object_id": "656d1f85-920d-4dd6-9461-e0a59e8ba08a",
+          "file": "notice-board.png"
+        },
+        "forge-anvil": {
+          "pixellab_object_id": "2244357f-50cd-49b1-98e8-26e67b2fac34",
+          "file": "forge-anvil.png"
+        },
+        "training-dummy": {
+          "pixellab_object_id": "91a8ba1a-680a-4ecb-88c3-69932bead031",
+          "file": "training-dummy.png"
+        },
+        "bedroll": {
+          "pixellab_object_id": "62bfdbce-b492-47e0-b3ad-2477bf8b1767",
+          "file": "bedroll.png"
+        },
+        "banner-pole": {
+          "pixellab_object_id": "5ff99cb4-2731-4857-8897-135e994e10de",
+          "file": "banner-pole.png"
+        },
+        "barrel": {
+          "pixellab_object_id": "f5542530-2b5f-4e6d-962a-3e8c9fb07f14",
+          "file": "barrel.png"
+        },
+        "stone-marker": {
+          "pixellab_object_id": "ed0f23d3-10e3-4d4b-95c8-0ba0956b166d",
+          "file": "stone-marker.png"
+        },
+        "rope-coil": {
+          "pixellab_object_id": "791b284c-7557-456a-82b4-9cb2f7a16a9e",
+          "file": "rope-coil.png"
+        },
+        "locked-chest": {
+          "pixellab_object_id": "78edfc90-ead4-48a2-bb88-7f91d439bb22",
+          "file": "locked-chest.png"
+        }
+      }
+    },
+    "status-ui": {
+      "display_name": "Orc Camp Status and UI Icons",
+      "source_review_object_id": "3d53bf5a-c24c-4a6d-a120-cd849d538d8b",
+      "tag": "orc-camp-status-ui",
+      "size": [64, 64],
+      "root": "objects/status-ui",
+      "items": {
+        "active-spark": {
+          "pixellab_object_id": "439af773-eadd-4ac9-aa43-1c5e47aa9e63",
+          "file": "active-spark.png"
+        },
+        "waiting-bubble": {
+          "pixellab_object_id": "c32625d9-88d8-4fe6-8184-48733c30d140",
+          "file": "waiting-bubble.png"
+        },
+        "error-burst": {
+          "pixellab_object_id": "44fa412f-7fdf-4fce-9ef6-5c200b36c088",
+          "file": "error-burst.png"
+        },
+        "stale-clock": {
+          "pixellab_object_id": "346ace4d-795f-4954-9c14-99b25aac2796",
+          "file": "stale-clock.png"
+        },
+        "terminated-ghost": {
+          "pixellab_object_id": "33c4d65c-1a75-4b30-aced-599049b3d80a",
+          "file": "terminated-ghost.png"
+        },
+        "idle-glow": {
+          "pixellab_object_id": "68ef15d9-54b2-40c0-95d9-8b46185b48d4",
+          "file": "idle-glow.png"
+        },
+        "unknown-charm": {
+          "pixellab_object_id": "b31e4f44-83ef-498e-8669-b9d9267df591",
+          "file": "unknown-charm.png"
+        },
+        "send-arrow": {
+          "pixellab_object_id": "95065723-ca21-4ee0-9697-4446e4c4fa09",
+          "file": "send-arrow.png"
+        },
+        "interrupt-hand": {
+          "pixellab_object_id": "a2cd049c-b9d8-4c56-99cb-dc0adb151da0",
+          "file": "interrupt-hand.png"
+        },
+        "refresh-arrows": {
+          "pixellab_object_id": "281fcdf3-ac81-4820-99c8-aafeef9f7627",
+          "file": "refresh-arrows.png"
+        },
+        "settings-gear": {
+          "pixellab_object_id": "3f2ac90e-38f0-48d3-9d95-3c0941167f66",
+          "file": "settings-gear.png"
+        },
+        "copy-parchment": {
+          "pixellab_object_id": "897509ba-0833-4b31-9614-f6eeec23a2e6",
+          "file": "copy-parchment.png"
+        },
+        "attach-hook": {
+          "pixellab_object_id": "0d64ac57-2ae3-41bc-b907-6a1f1366506f",
+          "file": "attach-hook.png"
+        },
+        "lock": {
+          "pixellab_object_id": "f0a10568-b507-4aa2-b748-d55f7403f03d",
+          "file": "lock.png"
+        },
+        "visibility-eye": {
+          "pixellab_object_id": "4a8d175b-2cca-4bec-8bee-d1e545f55d0f",
+          "file": "visibility-eye.png"
+        },
+        "pause-bones": {
+          "pixellab_object_id": "830fa134-bd61-4cb5-9296-ebae566f9993",
+          "file": "pause-bones.png"
+        }
+      }
+    },
+    "wartable-warbase": {
+      "display_name": "Orc Camp Wartable and Warbase Props",
+      "source_review_object_id": "169d4c1a-4e9a-4116-87c4-32826149fc5f",
+      "tag": "orc-camp-wartable-warbase-props",
+      "size": [64, 64],
+      "root": "objects/wartable-warbase",
+      "items": {
+        "rectangular-wartable": {
+          "pixellab_object_id": "dfb98be8-36bc-4ded-af86-93b935490899",
+          "file": "rectangular-wartable.png"
+        },
+        "round-command-table": {
+          "pixellab_object_id": "c7189e51-0da5-46ed-8526-e22541160f08",
+          "file": "round-command-table.png"
+        },
+        "red-clay-floor-marker": {
+          "pixellab_object_id": "f8a620be-8253-4caa-a48c-c20218a21ecc",
+          "file": "red-clay-floor-marker.png"
+        },
+        "iron-spike-barricade": {
+          "pixellab_object_id": "a557f983-1be2-4959-86fc-c73bf748d25e",
+          "file": "iron-spike-barricade.png"
+        },
+        "timber-palisade-corner": {
+          "pixellab_object_id": "653e997f-1db2-4240-84f9-925ed0e6364c",
+          "file": "timber-palisade-corner.png"
+        },
+        "ember-brazier": {
+          "pixellab_object_id": "41bcbd04-424c-44ab-b448-a451e575c80c",
+          "file": "ember-brazier.png"
+        },
+        "teal-utility-post": {
+          "pixellab_object_id": "47409c4d-20bb-4371-b6dc-a4a19166ae20",
+          "file": "teal-utility-post.png"
+        },
+        "bone-marker-set": {
+          "pixellab_object_id": "26335668-f786-4f4f-9e95-e3c7256c0f3b",
+          "file": "bone-marker-set.png"
+        },
+        "rolled-blank-map": {
+          "pixellab_object_id": "4b4131ec-01d8-4ffe-a411-a13614f204f8",
+          "file": "rolled-blank-map.png"
+        },
+        "dagger-command-token": {
+          "pixellab_object_id": "c1ee1fe3-80e0-456f-8950-59970bd2adad",
+          "file": "dagger-command-token.png"
+        },
+        "hide-awning-post": {
+          "pixellab_object_id": "a3787a31-3b74-453c-bf61-2f53ed4dfaa4",
+          "file": "hide-awning-post.png"
+        },
+        "red-clay-supply-urn": {
+          "pixellab_object_id": "fe5f632c-6dcb-4cef-af58-e18716193683",
+          "file": "red-clay-supply-urn.png"
+        },
+        "forge-coal-tray": {
+          "pixellab_object_id": "87d8372a-05e3-475b-bb34-ed23ebc3ddcf",
+          "file": "forge-coal-tray.png"
+        },
+        "warbase-boundary-stone": {
+          "pixellab_object_id": "31b123a7-de1d-4dc9-bb9f-e32953c5dfeb",
+          "file": "warbase-boundary-stone.png"
+        },
+        "blank-tactical-board": {
+          "pixellab_object_id": "6bddbdae-e1f2-4c30-98e5-5a8d07245036",
+          "file": "blank-tactical-board.png"
+        },
+        "command-crate": {
+          "pixellab_object_id": "b94749d1-8d5e-41e9-91a8-49930bff15e3",
+          "file": "command-crate.png"
+        }
+      }
+    }
+  },
+  "ui": {
+    "selection_markers": {
+      "display_name": "Orc Camp UI Selection Markers",
+      "source_review_object_id": "157c57db-8acc-476e-9581-ce3830a170b3",
+      "tag": "orc-camp-ui-selection-markers",
+      "size": [64, 64],
+      "root": "ui/selection-markers",
+      "items": {
+        "selected-orc": {
+          "pixellab_object_id": "99729015-0e12-47db-8c79-02d26681ca3e",
+          "file": "selected-orc.png"
+        },
+        "hover-orc": {
+          "pixellab_object_id": "bedab731-1ac2-4bdf-b756-4e7d75ae837a",
+          "file": "hover-orc.png"
+        },
+        "active-target": {
+          "pixellab_object_id": "eec25776-eefb-4c84-a929-b39273542417",
+          "file": "active-target.png"
+        },
+        "danger-target": {
+          "pixellab_object_id": "75007a68-6754-4649-b1c4-bdeaddac4f50",
+          "file": "danger-target.png"
+        },
+        "attach-target": {
+          "pixellab_object_id": "377380d2-e36b-49da-9be9-e41bf739b2c2",
+          "file": "attach-target.png"
+        },
+        "stale-target": {
+          "pixellab_object_id": "b48edaa4-af64-4a9a-8ae4-63de69ed359d",
+          "file": "stale-target.png"
+        },
+        "unknown-target": {
+          "pixellab_object_id": "3430907f-e5d0-4236-a29b-ac5b93e27079",
+          "file": "unknown-target.png"
+        },
+        "drop-zone": {
+          "pixellab_object_id": "45c1a832-ac49-4265-a607-f07849c4fbbe",
+          "file": "drop-zone.png"
+        },
+        "focus-reticle": {
+          "pixellab_object_id": "3954c89f-b5f2-49d0-b9d7-cf3eade03ef7",
+          "file": "focus-reticle.png"
+        },
+        "current-pane": {
+          "pixellab_object_id": "012de0cc-24f9-41b6-8597-fb0b2a1bc977",
+          "file": "current-pane.png"
+        },
+        "window-lane-divider": {
+          "pixellab_object_id": "576ad669-9f3f-4b53-9300-e1d9d6c65a7d",
+          "file": "window-lane-divider.png"
+        },
+        "camp-boundary": {
+          "pixellab_object_id": "18849e47-6ab3-4cda-a518-38e53ec20fe9",
+          "file": "camp-boundary.png"
+        },
+        "agent-spawn": {
+          "pixellab_object_id": "3fb939f7-4912-4421-b618-75bdfedbbc7f",
+          "file": "agent-spawn.png"
+        },
+        "activity-pulse": {
+          "pixellab_object_id": "b7504f5e-68f6-4b54-b130-34a388e6e7a9",
+          "file": "activity-pulse.png"
+        },
+        "disconnected-marker": {
+          "pixellab_object_id": "df350759-e857-469b-b7a1-91e0f3b50079",
+          "file": "disconnected-marker.png"
+        },
+        "reconnect-marker": {
+          "pixellab_object_id": "fe9000cd-ec03-400f-9f0f-82b7ec446e4f",
+          "file": "reconnect-marker.png"
+        }
+      }
+    },
+    "frames": {
+      "display_name": "Orc Camp UI Frames",
+      "root": "ui/frames",
+      "stretch": "9-slice candidate; verify slicing before CSS border-image use",
+      "items": {
+        "inspector-panel": {
+          "pixellab_map_object_id": "8c0be1d8-447c-43db-89ac-51b7779b94e8",
+          "file": "inspector-panel-frame.png",
+          "size": [192, 256]
+        },
+        "activity-log-panel": {
+          "pixellab_map_object_id": "6c4fd00d-a173-40fe-87d6-5f2426c40b65",
+          "file": "activity-log-panel-frame.png",
+          "size": [192, 256]
+        },
+        "terminal-preview": {
+          "pixellab_map_object_id": "37ab9a44-6aa6-41d6-a65e-93e1833f068e",
+          "file": "terminal-preview-frame.png",
+          "size": [256, 160]
+        },
+        "settings-panel": {
+          "pixellab_map_object_id": "b04c126d-c3ea-4226-9d59-9b7adaa4c8e7",
+          "file": "settings-panel-frame.png",
+          "size": [192, 192]
+        },
+        "command-dock": {
+          "pixellab_map_object_id": "0efea1da-577c-4a11-a32d-53c463b812cb",
+          "file": "command-dock-frame.png",
+          "size": [320, 96]
+        },
+        "wartable-command-dock": {
+          "pixellab_map_object_id": "241e5b72-44de-4251-a63e-868d8d491628",
+          "file": "wartable-command-dock-frame.png",
+          "size": [320, 96]
+        },
+        "danger-confirm-modal": {
+          "pixellab_map_object_id": "22484f0d-12f1-457d-8d47-0cfdb70ac01b",
+          "file": "danger-confirm-modal-frame.png",
+          "size": [256, 160]
+        },
+        "camp-card": {
+          "pixellab_map_object_id": "c96f313a-940d-4c1f-b545-05addc0d528b",
+          "file": "camp-card-frame.png",
+          "size": [192, 112]
+        }
+      }
+    },
+    "buttons": {
+      "display_name": "Orc Camp UI Button Skins",
+      "root": "ui/buttons",
+      "stretch": "9-slice candidate; text must be rendered by web UI",
+      "items": {
+        "primary": {
+          "pixellab_map_object_id": "66562bf8-8389-4c69-959f-12875d83221b",
+          "file": "primary-button.png",
+          "size": [96, 32]
+        },
+        "secondary": {
+          "pixellab_map_object_id": "32c5b1c2-9686-4fed-8b25-80908e0f0037",
+          "file": "secondary-button.png",
+          "size": [96, 32]
+        },
+        "danger": {
+          "pixellab_map_object_id": "216bc906-7dcd-4a10-a827-4e9fd58e9447",
+          "file": "danger-button.png",
+          "size": [96, 32]
+        },
+        "disabled": {
+          "pixellab_map_object_id": "4341e9a9-3209-4ba0-8f81-cc0328dc2ab1",
+          "file": "disabled-button.png",
+          "size": [96, 32]
+        }
+      }
+    },
+    "states": {
+      "display_name": "Orc Camp UI State Accents",
+      "root": "ui/states",
+      "items": {
+        "loading-campfire": {
+          "pixellab_map_object_id": "18df0840-72cc-44c4-8ec7-675b704df8ae",
+          "file": "loading-campfire.png",
+          "size": [96, 96]
+        },
+        "empty-camp-marker": {
+          "pixellab_map_object_id": "dccca6fe-3883-40ef-afdf-b10714099c48",
+          "file": "empty-camp-marker.png",
+          "size": [128, 96]
+        },
+        "disconnected-banner": {
+          "pixellab_map_object_id": "5e0dafa4-a265-4b8d-a2bc-f1ed22684319",
+          "file": "disconnected-banner.png",
+          "size": [256, 48]
+        }
+      }
+    },
+    "review_only": {
+      "camp-card-frame-needs-review": {
+        "pixellab_map_object_id": "d82a73ba-e3da-440d-93bb-8e96ae1424ed",
+        "file": "ui/frames/camp-card-frame-needs-review.png",
+        "size": [192, 112],
+        "reason": "Generated as a campfire-like illustration instead of a reusable empty card frame."
+      }
+    }
+  }
+}

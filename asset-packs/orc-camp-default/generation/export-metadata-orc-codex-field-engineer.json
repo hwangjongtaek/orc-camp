@@ -1,0 +1,35 @@
+{
+  "exported_at": "2026-06-26",
+  "tool": "PixelLab MCP character download",
+  "character_id": "3b1c381a-a2ee-4afd-97de-21fa69d50e0a",
+  "character_name": "Orc Codex Field Engineer",
+  "download_url": "https://api.pixellab.ai/mcp/characters/3b1c381a-a2ee-4afd-97de-21fa69d50e0a/download",
+  "zip": {
+    "path": "generation/exports/orc-codex-field-engineer-3b1c381a-2026-06-26.zip",
+    "bytes": 4524043,
+    "sha256": "3a1b1ed09d8bd3cd34f0ee84e50e575a5eea121aaf7645edecec56be92fe64c1"
+  },
+  "extracted": {
+    "path": "sprites/orc-codex-field-engineer",
+    "root": "sprites/orc-codex-field-engineer/Orc_Codex_Field_Engineer",
+    "file_count": 361,
+    "png_file_count": 360,
+    "animation_png_file_count": 352,
+    "rotation_png_file_count": 8,
+    "frame_size": [232, 232]
+  },
+  "status_summary": {
+    "idle": "8 directions, 7 frames",
+    "roaming": "8 directions, 9 frames",
+    "active": "8 directions, 7 frames",
+    "waiting": "8 directions, 7 frames",
+    "stale": "8 directions, 7 frames",
+    "error": "8 directions, 7 frames",
+    "terminated": "not exported as character animation"
+  },
+  "quality_notes": [
+    "waiting north was regenerated as a single direction and is stored in a separate waiting folder.",
+    "error north-west was regenerated with a rear three-quarter prompt and is stored in a separate error folder.",
+    "stale and error use standing status loops; falling-back-death is deprecated and intentionally not mapped in manifest."
+  ]
+}

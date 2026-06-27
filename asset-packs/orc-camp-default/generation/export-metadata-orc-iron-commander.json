@@ -1,0 +1,38 @@
+{
+  "exported_at": "2026-06-26",
+  "tool": "PixelLab MCP character download",
+  "character_id": "b9a2dbff-d392-4703-9555-3ac2e1cf8df2",
+  "character_name": "Orc Iron Commander",
+  "download_url": "https://api.pixellab.ai/mcp/characters/b9a2dbff-d392-4703-9555-3ac2e1cf8df2/download",
+  "zip": {
+    "path": "generation/exports/orc-iron-commander-b9a2dbff-2026-06-26.zip",
+    "bytes": 6155189,
+    "sha256": "856c78648f800af7c7757b2e02af05a9e99b8e04c83d008954df4dfca876f28c"
+  },
+  "extracted": {
+    "path": "sprites/orc-iron-commander",
+    "root": "sprites/orc-iron-commander/Orc_Iron_Commander",
+    "file_count": 361,
+    "png_file_count": 360,
+    "animation_png_file_count": 352,
+    "rotation_png_file_count": 8,
+    "frame_size": [236, 236]
+  },
+  "status_summary": {
+    "idle": "8 directions, 7 frames",
+    "roaming": "8 directions, 9 frames",
+    "active": "8 directions, 7 frames",
+    "waiting": "8 directions, 7 frames",
+    "stale": "8 directions, 7 frames",
+    "error": "8 directions, 7 frames",
+    "terminated": "not exported as character animation"
+  },
+  "quality_notes": [
+    "Generated as the interrupt/control/command symbol character (orc-iron-commander): blackened iron armor, horned helmet, red cape, generic heavy war hammer; danger red and iron gray accents.",
+    "IP-safe: generic war hammer silhouette, no faction emblem, no logo, not based on any existing game character.",
+    "Initial 8-direction batches were generated cleanly; the stale and error north-east directions were then re-rolled because the first results showed a walking gait.",
+    "stale north-east is now in folder animations/stationary_stale_idle_loop_seen_from_a_rear_three-/north-east; error north-east is now in folder animations/stationary_error_alert_loop_seen_from_a_rear_three/north-east; the original folders keep the other 7 directions.",
+    "Visual QA passed: stale and error keep both feet planted with no walking or falling (north-east verified after re-roll); roaming shows alternating leg motion in all 8 directions; error shows the red warning flash.",
+    "stale and error use standing status loops; falling-back-death is deprecated and intentionally not mapped in manifest."
+  ]
+}

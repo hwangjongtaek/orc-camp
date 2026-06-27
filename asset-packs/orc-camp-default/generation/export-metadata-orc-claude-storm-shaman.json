@@ -1,0 +1,35 @@
+{
+  "exported_at": "2026-06-26",
+  "tool": "PixelLab MCP character download",
+  "character_id": "5a2661d9-524f-431b-ba7d-619e44bb885d",
+  "character_name": "Orc Claude Storm Shaman",
+  "download_url": "https://api.pixellab.ai/mcp/characters/5a2661d9-524f-431b-ba7d-619e44bb885d/download",
+  "zip": {
+    "path": "generation/exports/orc-claude-storm-shaman-5a2661d9-2026-06-26.zip",
+    "bytes": 5964464,
+    "sha256": "36883f32de9553ec29442513d8040f8990f6b8a9006832f66ae2e5bc6c6e1eec"
+  },
+  "extracted": {
+    "path": "sprites/orc-claude-storm-shaman",
+    "root": "sprites/orc-claude-storm-shaman/Orc_Claude_Storm_Shaman",
+    "file_count": 361,
+    "png_file_count": 360,
+    "animation_png_file_count": 352,
+    "rotation_png_file_count": 8,
+    "frame_size": [232, 232]
+  },
+  "status_summary": {
+    "idle": "8 directions, 7 frames",
+    "roaming": "8 directions, 9 frames",
+    "active": "8 directions, 7 frames",
+    "waiting": "8 directions, 7 frames",
+    "stale": "8 directions, 7 frames",
+    "error": "8 directions, 7 frames",
+    "terminated": "not exported as character animation"
+  },
+  "quality_notes": [
+    "active was regenerated with stronger teal storm shaman effect sprites before export.",
+    "breathing-idle north-east was re-rolled again on 2026-06-26 because the exported result still showed a walking gait; the replacement uses a rear three-quarter feet-planted-locked v3 prompt (7 frames) and is stored in folder animations/stationary_breathing_idle_loop_seen_from_a_rear_th/north-east.",
+    "stale and error use standing status loops; falling-back-death is deprecated and intentionally not mapped in manifest."
+  ]
+}

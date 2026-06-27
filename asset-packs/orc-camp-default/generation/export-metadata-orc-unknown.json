@@ -1,0 +1,36 @@
+{
+  "exported_at": "2026-06-26",
+  "tool": "PixelLab MCP character download",
+  "character_id": "50519f63-0f39-49da-9782-f75b93b8152c",
+  "character_name": "Orc Unknown Grunt",
+  "download_url": "https://api.pixellab.ai/mcp/characters/50519f63-0f39-49da-9782-f75b93b8152c/download",
+  "zip": {
+    "path": "generation/exports/orc-unknown-50519f63-2026-06-26.zip",
+    "bytes": 5147978,
+    "sha256": "304ee28cc9d117ba3075cbf34ff15fc0cb23cb6e5c081c587b807db6b2e60675"
+  },
+  "extracted": {
+    "path": "sprites/orc-unknown",
+    "root": "sprites/orc-unknown/Orc_Unknown_Grunt",
+    "file_count": 361,
+    "png_file_count": 360,
+    "animation_png_file_count": 352,
+    "rotation_png_file_count": 8,
+    "frame_size": [228, 228]
+  },
+  "status_summary": {
+    "idle": "8 directions, 7 frames",
+    "roaming": "8 directions, 9 frames",
+    "active": "8 directions, 7 frames",
+    "waiting": "8 directions, 7 frames",
+    "stale": "8 directions, 7 frames",
+    "error": "8 directions, 7 frames",
+    "terminated": "not exported as character animation"
+  },
+  "quality_notes": [
+    "Generated as the agent-type-undetermined pane character (orc-unknown), generic camp grunt silhouette.",
+    "All 6 states generated cleanly in single 8-direction batches; no per-direction retries or suffixed folders.",
+    "Visual QA passed: stale and error keep both feet planted with no walking or falling; roaming shows alternating leg motion in all 8 directions; error shows the red warning flash.",
+    "stale and error use standing status loops; falling-back-death is deprecated and intentionally not mapped in manifest."
+  ]
+}

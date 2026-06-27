@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "ask": [
+      "mcp__pixellab__agent_help",
+      "mcp__pixellab__delete_animation"
+    ]
+  }
+}

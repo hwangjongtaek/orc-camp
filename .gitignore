@@ -1,0 +1,78 @@
+# Orc Camp — local-first CLI / TypeScript monorepo (CLI + local server + Vite dashboard)
+#
+# Intentionally TRACKED (do NOT ignore):
+#   - asset-packs/        product asset pack; manifest.json is the runtime source of truth
+#   - .mcp.json           uses ${ENV} interpolation, no inline secrets
+#   - .codex/config.toml  uses ${AUTH_HEADER} interpolation, no inline secrets
+#   - lockfiles (package-lock.json / pnpm-lock.yaml / yarn.lock)
+
+# ── Secrets / local env ──────────────────────────────────────────────
+# .env holds real tokens (PIXELLAB_AUTH_HEADER, GITHUB_TOKEN) — never commit.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+
+# ── Claude Code local settings (personal; shared settings.json/agents stay tracked) ──
+.claude/settings.local.json
+
+# ── Node / package managers ──────────────────────────────────────────
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Build output (CLI + server + dashboard, incl. nested monorepo packages) ──
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# ── Caches ───────────────────────────────────────────────────────────
+.cache/
+.vite/
+.turbo/
+.eslintcache
+vite.config.*.timestamp-*
+
+# ── Tests / coverage (Vitest + Playwright) ───────────────────────────
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# ── Local runtime data (P1 SQLite persistence, logs) ─────────────────
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# ── Temp ─────────────────────────────────────────────────────────────
+tmp/
+.tmp/
+*.tmp
+
+# ── OS / editor ──────────────────────────────────────────────────────
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+*.swp
+*.swo
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json

@@ -1,0 +1,501 @@
+{
+  "group_id": null,
+  "states": [
+    {
+      "character": {
+        "id": "5a2661d9-524f-431b-ba7d-619e44bb885d",
+        "name": "Orc Claude Storm Shaman",
+        "prompt": "original pixel art orc storm shaman strategist agent for a dark fantasy developer dashboard called Orc Camp, calm observant orc advisor with warm olive green skin, weathered dark moss cloak, simple carved staff or small round totem, teal storm magic utility accents, bone and leather fasteners, charcoal cloth wraps, thoughtful command-support stance, rugged camp shaman silhouette, red clay warbase dust on boots, dark fantasy orc camp outfit, low top-down RPG character sprite, readable silhouette at small size, 120x120 character, transparent background, crisp pixel art, no text, no logo, no faction symbol, not based on any existing game character",
+        "size": {
+          "width": 232,
+          "height": 232
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-06-26T00:04:41.018131+00:00"
+      },
+      "folder": "Orc_Claude_Storm_Shaman",
+      "frames": {
+        "rotations": {
+          "south": "Orc_Claude_Storm_Shaman/rotations/south.png",
+          "south-east": "Orc_Claude_Storm_Shaman/rotations/south-east.png",
+          "east": "Orc_Claude_Storm_Shaman/rotations/east.png",
+          "north-east": "Orc_Claude_Storm_Shaman/rotations/north-east.png",
+          "north": "Orc_Claude_Storm_Shaman/rotations/north.png",
+          "north-west": "Orc_Claude_Storm_Shaman/rotations/north-west.png",
+          "west": "Orc_Claude_Storm_Shaman/rotations/west.png",
+          "south-west": "Orc_Claude_Storm_Shaman/rotations/south-west.png"
+        },
+        "animations": {
+          "breathing_idle_loop_for_a_calm_storm_shaman_strate": {
+            "south-west": [
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-west/frame_006.png"
+            ],
+            "south": [
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north-west/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south-east/frame_006.png"
+            ],
+            "east": [
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/east/frame_006.png"
+            ],
+            "west": [
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/west/frame_006.png"
+            ],
+            "north": [
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/north/frame_006.png"
+            ]
+          },
+          "error_alert_loop_for_a_storm_shaman_strategist_sho": {
+            "north": [
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-east/frame_006.png"
+            ],
+            "south-west": [
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-west/frame_006.png"
+            ],
+            "east": [
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/east/frame_006.png"
+            ],
+            "south": [
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/north-west/frame_006.png"
+            ],
+            "west": [
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/west/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/error_alert_loop_for_a_storm_shaman_strategist_sho/south-east/frame_006.png"
+            ]
+          },
+          "stationary_breathing_idle_loop_seen_from_a_rear_th": {
+            "north-east": [
+              "Orc_Claude_Storm_Shaman/animations/stationary_breathing_idle_loop_seen_from_a_rear_th/north-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/stationary_breathing_idle_loop_seen_from_a_rear_th/north-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/stationary_breathing_idle_loop_seen_from_a_rear_th/north-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/stationary_breathing_idle_loop_seen_from_a_rear_th/north-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/stationary_breathing_idle_loop_seen_from_a_rear_th/north-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/stationary_breathing_idle_loop_seen_from_a_rear_th/north-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/stationary_breathing_idle_loop_seen_from_a_rear_th/north-east/frame_006.png"
+            ]
+          },
+          "static_stale_idle_loop_for_an_inactive_storm_shama": {
+            "north-west": [
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama/north-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama/north-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama/north-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama/north-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama/north-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama/north-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama/north-west/frame_006.png"
+            ]
+          },
+          "static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e": {
+            "north-east": [
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north-east/frame_006.png"
+            ],
+            "east": [
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/east/frame_006.png"
+            ],
+            "south-west": [
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-west/frame_006.png"
+            ],
+            "north": [
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/north/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south-east/frame_006.png"
+            ],
+            "south": [
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/south/frame_006.png"
+            ],
+            "west": [
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/static_stale_idle_loop_for_an_inactive_storm_shama-dd63b54e/west/frame_006.png"
+            ]
+          },
+          "clear_walking_patrol_cycle_with_visible_leg_motion": {
+            "north": [
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_006.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_007.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_008.png"
+            ],
+            "east": [
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_006.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_007.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_008.png"
+            ],
+            "south": [
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_006.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_007.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_008.png"
+            ],
+            "south-east": [
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_006.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_007.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_008.png"
+            ],
+            "north-west": [
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_006.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_007.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_008.png"
+            ],
+            "south-west": [
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_006.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_007.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_008.png"
+            ],
+            "west": [
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_006.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_007.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_008.png"
+            ],
+            "north-east": [
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_006.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_007.png",
+              "Orc_Claude_Storm_Shaman/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_008.png"
+            ]
+          },
+          "active_storm_shaman_casting_and_monitoring_loop_wi": {
+            "south-west": [
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-west/frame_006.png"
+            ],
+            "east": [
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/east/frame_006.png"
+            ],
+            "north": [
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-west/frame_006.png"
+            ],
+            "south": [
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/north-east/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/south-east/frame_006.png"
+            ],
+            "west": [
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/active_storm_shaman_casting_and_monitoring_loop_wi/west/frame_006.png"
+            ]
+          },
+          "waiting_expectant_idle_loop_for_a_calm_storm_shama": {
+            "south-west": [
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-west/frame_006.png"
+            ],
+            "north": [
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north/frame_006.png"
+            ],
+            "east": [
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/east/frame_006.png"
+            ],
+            "west": [
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/west/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-east/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-east/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-east/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-east/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-east/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-east/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-east/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south-east/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-west/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-west/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-west/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-west/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-west/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-west/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/north-west/frame_006.png"
+            ],
+            "south": [
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south/frame_000.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south/frame_001.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south/frame_002.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south/frame_003.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south/frame_004.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south/frame_005.png",
+              "Orc_Claude_Storm_Shaman/animations/waiting_expectant_idle_loop_for_a_calm_storm_shama/south/frame_006.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.0",
+  "export_date": "2026-06-26T11:23:22.070739"
+}

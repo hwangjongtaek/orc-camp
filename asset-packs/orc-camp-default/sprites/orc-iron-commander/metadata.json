@@ -1,0 +1,501 @@
+{
+  "group_id": null,
+  "states": [
+    {
+      "character": {
+        "id": "b9a2dbff-d392-4703-9555-3ac2e1cf8df2",
+        "name": "Orc Iron Commander",
+        "prompt": "original pixel art orc iron commander for a dark fantasy developer dashboard, heavy generic war hammer, blackened iron armor, disciplined stance, stern expression, danger red and iron gray accents, dark fantasy camp command role, low top-down RPG character sprite, readable silhouette at small size, 120x120 character, transparent background, crisp pixel art, no text, no logo, not based on any existing game character",
+        "size": {
+          "width": 236,
+          "height": 236
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-06-26T08:30:49.245637+00:00"
+      },
+      "folder": "Orc_Iron_Commander",
+      "frames": {
+        "rotations": {
+          "south": "Orc_Iron_Commander/rotations/south.png",
+          "south-east": "Orc_Iron_Commander/rotations/south-east.png",
+          "east": "Orc_Iron_Commander/rotations/east.png",
+          "north-east": "Orc_Iron_Commander/rotations/north-east.png",
+          "north": "Orc_Iron_Commander/rotations/north.png",
+          "north-west": "Orc_Iron_Commander/rotations/north-west.png",
+          "west": "Orc_Iron_Commander/rotations/west.png",
+          "south-west": "Orc_Iron_Commander/rotations/south-west.png"
+        },
+        "animations": {
+          "idle_breathing_loop_subtle_chest_breathing_slight": {
+            "north": [
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_000.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_001.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_002.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_003.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_004.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_005.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north/frame_006.png"
+            ],
+            "south": [
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_000.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_001.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_002.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_003.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_004.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_005.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_006.png"
+            ],
+            "south-west": [
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_000.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_001.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_002.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_003.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_004.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_005.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-west/frame_006.png"
+            ],
+            "west": [
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_000.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_001.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_002.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_003.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_004.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_005.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/west/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_000.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_001.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_002.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_003.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_004.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_005.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-west/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_000.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_001.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_002.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_003.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_004.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_005.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/south-east/frame_006.png"
+            ],
+            "east": [
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_000.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_001.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_002.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_003.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_004.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_005.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/east/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_000.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_001.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_002.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_003.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_004.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_005.png",
+              "Orc_Iron_Commander/animations/idle_breathing_loop_subtle_chest_breathing_slight/north-east/frame_006.png"
+            ]
+          },
+          "waiting_for_input_loop_small_idle_bounce_curious_p": {
+            "south": [
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south/frame_000.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south/frame_001.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south/frame_002.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south/frame_003.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south/frame_004.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south/frame_005.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south/frame_006.png"
+            ],
+            "south-west": [
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_000.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_001.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_002.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_003.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_004.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_005.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-west/frame_006.png"
+            ],
+            "north": [
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_000.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_001.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_002.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_003.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_004.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_005.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_000.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_001.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_002.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_003.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_004.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_005.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-west/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_000.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_001.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_002.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_003.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_004.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_005.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/north-east/frame_006.png"
+            ],
+            "west": [
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_000.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_001.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_002.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_003.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_004.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_005.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/west/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_000.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_001.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_002.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_003.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_004.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_005.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/south-east/frame_006.png"
+            ],
+            "east": [
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_000.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_001.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_002.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_003.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_004.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_005.png",
+              "Orc_Iron_Commander/animations/waiting_for_input_loop_small_idle_bounce_curious_p/east/frame_006.png"
+            ]
+          },
+          "stationary_error_alert_loop_seen_from_a_rear_three": {
+            "north-east": [
+              "Orc_Iron_Commander/animations/stationary_error_alert_loop_seen_from_a_rear_three/north-east/frame_000.png",
+              "Orc_Iron_Commander/animations/stationary_error_alert_loop_seen_from_a_rear_three/north-east/frame_001.png",
+              "Orc_Iron_Commander/animations/stationary_error_alert_loop_seen_from_a_rear_three/north-east/frame_002.png",
+              "Orc_Iron_Commander/animations/stationary_error_alert_loop_seen_from_a_rear_three/north-east/frame_003.png",
+              "Orc_Iron_Commander/animations/stationary_error_alert_loop_seen_from_a_rear_three/north-east/frame_004.png",
+              "Orc_Iron_Commander/animations/stationary_error_alert_loop_seen_from_a_rear_three/north-east/frame_005.png",
+              "Orc_Iron_Commander/animations/stationary_error_alert_loop_seen_from_a_rear_three/north-east/frame_006.png"
+            ]
+          },
+          "stationary_stale_idle_loop_seen_from_a_rear_three-": {
+            "north-east": [
+              "Orc_Iron_Commander/animations/stationary_stale_idle_loop_seen_from_a_rear_three-/north-east/frame_000.png",
+              "Orc_Iron_Commander/animations/stationary_stale_idle_loop_seen_from_a_rear_three-/north-east/frame_001.png",
+              "Orc_Iron_Commander/animations/stationary_stale_idle_loop_seen_from_a_rear_three-/north-east/frame_002.png",
+              "Orc_Iron_Commander/animations/stationary_stale_idle_loop_seen_from_a_rear_three-/north-east/frame_003.png",
+              "Orc_Iron_Commander/animations/stationary_stale_idle_loop_seen_from_a_rear_three-/north-east/frame_004.png",
+              "Orc_Iron_Commander/animations/stationary_stale_idle_loop_seen_from_a_rear_three-/north-east/frame_005.png",
+              "Orc_Iron_Commander/animations/stationary_stale_idle_loop_seen_from_a_rear_three-/north-east/frame_006.png"
+            ]
+          },
+          "stale_inactive_standing_loop_upper-body_only_motio": {
+            "south": [
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south/frame_000.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south/frame_001.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south/frame_002.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south/frame_003.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south/frame_004.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south/frame_005.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south/frame_006.png"
+            ],
+            "south-west": [
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-west/frame_000.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-west/frame_001.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-west/frame_002.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-west/frame_003.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-west/frame_004.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-west/frame_005.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-west/frame_006.png"
+            ],
+            "west": [
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_000.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_001.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_002.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_003.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_004.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_005.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/west/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north-west/frame_000.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north-west/frame_001.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north-west/frame_002.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north-west/frame_003.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north-west/frame_004.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north-west/frame_005.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north-west/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-east/frame_000.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-east/frame_001.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-east/frame_002.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-east/frame_003.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-east/frame_004.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-east/frame_005.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/south-east/frame_006.png"
+            ],
+            "north": [
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north/frame_000.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north/frame_001.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north/frame_002.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north/frame_003.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north/frame_004.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north/frame_005.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/north/frame_006.png"
+            ],
+            "east": [
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_000.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_001.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_002.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_003.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_004.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_005.png",
+              "Orc_Iron_Commander/animations/stale_inactive_standing_loop_upper-body_only_motio/east/frame_006.png"
+            ]
+          },
+          "error_alert_loop_short_startled_pose_red_warning_f": {
+            "south-east": [
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-east/frame_000.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-east/frame_001.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-east/frame_002.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-east/frame_003.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-east/frame_004.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-east/frame_005.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-east/frame_006.png"
+            ],
+            "north": [
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north/frame_000.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north/frame_001.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north/frame_002.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north/frame_003.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north/frame_004.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north/frame_005.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north-west/frame_000.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north-west/frame_001.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north-west/frame_002.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north-west/frame_003.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north-west/frame_004.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north-west/frame_005.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/north-west/frame_006.png"
+            ],
+            "south": [
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south/frame_000.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south/frame_001.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south/frame_002.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south/frame_003.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south/frame_004.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south/frame_005.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south/frame_006.png"
+            ],
+            "west": [
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/west/frame_000.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/west/frame_001.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/west/frame_002.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/west/frame_003.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/west/frame_004.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/west/frame_005.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/west/frame_006.png"
+            ],
+            "south-west": [
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-west/frame_000.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-west/frame_001.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-west/frame_002.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-west/frame_003.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-west/frame_004.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-west/frame_005.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/south-west/frame_006.png"
+            ],
+            "east": [
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/east/frame_000.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/east/frame_001.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/east/frame_002.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/east/frame_003.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/east/frame_004.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/east/frame_005.png",
+              "Orc_Iron_Commander/animations/error_alert_loop_short_startled_pose_red_warning_f/east/frame_006.png"
+            ]
+          },
+          "clear_walking_patrol_cycle_with_visible_leg_motion": {
+            "north-west": [
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_000.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_001.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_002.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_003.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_004.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_005.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_006.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_007.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-west/frame_008.png"
+            ],
+            "north-east": [
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_000.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_001.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_002.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_003.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_004.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_005.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_006.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_007.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north-east/frame_008.png"
+            ],
+            "south-east": [
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_000.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_001.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_002.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_003.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_004.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_005.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_006.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_007.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-east/frame_008.png"
+            ],
+            "north": [
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_000.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_001.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_002.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_003.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_004.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_005.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_006.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_007.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/north/frame_008.png"
+            ],
+            "south-west": [
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_000.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_001.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_002.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_003.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_004.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_005.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_006.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_007.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south-west/frame_008.png"
+            ],
+            "east": [
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_000.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_001.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_002.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_003.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_004.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_005.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_006.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_007.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/east/frame_008.png"
+            ],
+            "west": [
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_000.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_001.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_002.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_003.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_004.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_005.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_006.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_007.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/west/frame_008.png"
+            ],
+            "south": [
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_000.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_001.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_002.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_003.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_004.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_005.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_006.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_007.png",
+              "Orc_Iron_Commander/animations/clear_walking_patrol_cycle_with_visible_leg_motion/south/frame_008.png"
+            ]
+          },
+          "active_working_loop_quick_focused_working_motion_h": {
+            "south": [
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south/frame_000.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south/frame_001.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south/frame_002.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south/frame_003.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south/frame_004.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south/frame_005.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south/frame_006.png"
+            ],
+            "south-east": [
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_000.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_001.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_002.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_003.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_004.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_005.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-east/frame_006.png"
+            ],
+            "east": [
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/east/frame_000.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/east/frame_001.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/east/frame_002.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/east/frame_003.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/east/frame_004.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/east/frame_005.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/east/frame_006.png"
+            ],
+            "north": [
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north/frame_000.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north/frame_001.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north/frame_002.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north/frame_003.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north/frame_004.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north/frame_005.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north/frame_006.png"
+            ],
+            "south-west": [
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_000.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_001.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_002.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_003.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_004.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_005.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/south-west/frame_006.png"
+            ],
+            "west": [
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/west/frame_000.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/west/frame_001.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/west/frame_002.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/west/frame_003.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/west/frame_004.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/west/frame_005.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/west/frame_006.png"
+            ],
+            "north-east": [
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_000.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_001.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_002.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_003.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_004.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_005.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-east/frame_006.png"
+            ],
+            "north-west": [
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_000.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_001.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_002.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_003.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_004.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_005.png",
+              "Orc_Iron_Commander/animations/active_working_loop_quick_focused_working_motion_h/north-west/frame_006.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.0",
+  "export_date": "2026-06-26T10:58:59.751495"
+}

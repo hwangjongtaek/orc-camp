@@ -1,0 +1,49 @@
+{
+  "exported_at": "2026-06-25",
+  "tool": "PixelLab MCP character download",
+  "character_id": "77acab26-ab4b-4d11-94b8-37c4c32e76b8",
+  "character_name": "Orc High Warchief Mascot",
+  "download_url": "https://api.pixellab.ai/mcp/characters/77acab26-ab4b-4d11-94b8-37c4c32e76b8/download",
+  "zip": {
+    "path": "generation/exports/orc-high-warchief-mascot-77acab26-2026-06-25.zip",
+    "bytes": 5694896,
+    "sha256": "b5d75fa7b848e66f422a2bb62fcc52ae651508a6f0b3fd352b939fcdc09bcd9c"
+  },
+  "extracted": {
+    "path": "sprites/orc-high-warchief-mascot",
+    "file_count": 312,
+    "png_file_count": 311,
+    "animation_png_file_count": 303,
+    "rotation_png_file_count": 8,
+    "frame_size": [232, 232]
+  },
+  "non_character_assets": {
+    "path": "generation/non-character-assets.json",
+    "local_png_file_count": 48,
+    "summary": "16 prop objects, 16 status/UI objects, and 16 square top-down terrain tiles."
+  },
+  "ui_assets": {
+    "path": "generation/ui-assets.json",
+    "local_png_file_count": 31,
+    "summary": "16 selection markers, 7 UI frames, 4 button skins, 3 state accents, and 1 review-only rejected camp-card candidate."
+  },
+  "warbase_assets": {
+    "path": "generation/warbase-assets.json",
+    "local_png_file_count": 34,
+    "summary": "1 warbase sunset dashboard background, 16 wartable/warbase props, 16 warbase terrain tiles, and 1 wartable command dock frame."
+  },
+  "status_summary": {
+    "idle": "8 directions, 7 frames",
+    "roaming": "8 directions, 9 frames",
+    "active": "8 directions, 7 frames",
+    "waiting": "8 directions, 7 frames",
+    "stale": "8 directions, 7 frames",
+    "error": "south only, 7 frames",
+    "terminated": "not exported as character animation"
+  },
+  "quality_notes": [
+    "stale east, north-east, and west were regenerated with feet-planted prompt after walking motion was detected.",
+    "falling-back-death is deprecated and intentionally not mapped in manifest.",
+    "error remains south-only until a future direction expansion pass."
+  ]
+}
