@@ -251,7 +251,22 @@ interface LabeledPaneSample {
 - **격리**: 기본 tmux server에 **고유 이름의 일회용 session**(`orccampE2E_<pid>_<ts>`)을 만들고 정적 pane(`sleep`) + Tier-B title 시그니처(`select-pane -T`)를 부여해 claude-code orc로 탐지시킨다. `afterAll`에서 항상 `kill-session`으로 정리한다. scan은 read-only이므로 server의 다른 session은 건드리지 않으며, session 생성/종료(new-session/kill-session)는 **harness의 setup/teardown**이지 CLI의 행위가 아니다.
 - **CLI spawn**: 사용자와 동일하게 실제 CLI를 spawn해 stdout/exit를 관측한다(`npx tsx src/cli.ts …`; bin과 동일 소스).
 - **현재 구현 케이스**: `TC-E-SMOKE`(exit 0 + header, `--json` 단일 유효 document), `TC-E-AGENT`(일회용 session이 camp로 발견 + claude-code orc 탐지), `TC-E-READONLY`(scan 전후 해당 session pane state 불변), `TC-E-LATENCY`(sanity: `scanDurationMs` 보고·bound; 정식 p95<1s는 M4 e2e job 소유).
-- **미구현(후속)**: `TC-E-WATCH`(cycle-to-cycle prior 실측), `TC-E-LATENCY`의 ≥20 pane R-cycle p50/p95 측정(M4), 그리고 measurement(M1~M5) 라벨 데이터셋 하니스는 별도 후속 작업이다.
+- **미구현(후속)**: `TC-E-WATCH`(cycle-to-cycle prior 실측 calibration)는 별도 후속 작업이다.
+
+### 2.7 측정 하니스 구현 + 측정 스냅샷 (구현 노트, 2026-06-27)
+
+§3.3 M1~M5 측정 하니스가 구현됐다.
+
+- **위치**: `tests/measurement/harness.ts`(metric 함수: detection P/R, status accuracy/waiting recall, calibration band bucketing+monotonicity, false-redaction/secret-recall + redaction-before-consumption builders), `tests/measurement/dataset.ts`(curated `LABELED-DETECT`/`LABELED-STATUS` + `CORPUS-SECRET`/`CORPUS-KEEP`), `tests/measurement/metrics.test.ts`(`TC-M-*`). fixture 기반이라 **CI 게이트**(§3.1-1)에 포함된다. M4(live latency)는 `scripts/measure-latency.mts`(`npm run measure:latency`, 비-게이트).
+- **데이터셋 provenance(중요)**: 현재 `LABELED-*` 샘플은 **문서화된 신호 케이스 + 적대적 hard 케이스(node webserver 비-candidate, 스피너 전용 churn, mid-stream `(y/n)`)를 손수 라벨링한 대표 커버리지**이며 **실 pane 캡처가 아니다**. 즉 metric이 spec 의도와 엔진의 일치를 확인(self-confirming + regression gate)하는 단계다. §2.4의 규모(type ≥50, status ≥50, waiting ≥15)를 실 캡처(secret placeholder화)로 채워 **비-self-confirming 측정**으로 가는 것이 PoC 성공 판정을 닫는 잔여 단계다(현재 detect 20 / status 19 / waiting 8).
+- **측정 스냅샷 (2026-06-27, 현재 데이터셋·엔진)**:
+  - **M1 detection**: micro precision 100% · recall 100% (n=20; node webserver 등 비-agent 0 오탐).
+  - **M2 status**: accuracy 100% · `waiting` recall 100% (waiting gold 8) — 가설 ≥0.7 충족(데이터셋 기준).
+  - **M3 calibration**: agentType·status 모두 band별 정답률 비감소(monotonic) 충족.
+  - **M5 redaction**: secret-recall 1.0 (확정 목표) · false-redaction-rate 0% (≤ τ 0.05) · banner 토큰 비-redaction + redacted 출력에서 detection 발화(coherence).
+  - **M4 latency (live tmux, 실측)**: **101 pane**(20 pane 목표의 5배)에서 p50 **730ms** · p95 **807ms** · mean 768ms (24 cycle, warmup 2 제외). 가설 p95<1s를 5배 규모에서도 충족.
+
+> 주의: M1~M3·M5의 100%는 **curated 데이터셋 기준**이며 가설을 "기각하지 않음"을 의미할 뿐 실증이 아니다. 실 pane 라벨링 후 수치가 가설을 실제로 검증/보정한다. M4만 실 환경 비-circular 실측이다.
 
 ## 3. Behavior rules
 

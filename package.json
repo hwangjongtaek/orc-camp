@@ -23,6 +23,7 @@
     "test:integration": "vitest run tests/integration",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:all": "vitest run && vitest run --config vitest.e2e.config.ts",
+    "measure:latency": "tsx scripts/measure-latency.mts",
     "test:watch": "vitest"
   },
   "devDependencies": {
