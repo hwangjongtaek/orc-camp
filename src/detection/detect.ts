@@ -164,5 +164,37 @@ export function detectOrc(pane: PaneSignal, detectors: AgentDetector[]): OrcCand
   return { agentType: 'unknown', agentTypeConfidence: AMBIGUOUS_CONFIDENCE, matchedSignals: allSignals };
 }
 
-/** MVP detector registry (SPEC-003 §2.3). Extend by appending adapters. */
+/**
+ * MVP detector registry (SPEC-003 §2.3). Extend by appending adapters.
+ *
+ * These are the inline BUILTIN detectors (SPEC-800 §3.3 MVP row) and remain the
+ * production default for `scan`. The config-driven extension path (SPEC-800 §3.2,
+ * R-P1-011) is additive and lives in `./config`: call `buildDetectors(config)` to
+ * get `[...builtins, ...configDetectors]` and pass the result to THIS SAME
+ * `detectOrc` — no combiner/adapter edits needed to add an agent (R-ORC-007,
+ * SPEC-003-AC-07 / SPEC-800-AC-01/03). `buildDetectors()` with no config compiles
+ * the SAME calibrated builtins (proven equivalent in tests/unit/extensibility.test.ts).
+ */
 export const defaultDetectors: AgentDetector[] = [claudeCode, codex];
+
+// SPEC-800 §3.2 (R-P1-011) — config-driven detector rules. Re-exported here so the
+// detection module surface includes the extension path next to the combiner.
+// (One-directional: config.ts imports nothing from detect.ts → no import cycle.)
+export {
+  DETECTOR_API_VERSION,
+  DETECTOR_CONFIG_SCHEMA_VERSION,
+  DEFAULT_DETECTOR_CONFIG,
+  DEFAULT_GENERIC_RUNTIMES,
+  MAX_PATTERN_SOURCE_LEN,
+  createDetectorFromRule,
+  compileDetectors,
+  buildDetectors,
+} from './config';
+export type {
+  PatternSpec,
+  DetectorRuleConfig,
+  DetectorRulesConfig,
+  DetectorDiagnostic,
+  CompileResult,
+  BuildOptions,
+} from './config';
