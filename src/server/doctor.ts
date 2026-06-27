@@ -2,9 +2,10 @@
  * SPEC-100 §2.3/§3.5 — `orc-camp doctor`: 5 environment health checks (exit fail≥1).
  * SPEC-600 §2.9 — log.path detail + DoctorDiagnostics block (info only; no exit effect).
  */
-import { accessSync, constants as FS, statSync, writeFileSync } from 'node:fs';
+import { accessSync, constants as FS, existsSync, statSync, writeFileSync } from 'node:fs';
 import { arch, platform, release } from 'node:os';
-import { dirname, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmuxExec as defaultTmuxExec } from '../tmux/exec';
 import { isPortAvailable, PREFERRED_PORT } from './net';
 import { isNoServerStderr, parseVersion } from '../tmux/inventory';
@@ -105,10 +106,71 @@ export interface LogPathDetail {
   level: string;
   rotation: { maxBytes: number; keep: number };
 }
+/**
+ * SPEC-700 §2.4 — install-health (advisory; non-exit-bearing per SPEC-100 §2.3).
+ * These values describe the installed/bundled artifact. They are reported inside
+ * the SPEC-600 DoctorDiagnostics block and DO NOT contribute to doctor's exit code
+ * (the 5 `runChecks` checks own exit semantics, SPEC-100 §3.5).
+ */
+export interface InstallHealth {
+  nodeFloor: string; // package.json#engines.node (SPEC-700 §2.2)
+  nodeFloorSatisfied: boolean; // current Node >= floor
+  binResolved: boolean; // `orc-camp` resolves on PATH
+  dashboardAssetsPresent: boolean; // dist/dashboard static assets bundled
+  assetPackBundled: boolean; // asset-pack PNGs bundled (license gate → false, D-009/SPEC-700 §2.7)
+}
+
 export interface DoctorDiagnostics {
   environment: { appVersion: string; nodeVersion: string; os: string; arch: string; tmuxVersion: string | null };
+  installHealth: InstallHealth;
   log: LogPathDetail;
   recentErrors: { windowEntries: number; counts: { error: number; warn: number }; lastErrorAt: string | null; topCodes: { code: string; count: number }[] };
+}
+
+/** Node major floor mirrored from package.json#engines.node (SPEC-700 §2.2). */
+const NODE_FLOOR = '>=20';
+
+function nodeMajor(v: string): number {
+  return Number.parseInt(v.replace(/^v/, '').split('.')[0] ?? '0', 10) || 0;
+}
+
+/** True if an executable named `orc-camp` resolves on PATH (install integrity). */
+function binResolves(env: NodeJS.ProcessEnv): boolean {
+  try {
+    const search = env.PATH ?? process.env.PATH ?? '';
+    for (const dir of search.split(delimiter)) {
+      if (!dir) continue;
+      try {
+        accessSync(join(dir, 'orc-camp'), FS.X_OK);
+        return true;
+      } catch {
+        /* keep scanning */
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+/** Existence check relative to this module's directory (the bundled `dist/` at runtime). */
+function existsRelToModule(rel: string): boolean {
+  try {
+    return existsSync(fileURLToPath(new URL(rel, import.meta.url)));
+  } catch {
+    return false;
+  }
+}
+
+function buildInstallHealth(env: NodeJS.ProcessEnv): InstallHealth {
+  const floorMajor = Number.parseInt(NODE_FLOOR.match(/\d+/)?.[0] ?? '0', 10) || 0;
+  return {
+    nodeFloor: NODE_FLOOR,
+    nodeFloorSatisfied: nodeMajor(process.versions.node) >= floorMajor,
+    binResolved: binResolves(env),
+    dashboardAssetsPresent: existsRelToModule('./dashboard/index.html') || existsRelToModule('./dashboard'),
+    assetPackBundled: existsRelToModule('./asset-packs/orc-camp-default/manifest.json') || existsRelToModule('./asset-packs'),
+  };
 }
 
 /** SPEC-600 §2.9(B) — observability diagnostics (no terminal content; no exit effect). */
@@ -133,6 +195,7 @@ export async function buildDiagnostics(opts: DoctorOptions = {}): Promise<Doctor
 
   return {
     environment: { appVersion: '0.1.0', nodeVersion: process.version, os: `${platform()} ${release()}`, arch: arch(), tmuxVersion },
+    installHealth: buildInstallHealth(env),
     log: { path: dl.path(), writable: checkWritableDir(sdir).ok, sizeBytes: dl.sizeBytes(), level: dl.getLevel(), rotation: dl.rotation() },
     recentErrors: { windowEntries: entries.length, counts, lastErrorAt, topCodes },
   };
@@ -179,6 +242,11 @@ export async function doctorCommand(argv: string[], opts: DoctorOptions = {}): P
   };
   const ok = summary.fail === 0;
   const diagnostics = await buildDiagnostics(opts);
+
+  // SPEC-700 §2.4/AC-09 — advisory node-floor warning (stderr only; never affects exit).
+  if (!diagnostics.installHealth.nodeFloorSatisfied) {
+    io.stderr(`warning: Node ${diagnostics.environment.nodeVersion} is below the supported floor ${diagnostics.installHealth.nodeFloor}\n`);
+  }
 
   if (args.json) {
     io.stdout(JSON.stringify({ checks, summary, ok, diagnostics }) + '\n');

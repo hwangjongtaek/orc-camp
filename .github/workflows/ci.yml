@@ -1,0 +1,69 @@
+# SPEC-700 §2.5 — CI / release pipeline.
+#
+#   gate          : deterministic merge gate (SPEC-700 §2.5(A)) — typecheck +
+#                   U+I tests (no live tmux) + build. Blocks merge.
+#   package-smoke : packaged-CLI smoke (SPEC-700 §2.5(B)) — build + tarball
+#                   file-set gate (gate:license D-009 + gate:artifact allowlist)
+#                   + run the built bin (--version / doctor / scan-soft).
+#
+# Linux is run alongside macOS (R-P1-010 Linux validation). MVP first-class
+# target is macOS; tmux-dependent scan checks soft-pass when tmux is absent.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: gate (${{ matrix.os }} · node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: ['20']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: typecheck (tsc --noEmit)
+        run: npm run typecheck
+      - name: test (deterministic U+I — no live tmux)
+        run: npm test
+      - name: build (esbuild bundle → dist/main.js)
+        run: npm run build
+
+  package-smoke:
+    name: package-smoke (${{ matrix.os }} · node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: ['20']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      # Builds, runs the tarball file-set gate (license D-009 + allowlist) and
+      # runs the built bin (--version / doctor --json / scan --json soft-pass).
+      - name: smoke (packaged-CLI release gate)
+        run: npm run smoke
+      # Visibility: print the exact tarball file-set in the log.
+      - name: npm pack --dry-run (file list)
+        run: npm pack --dry-run

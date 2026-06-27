@@ -4,12 +4,33 @@
   "description": "Local-first CLI dashboard that visualizes tmux sessions as camps and AI-agent sessions as orcs. PoC slice: `orc-camp scan` (read-only tmux + agent discovery).",
   "type": "module",
   "license": "MIT",
+  "keywords": [
+    "tmux",
+    "ai-agent",
+    "claude-code",
+    "codex",
+    "dashboard",
+    "cli",
+    "local-first",
+    "orchestration",
+    "developer-tools"
+  ],
+  "homepage": "https://github.com/orc-camp/orc-camp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orc-camp/orc-camp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/orc-camp/orc-camp/issues"
+  },
   "bin": {
     "orc-camp": "./bin/orc-camp.mjs"
   },
   "files": [
     "dist",
-    "bin"
+    "bin",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=20"
@@ -18,7 +39,7 @@
     "scan": "tsx src/cli.ts",
     "serve": "tsx src/main.ts serve",
     "doctor": "tsx src/main.ts doctor",
-    "build": "esbuild src/main.ts --bundle --packages=external --platform=node --format=esm --target=node20 --outfile=dist/main.js",
+    "build": "rm -rf dist && esbuild src/main.ts --bundle --packages=external --platform=node --format=esm --target=node20 --outfile=dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
@@ -26,7 +47,9 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:all": "vitest run && vitest run --config vitest.e2e.config.ts",
     "measure:latency": "tsx scripts/measure-latency.mts",
-    "test:watch": "vitest"
+    "smoke": "tsx scripts/smoke.mts",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
