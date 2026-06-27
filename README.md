@@ -86,7 +86,8 @@ orc-camp serve --port 4123 --no-open        # default는 browser 자동 open
 - **보안 경계(SPEC-100)**: `127.0.0.1` 기본 bind, CSPRNG startup token(메모리 전용·비영속), 상수시간 `Authorization: Bearer` 검증, CORS allowlist, **Host-header 검증(DNS rebinding 방어)**, 외부 bind는 `--allow-external` + warning 필수.
 - **REST API(SPEC-101)**: `GET /api/health`(token-exempt liveness) · `GET /api/snapshot`(ScanResult + `snapshotVersion`/ETag/304) · `GET /api/camps/:id` · `GET /api/orcs/:id/preview`(token + exposure 이중 gate, redacted tail만) · `POST /api/refresh`(coalesce/rate-limit, tmux는 read-only). 모든 read는 token 요구(D-024).
 - **snapshot runtime**: 변경 tick당 `snapshotVersion +1`(diff engine), last-good/stale fallback 재사용, `runtimeEpoch`로 restart 식별. 보안 경계는 security-privacy-engineer 감사 **PASS(P0 0·P1 0)**.
-- **후속(미구현)**: WebSocket realtime(SPEC-102), dashboard SPA(Epic 3), control actions(SPEC-400).
+- **realtime(SPEC-102)**: `WS /api/events` — handshake auth(token query/subprotocol, close 4401/4403), `welcome` → per-tick `batch` diff event(convergent, version 적재) → `server_stale_changed`/`server_heartbeat`. client reconcile/reconnect는 dashboard(Epic 3) 소유.
+- **후속(미구현)**: dashboard SPA(Epic 3), control actions(SPEC-400), settings/observability/packaging(SPEC-500/600/700).
 
 ## 초기 범위
 

@@ -33,6 +33,7 @@ export interface StartOptions {
   now?: () => Date;
   runtimeEpoch?: string;
   devOrigins?: string[];
+  heartbeatMs?: number;
 }
 
 export interface ServerHandle {
@@ -62,7 +63,7 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
     allowExternal: opts.allowExternal ?? false,
     devOrigins: opts.devOrigins ?? DEV_ORIGINS,
   };
-  const server = createHttpServer({ runtime, security, token, now });
+  const server = createHttpServer({ runtime, security, token, now, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
 
   const { port, fellBack } = await bindWithFallback(server, host, preferred, opts.explicitPort ?? false);
   security.port = port; // fix CORS/Host to the actual port (single source, §3.4)

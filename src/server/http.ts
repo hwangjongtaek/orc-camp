@@ -15,6 +15,7 @@ import {
   type SecurityConfig,
 } from './security';
 import { bearerFromAuthHeader, tokensEqual } from './token';
+import { attachWebSocket } from './ws';
 import type { ApiError } from './types';
 
 const CAMP_ID_RE = /^session:\$[0-9]+$/;
@@ -26,6 +27,7 @@ export interface HttpConfig {
   security: SecurityConfig;
   token: string;
   now: () => Date;
+  heartbeatMs?: number;
 }
 
 const PLACEHOLDER_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>Orc Camp</title></head>
@@ -42,7 +44,7 @@ interface ServerState {
 
 export function createHttpServer(cfg: HttpConfig): Server {
   const state: ServerState = { lastRefreshMs: 0 };
-  return createServer((req, res) => {
+  const server = createServer((req, res) => {
     handle(req, res, cfg, state).catch((err) => {
       // Guard against a throw after headers were already sent (avoids ERR_HTTP_HEADERS_SENT).
       if (!res.headersSent) {
@@ -54,6 +56,8 @@ export function createHttpServer(cfg: HttpConfig): Server {
       void err;
     });
   });
+  attachWebSocket(server, { runtime: cfg.runtime, security: cfg.security, token: cfg.token, now: cfg.now, ...(cfg.heartbeatMs !== undefined ? { heartbeatMs: cfg.heartbeatMs } : {}) });
+  return server;
 }
 
 function newRequestId(): string {

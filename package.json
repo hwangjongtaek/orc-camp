@@ -18,7 +18,7 @@
     "scan": "tsx src/cli.ts",
     "serve": "tsx src/main.ts serve",
     "doctor": "tsx src/main.ts doctor",
-    "build": "esbuild src/main.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/main.js",
+    "build": "esbuild src/main.ts --bundle --packages=external --platform=node --format=esm --target=node20 --outfile=dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
@@ -30,8 +30,12 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "ws": "^8.21.0"
   }
 }
