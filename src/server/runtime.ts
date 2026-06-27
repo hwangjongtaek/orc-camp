@@ -7,8 +7,9 @@
  * serve the current published snapshot; preview text is gated (token by the route,
  * exposure here).
  */
-import { PREVIEW_LINES, type Camp, type ScanResult } from '../types';
+import { PREVIEW_LINES, type AgentType, type Camp, type Orc, type ScanResult } from '../types';
 import { ScanRunner, type ScanRuntimeDeps } from '../scan';
+import { collectInventory } from '../tmux/inventory';
 import { diffSnapshots, snapshotChanged, type DiffEvent } from './diff';
 import { ACTIVITY_BOOTSTRAP_TAIL, ActivityLog, type ActivityEvent, type NewActivity } from './activity';
 import type { DebugLog } from './debug-log';
@@ -166,9 +167,41 @@ export class SnapshotRuntime {
     this.activityLog.clear();
   }
 
-  private pushActivity(a: NewActivity): void {
+  private pushActivity(a: NewActivity): ActivityEvent {
     const event = this.activityLog.push(a);
     this.emit({ type: 'activity', event });
+    return event;
+  }
+
+  /** Public activity recorder (SPEC-400 control audit → control.result event). */
+  recordActivity(a: NewActivity): ActivityEvent {
+    return this.pushActivity(a);
+  }
+
+  /** Find an orc by stable id in the current published snapshot. */
+  getOrc(orcId: string): Orc | null {
+    if (this.published === null) return null;
+    return this.published.camps.flatMap((c) => c.orcs).find((o) => o.id === orcId) ?? null;
+  }
+
+  /**
+   * SPEC-400 §2.6 — fresh read-only re-validation of a pane at execution time
+   * (never trusts the cached snapshot). Returns null if the pane no longer exists.
+   */
+  async revalidate(paneId: string): Promise<{ paneId: string; tmuxTarget: string; command: string; agentType: AgentType } | null> {
+    const d = this.opts.deps;
+    const inv = await collectInventory({
+      tmuxExec: d.tmuxExec, introspect: d.introspect, sanitize: d.sanitize, redact: d.redact, now: d.now,
+      ...(d.timeoutMs !== undefined ? { timeoutMs: d.timeoutMs } : {}),
+      ...(d.captureLines !== undefined ? { captureLines: d.captureLines } : {}),
+    });
+    const pane = inv.panes.find((p) => p.paneId === paneId);
+    if (!pane) return null;
+    const cand = d.detectOrc(
+      { paneId: pane.paneId, tmuxTarget: pane.tmuxTarget, command: pane.command, paneTitle: pane.paneTitle, cmdline: pane.cmdline, cwd: pane.cwd, recentOutput: pane.capture ? pane.capture.lines : [] },
+      d.detectors,
+    );
+    return { paneId: pane.paneId, tmuxTarget: pane.tmuxTarget, command: pane.command, agentType: cand?.agentType ?? 'unknown' };
   }
 
   /** Bootstrap tail for new clients (SPEC-600 §2.4). */

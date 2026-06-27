@@ -17,6 +17,7 @@ import {
 import { bearerFromAuthHeader, tokensEqual } from './token';
 import { attachWebSocket } from './ws';
 import type { SettingsStore } from './settings';
+import type { ControlService, ControlAction } from './control';
 import type { ApiError } from './types';
 
 const CAMP_ID_RE = /^session:\$[0-9]+$/;
@@ -27,6 +28,7 @@ export interface HttpConfig {
   runtime: SnapshotRuntime;
   security: SecurityConfig;
   settings: SettingsStore;
+  control: ControlService;
   token: string;
   now: () => Date;
   heartbeatMs?: number;
@@ -193,6 +195,22 @@ async function handle(req: IncomingMessage, res: ServerResponse, cfg: HttpConfig
       return;
     }
     sendJson(res, 200, preview, corsHeaders);
+    return;
+  }
+
+  // SPEC-400 control actions (state-changing; behind the auth gate above)
+  if (route[0] === 'orcs' && route.length === 3 && (route[2] === 'input' || route[2] === 'key' || route[2] === 'interrupt')) {
+    if (method !== 'POST') return methodNotAllowed(res, requestId, corsHeaders);
+    const orcId = decode(route[1]!);
+    let body: unknown;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      sendError(res, 400, 'bad_request', 'invalid JSON body', requestId, undefined, corsHeaders);
+      return;
+    }
+    const result = await cfg.control.handle(route[2] as ControlAction, orcId, body);
+    sendJson(res, result.status, result.body, corsHeaders);
     return;
   }
 

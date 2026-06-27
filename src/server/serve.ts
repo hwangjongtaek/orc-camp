@@ -14,6 +14,8 @@ import { SnapshotRuntime } from './runtime';
 import { createHttpServer } from './http';
 import { bindWithFallback, PREFERRED_PORT, isLoopback } from './net';
 import { generateToken } from './token';
+import { ControlService, makeControlExec } from './control';
+import { safeSpawn } from '../tmux/exec';
 import { SettingsStore, resolveConfigDir, resolveStateDir } from './settings';
 import { DebugLog, resolveLogLevel } from './debug-log';
 import type { SecurityConfig } from './security';
@@ -31,6 +33,7 @@ export interface StartOptions {
   explicitPort?: boolean; // user passed --port → no ephemeral fallback
   allowExternal?: boolean;
   deps?: ScanRuntimeDeps;
+  controlSpawn?: ProcessSpawn; // send-keys write path (tests inject a fake; default safeSpawn)
   settings?: ServerSettings; // in-memory store (tests; no disk)
   configDir?: string; // disk-backed config (takes precedence over `settings`)
   stateDir?: string; // debug log location (default resolveStateDir)
@@ -68,13 +71,14 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
   const debugLog = new DebugLog(opts.stateDir ?? resolveStateDir(), { level: resolveLogLevel(), now });
 
   const runtime = new SnapshotRuntime({ deps, settings: store, runtimeEpoch, now, debugLog });
+  const control = new ControlService(runtime, makeControlExec(opts.controlSpawn ?? safeSpawn), now);
   const security: SecurityConfig = {
     host,
     port: preferred,
     allowExternal: opts.allowExternal ?? false,
     devOrigins: opts.devOrigins ?? DEV_ORIGINS,
   };
-  const server = createHttpServer({ runtime, security, token, now, settings: store, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
+  const server = createHttpServer({ runtime, security, token, now, settings: store, control, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
 
   const { port, fellBack } = await bindWithFallback(server, host, preferred, opts.explicitPort ?? false);
   security.port = port; // fix CORS/Host to the actual port (single source, §3.4)
