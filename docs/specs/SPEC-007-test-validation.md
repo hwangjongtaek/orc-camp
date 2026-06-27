@@ -2,7 +2,7 @@
 spec: SPEC-007
 title: 테스트 전략·PoC 측정·수용 매트릭스
 status: approved
-updated: 2026-06-26
+updated: 2026-06-27
 requirements: [R-CLI-004, R-TMUX-001, R-TMUX-002, R-TMUX-004, R-TMUX-005, R-TMUX-006, R-ORC-001, R-ORC-002, R-ORC-003, R-ORC-004, R-ORC-005, R-ORC-006, R-ORC-007, R-PRIV-001, R-PRIV-002, R-PRIV-003, R-PRIV-004, R-PRIV-005, R-PRIV-006, R-OBS-003, R-UI-007]
 decisions: [D-012, D-014, D-020, D-021]
 tags:
@@ -241,6 +241,17 @@ interface LabeledPaneSample {
 | `TC-M-FALSERED` | secret-recall=1.0 · false-redaction-rate ≤ τ(M5) | SPEC-007-AC-04, SPEC-006-AC-15 |
 | `TC-M-BANNER` | banner 토큰 비-redaction + redacted 출력에서 G-OUT 발화(coherence) | SPEC-006 C4 / SPEC-003 Q |
 | `TC-M-LATENCY` | 20 pane p50/p95 — `--watch` cycle-to-cycle latency(e2e, M4) | SPEC-007-AC-05 |
+
+### 2.6 e2e 실행 메커니즘 (구현 노트, 2026-06-27)
+
+§2.5 `TC-E-*`(live tmux)의 실제 실행 방식을 고정한다. e2e는 **비-게이트**(§3.1-2)이며 CI 기본 `npm test`에서 제외된다.
+
+- **위치/실행**: `tests/e2e/*.e2e.ts`, `npm run test:e2e`(`vitest.e2e.config.ts`). 기본 `npm test`의 include(`tests/**/*.test.ts`)는 `*.e2e.ts`를 매칭하지 않아 게이트와 분리된다.
+- **gating**: 파일 최상단에서 `tmux -V` 가용성을 확인(top-level await)하고 `describe.skipIf(!AVAILABLE)`로 미설치 환경에서 깨끗이 skip한다(머신 의존, §3.1-2).
+- **격리**: 기본 tmux server에 **고유 이름의 일회용 session**(`orccampE2E_<pid>_<ts>`)을 만들고 정적 pane(`sleep`) + Tier-B title 시그니처(`select-pane -T`)를 부여해 claude-code orc로 탐지시킨다. `afterAll`에서 항상 `kill-session`으로 정리한다. scan은 read-only이므로 server의 다른 session은 건드리지 않으며, session 생성/종료(new-session/kill-session)는 **harness의 setup/teardown**이지 CLI의 행위가 아니다.
+- **CLI spawn**: 사용자와 동일하게 실제 CLI를 spawn해 stdout/exit를 관측한다(`npx tsx src/cli.ts …`; bin과 동일 소스).
+- **현재 구현 케이스**: `TC-E-SMOKE`(exit 0 + header, `--json` 단일 유효 document), `TC-E-AGENT`(일회용 session이 camp로 발견 + claude-code orc 탐지), `TC-E-READONLY`(scan 전후 해당 session pane state 불변), `TC-E-LATENCY`(sanity: `scanDurationMs` 보고·bound; 정식 p95<1s는 M4 e2e job 소유).
+- **미구현(후속)**: `TC-E-WATCH`(cycle-to-cycle prior 실측), `TC-E-LATENCY`의 ≥20 pane R-cycle p50/p95 측정(M4), 그리고 measurement(M1~M5) 라벨 데이터셋 하니스는 별도 후속 작업이다.
 
 ## 3. Behavior rules
 
