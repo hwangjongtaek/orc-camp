@@ -5,14 +5,9 @@
  * file only adds the thin server envelope (snapshotVersion/runtimeEpoch/emittedAt).
  */
 import type { Camp, ScanResult } from '../types';
+import type { ActivityEvent } from './activity';
 
-/** Bootstrap activity tail item (SPEC-600 owns the full taxonomy; this is the subset served). */
-export interface ActivityEvent {
-  id: string;
-  at: string; // ISO 8601
-  type: string; // e.g. 'scan.ok' | 'scan.fail' | 'orc.status' | 'control.result'
-  message: string; // redacted, user-safe
-}
+export type { ActivityEvent };
 
 export interface SnapshotResponse {
   snapshotVersion: number; // >=1 once published

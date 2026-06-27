@@ -106,7 +106,7 @@ export function diffSnapshots(prior: ScanResult | null, next: ScanResult): DiffE
         events.push({
           type: 'orc_status_changed',
           payload: {
-            campId: id, orcId: oid, status: no.status, statusConfidence: no.statusConfidence,
+            campId: id, orcId: oid, fromStatus: po.status, status: no.status, statusConfidence: no.statusConfidence,
             statusSignals: no.statusSignals, currentWorkSummary: no.currentWorkSummary,
             summarySource: no.summarySource, summaryIsEstimated: no.summaryIsEstimated, lastActivityAt: no.lastActivityAt,
           },

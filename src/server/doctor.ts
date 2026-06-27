@@ -1,13 +1,15 @@
 /**
- * SPEC-100 §2.3/§3.5 — `orc-camp doctor`: 5 environment health checks.
- * fail ≥1 → exit 1; warn never fails the exit (exit 0).
+ * SPEC-100 §2.3/§3.5 — `orc-camp doctor`: 5 environment health checks (exit fail≥1).
+ * SPEC-600 §2.9 — log.path detail + DoctorDiagnostics block (info only; no exit effect).
  */
 import { accessSync, constants as FS, statSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { arch, platform, release } from 'node:os';
 import { dirname, join } from 'node:path';
 import { tmuxExec as defaultTmuxExec } from '../tmux/exec';
 import { isPortAvailable, PREFERRED_PORT } from './net';
 import { isNoServerStderr, parseVersion } from '../tmux/inventory';
+import { resolveConfigDir, resolveStateDir } from './settings';
+import { DebugLog, resolveLogLevel, type DebugLogEntry } from './debug-log';
 import type { TmuxExecFn } from '../types';
 
 type CheckStatus = 'pass' | 'warn' | 'fail';
@@ -16,13 +18,6 @@ interface Check {
   label: string;
   status: CheckStatus;
   detail: string;
-}
-
-export function configDir(env: NodeJS.ProcessEnv = process.env): string {
-  return join(env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'orc-camp');
-}
-export function stateDir(env: NodeJS.ProcessEnv = process.env): string {
-  return join(env.XDG_STATE_HOME || join(homedir(), '.local', 'state'), 'orc-camp');
 }
 
 /** Writable if the dir (or its nearest existing ancestor) has write permission. */
@@ -93,13 +88,54 @@ export async function runChecks(opts: DoctorOptions = {}): Promise<Check[]> {
     detail: portOk ? 'available' : 'in use (will fall back to an ephemeral port)',
   });
 
-  const cfg = checkWritableDir(configDir(env));
+  const cfg = checkWritableDir(resolveConfigDir(env));
   checks.push({ id: 'config.dirAccess', label: 'config dir access', status: cfg.ok ? 'pass' : 'fail', detail: cfg.detail });
 
-  const log = checkWritableDir(stateDir(env));
-  checks.push({ id: 'log.path', label: 'debug log path', status: log.ok ? 'pass' : 'fail', detail: log.ok ? join(stateDir(env), 'debug.log') : log.detail });
+  const sdir = resolveStateDir(env);
+  const log = checkWritableDir(sdir);
+  checks.push({ id: 'log.path', label: 'debug log path', status: log.ok ? 'pass' : 'fail', detail: log.ok ? join(sdir, 'debug.log') : log.detail });
 
   return checks;
+}
+
+export interface LogPathDetail {
+  path: string;
+  writable: boolean;
+  sizeBytes: number;
+  level: string;
+  rotation: { maxBytes: number; keep: number };
+}
+export interface DoctorDiagnostics {
+  environment: { appVersion: string; nodeVersion: string; os: string; arch: string; tmuxVersion: string | null };
+  log: LogPathDetail;
+  recentErrors: { windowEntries: number; counts: { error: number; warn: number }; lastErrorAt: string | null; topCodes: { code: string; count: number }[] };
+}
+
+/** SPEC-600 §2.9(B) — observability diagnostics (no terminal content; no exit effect). */
+export async function buildDiagnostics(opts: DoctorOptions = {}): Promise<DoctorDiagnostics> {
+  const env = opts.env ?? process.env;
+  const tmuxExec = opts.tmuxExec ?? defaultTmuxExec;
+  const sdir = resolveStateDir(env);
+  const dl = new DebugLog(sdir, { level: resolveLogLevel(env) });
+  const probe = await tmuxExec(null, ['-V']);
+  const tmuxVersion = probe.spawnError === null && probe.exitCode === 0 ? parseVersion(probe.stdout) : null;
+
+  const entries = dl.readTail(200);
+  const counts = { error: 0, warn: 0 };
+  const codeCounts = new Map<string, number>();
+  let lastErrorAt: string | null = null;
+  for (const e of entries) {
+    if (e.level === 'error') { counts.error += 1; lastErrorAt = e.ts; }
+    else if (e.level === 'warn') counts.warn += 1;
+    if (e.code) codeCounts.set(e.code, (codeCounts.get(e.code) ?? 0) + 1);
+  }
+  const topCodes = [...codeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([code, count]) => ({ code, count }));
+
+  return {
+    environment: { appVersion: '0.1.0', nodeVersion: process.version, os: `${platform()} ${release()}`, arch: arch(), tmuxVersion },
+    log: { path: dl.path(), writable: checkWritableDir(sdir).ok, sizeBytes: dl.sizeBytes(), level: dl.getLevel(), rotation: dl.rotation() },
+    recentErrors: { windowEntries: entries.length, counts, lastErrorAt, topCodes },
+  };
 }
 
 interface DoctorArgs {
@@ -142,20 +178,23 @@ export async function doctorCommand(argv: string[], opts: DoctorOptions = {}): P
     fail: checks.filter((c) => c.status === 'fail').length,
   };
   const ok = summary.fail === 0;
+  const diagnostics = await buildDiagnostics(opts);
 
   if (args.json) {
-    io.stdout(JSON.stringify({ checks, summary, ok }) + '\n');
+    io.stdout(JSON.stringify({ checks, summary, ok, diagnostics }) + '\n');
   } else {
     for (const c of checks) {
       const dots = '.'.repeat(Math.max(2, 26 - c.label.length));
       io.stdout(`${c.label} ${dots} ${c.status} (${c.detail})\n`);
     }
+    io.stdout(`\nenvironment: orc-camp ${diagnostics.environment.appVersion} · node ${diagnostics.environment.nodeVersion} · ${diagnostics.environment.os} ${diagnostics.environment.arch}\n`);
+    io.stdout(`debug log: ${diagnostics.log.path} (level ${diagnostics.log.level}, ${diagnostics.log.sizeBytes}B)\n`);
   }
 
   if (args.report !== null) {
-    const path = args.report || join(stateDir(opts.env ?? process.env), 'orc-camp-report.json');
+    const path = args.report || join(resolveStateDir(opts.env ?? process.env), 'orc-camp-report.json');
     try {
-      writeFileSync(path, JSON.stringify({ checks, summary, ok, generatedAt: new Date().toISOString() }, null, 2));
+      writeFileSync(path, JSON.stringify({ generatedAt: new Date().toISOString(), doctor: { checks, summary, ok }, diagnostics }, null, 2));
       io.stderr(`report written to ${path}\n`);
     } catch (e) {
       io.stderr(`could not write report: ${e instanceof Error ? e.message : String(e)}\n`);

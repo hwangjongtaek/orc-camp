@@ -54,6 +54,12 @@ export function resolveConfigDir(env: NodeJS.ProcessEnv = process.env): string {
   return join(homedir(), '.config', 'orc-camp');
 }
 
+export function resolveStateDir(env: NodeJS.ProcessEnv = process.env): string {
+  if (env.ORC_CAMP_STATE_DIR) return env.ORC_CAMP_STATE_DIR;
+  if (env.XDG_STATE_HOME) return join(env.XDG_STATE_HOME, 'orc-camp');
+  return join(homedir(), '.local', 'state', 'orc-camp');
+}
+
 function clampInt(n: unknown, min: number, max: number, fallback: number): number {
   if (typeof n !== 'number' || !Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, Math.round(n)));

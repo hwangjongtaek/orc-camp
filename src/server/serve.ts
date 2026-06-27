@@ -14,7 +14,8 @@ import { SnapshotRuntime } from './runtime';
 import { createHttpServer } from './http';
 import { bindWithFallback, PREFERRED_PORT, isLoopback } from './net';
 import { generateToken } from './token';
-import { SettingsStore, resolveConfigDir } from './settings';
+import { SettingsStore, resolveConfigDir, resolveStateDir } from './settings';
+import { DebugLog, resolveLogLevel } from './debug-log';
 import type { SecurityConfig } from './security';
 import type { ServerSettings } from './types';
 
@@ -32,6 +33,7 @@ export interface StartOptions {
   deps?: ScanRuntimeDeps;
   settings?: ServerSettings; // in-memory store (tests; no disk)
   configDir?: string; // disk-backed config (takes precedence over `settings`)
+  stateDir?: string; // debug log location (default resolveStateDir)
   now?: () => Date;
   runtimeEpoch?: string;
   devOrigins?: string[];
@@ -46,6 +48,7 @@ export interface ServerHandle {
   fellBack: boolean;
   runtime: SnapshotRuntime;
   settings: SettingsStore;
+  debugLog: DebugLog;
   ready: Promise<void>; // resolves after the first published snapshot
   close: () => Promise<void>;
 }
@@ -62,8 +65,9 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
       ? SettingsStore.inMemory(opts.settings)
       : SettingsStore.fromDir(resolveConfigDir());
   const deps = opts.deps ?? createDefaultDeps();
+  const debugLog = new DebugLog(opts.stateDir ?? resolveStateDir(), { level: resolveLogLevel(), now });
 
-  const runtime = new SnapshotRuntime({ deps, settings: store, runtimeEpoch, now });
+  const runtime = new SnapshotRuntime({ deps, settings: store, runtimeEpoch, now, debugLog });
   const security: SecurityConfig = {
     host,
     port: preferred,
@@ -83,7 +87,7 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
     await new Promise<void>((resolve) => server.close(() => resolve()));
   };
 
-  return { url, host, port, token, fellBack, runtime, settings: store, ready, close };
+  return { url, host, port, token, fellBack, runtime, settings: store, debugLog, ready, close };
 }
 
 // --- CLI wrapper -----------------------------------------------------------

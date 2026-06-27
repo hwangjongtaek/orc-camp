@@ -10,22 +10,23 @@
 import { PREVIEW_LINES, type Camp, type ScanResult } from '../types';
 import { ScanRunner, type ScanRuntimeDeps } from '../scan';
 import { diffSnapshots, snapshotChanged, type DiffEvent } from './diff';
+import { ACTIVITY_BOOTSTRAP_TAIL, ActivityLog, type ActivityEvent, type NewActivity } from './activity';
+import type { DebugLog } from './debug-log';
 import type { SettingsProvider } from './settings';
-import type { ActivityEvent, HealthResponse, OrcPreviewResponse, SnapshotResponse } from './types';
+import type { HealthResponse, OrcPreviewResponse, SnapshotResponse } from './types';
 
 /** SPEC-102 runtime → WS frames (envelope added by the WS layer). */
 export type RuntimeEvent =
   | { type: 'batch'; version: number; changes: DiffEvent[] }
-  | { type: 'server_stale_changed'; stale: boolean; lastGoodAt: string | null; version: number };
-
-export const ACTIVITY_BOOTSTRAP_TAIL = 50;
-const ACTIVITY_RING_MAX = 200;
+  | { type: 'server_stale_changed'; stale: boolean; lastGoodAt: string | null; version: number }
+  | { type: 'activity'; event: ActivityEvent };
 
 export interface RuntimeOptions {
   deps: ScanRuntimeDeps;
   settings: SettingsProvider; // live source (scanInterval/preview read each use)
   runtimeEpoch: string;
   now: () => Date;
+  debugLog?: DebugLog; // SPEC-600 — optional structured debug log
 }
 
 export class SnapshotRuntime {
@@ -34,13 +35,12 @@ export class SnapshotRuntime {
   private version = 0;
   private lastScanAt: string | null = null;
   private lastScanOk = false;
-  private activity: ActivityEvent[] = [];
+  private activityLog: ActivityLog;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
   private scanning: Promise<ScanResult | null> | null = null;
   private startedAtMs: number;
   private startedAtIso: string;
-  private seq = 0;
   private listeners = new Set<(e: RuntimeEvent) => void>();
 
   constructor(private readonly opts: RuntimeOptions) {
@@ -48,6 +48,7 @@ export class SnapshotRuntime {
     const d = opts.now();
     this.startedAtMs = d.getTime();
     this.startedAtIso = d.toISOString();
+    this.activityLog = new ActivityLog(opts.now);
   }
 
   /** SPEC-102 — subscribe to runtime change frames (returns an unsubscribe fn). */
@@ -85,6 +86,7 @@ export class SnapshotRuntime {
 
   /** First scan (first publish) + schedule the interval loop. */
   async start(): Promise<void> {
+    this.pushActivity({ type: 'server.started', severity: 'info', code: 'server.started', message: 'server started' });
     await this.runScan();
     this.schedule();
   }
@@ -110,19 +112,39 @@ export class SnapshotRuntime {
     const next = await this.runner.scanOnce();
     this.lastScanAt = next.scannedAt;
     const inventoryFailed =
-      next.stale ||
-      next.diagnostics.tmuxErrors.some((e) => e.phase === 'inventory' || e.phase === 'probe');
+      next.stale || next.diagnostics.tmuxErrors.some((e) => e.phase === 'inventory' || e.phase === 'probe');
     this.lastScanOk = !inventoryFailed;
-    this.pushActivity(this.lastScanOk ? 'scan.ok' : 'scan.fail', this.lastScanOk ? 'scan completed' : 'scan degraded (stale/inventory error)');
     const prior = this.published;
+    const wasStale = prior?.stale ?? false;
+
+    // scanner lifecycle activity (transitions only — not per cycle)
+    if (next.stale && !wasStale) this.pushActivity({ type: 'scanner.stale', severity: 'warn', code: 'scanner.stale', message: 'scanner stale — serving last-good snapshot', detail: { durationMs: next.diagnostics.scanDurationMs } });
+    else if (!next.stale && wasStale) this.pushActivity({ type: 'scanner.recovered', severity: 'info', code: 'scanner.recovered', message: 'scanner recovered', detail: { durationMs: next.diagnostics.scanDurationMs } });
+    else if (inventoryFailed && !next.stale) this.pushActivity({ type: 'scanner.error', severity: 'error', code: 'scanner.inventory_failed', message: 'scan inventory failed', detail: { durationMs: next.diagnostics.scanDurationMs } });
+
+    // tmux errors → debug log (redaction-before-write) + tmux.error activity
+    for (const e of next.diagnostics.tmuxErrors) {
+      this.opts.debugLog?.write({
+        level: e.kind === 'timeout' ? 'warn' : 'error', component: 'tmux', code: `tmux.${e.kind}`, phase: e.phase, command: e.command,
+        ...(e.target ? { paneId: e.target } : {}), ...(e.exitCode !== null ? { exitCode: e.exitCode } : {}), message: e.message,
+      });
+      this.pushActivity({ type: 'tmux.error', severity: e.kind === 'timeout' ? 'warn' : 'error', code: `tmux.${e.kind}`, target: e.target ? { paneId: e.target } : null, message: `tmux ${e.command} ${e.kind}`, detail: e.exitCode !== null ? { exitCode: e.exitCode } : {} });
+    }
+
     if (snapshotChanged(prior, next)) {
       const changes = diffSnapshots(prior, next);
       this.published = next;
       this.version += 1;
-      this.pushActivity('snapshot.update', `snapshot v${this.version}`);
       if (changes.length > 0) this.emit({ type: 'batch', version: this.version, changes });
-      if ((prior?.stale ?? false) !== next.stale) {
-        this.emit({ type: 'server_stale_changed', stale: next.stale, lastGoodAt: next.lastGoodAt, version: this.version });
+      if (wasStale !== next.stale) this.emit({ type: 'server_stale_changed', stale: next.stale, lastGoodAt: next.lastGoodAt, version: this.version });
+      for (const c of changes) {
+        if (c.type === 'orc_status_changed') {
+          const p = c.payload as { orcId: string; campId: string; status: string; fromStatus?: string };
+          this.pushActivity({ type: 'orc.status_changed', severity: 'info', code: `status.${p.status}`, target: { orcId: p.orcId, campId: p.campId }, message: `orc ${p.orcId} → ${p.status}`, detail: { toStatus: p.status, ...(p.fromStatus ? { fromStatus: p.fromStatus } : {}) } });
+        } else if (c.type === 'orc_removed') {
+          const p = c.payload as { orcId: string; campId: string; reason: string };
+          this.pushActivity({ type: 'orc.terminated', severity: 'info', code: 'orc.removed', target: { orcId: p.orcId, campId: p.campId }, message: `orc ${p.orcId} removed`, detail: { reason: p.reason } });
+        }
       }
     }
     return this.published;
@@ -141,16 +163,17 @@ export class SnapshotRuntime {
       this.timer = null;
     }
     this.published = null;
-    this.activity = [];
+    this.activityLog.clear();
   }
 
-  private nextId(): string {
-    this.seq += 1;
-    return `${this.opts.runtimeEpoch}.${this.seq}`;
+  private pushActivity(a: NewActivity): void {
+    const event = this.activityLog.push(a);
+    this.emit({ type: 'activity', event });
   }
-  private pushActivity(type: string, message: string): void {
-    this.activity.push({ id: this.nextId(), at: this.opts.now().toISOString(), type, message });
-    if (this.activity.length > ACTIVITY_RING_MAX) this.activity.splice(0, this.activity.length - ACTIVITY_RING_MAX);
+
+  /** Bootstrap tail for new clients (SPEC-600 §2.4). */
+  activityTail(n: number = ACTIVITY_BOOTSTRAP_TAIL): ActivityEvent[] {
+    return this.activityLog.tail(n);
   }
 
   // --- read accessors ---
@@ -163,7 +186,7 @@ export class SnapshotRuntime {
       runtimeEpoch: this.opts.runtimeEpoch,
       emittedAt: this.opts.now().toISOString(),
       data: this.published,
-      recentActivity: this.activity.slice(-ACTIVITY_BOOTSTRAP_TAIL),
+      recentActivity: this.activityLog.tail(ACTIVITY_BOOTSTRAP_TAIL),
     };
   }
 

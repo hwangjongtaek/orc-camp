@@ -95,7 +95,8 @@ function handleConnection(ws: WebSocket, req: IncomingMessage, cfg: WsConfig, he
 
   const unsub = cfg.runtime.subscribe((e) => {
     if (e.type === 'batch') send('batch', e.version, { version: e.version, changes: e.changes });
-    else send('server_stale_changed', e.version, { stale: e.stale, lastGoodAt: e.lastGoodAt, version: e.version });
+    else if (e.type === 'server_stale_changed') send('server_stale_changed', e.version, { stale: e.stale, lastGoodAt: e.lastGoodAt, version: e.version });
+    else send('activity', cfg.runtime.snapshotVersion, e.event); // SPEC-600 activity frame
   });
 
   const hb = setInterval(() => {
