@@ -7,6 +7,7 @@ import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { useServices } from './app/services';
 import { selectViewState, useStore } from './store/store';
 import { Banners } from './components/banners/Banners';
+import { Toasts } from './components/toast/Toasts';
 import { LoadingState, UnauthorizedState } from './components/states/ContentStates';
 import { CampListView } from './screens/CampListView';
 import { CampDetailView } from './screens/CampDetailView';
@@ -37,6 +38,7 @@ export function App(): JSX.Element {
           </>
         )}
       </main>
+      <Toasts />
     </div>
   );
 }

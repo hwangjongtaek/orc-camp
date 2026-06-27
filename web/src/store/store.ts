@@ -44,6 +44,13 @@ export interface UiSlice {
   inspectorOpen: boolean;
 }
 
+export type ToastSeverity = 'info' | 'warn' | 'error';
+export interface Toast {
+  id: string;
+  severity: ToastSeverity;
+  message: string;
+}
+
 export interface StoreState {
   server: ServerData;
   connection: ConnectionSlice;
@@ -51,6 +58,7 @@ export interface StoreState {
   activity: ActivityEvent[];
   settings: SettingsResponse | null;
   reducedMotion: boolean;
+  toasts: Toast[];
 
   // --- server-state writers (reconcile only) ---
   applySnapshot: (res: SnapshotResponse) => void;
@@ -74,7 +82,11 @@ export interface StoreState {
   // --- misc ---
   setSettings: (settings: SettingsResponse | null) => void;
   setReducedMotion: (value: boolean) => void;
+  addToast: (severity: ToastSeverity, message: string) => string;
+  dismissToast: (id: string) => void;
 }
+
+let toastSeq = 0;
 
 const initialConnection: ConnectionSlice = {
   wsStatus: 'idle',
@@ -108,6 +120,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   activity: [],
   settings: null,
   reducedMotion: false,
+  toasts: [],
 
   applySnapshot: (res) => {
     set((state) => {
@@ -199,6 +212,15 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   setSettings: (settings) => set({ settings }),
   setReducedMotion: (reducedMotion) => set({ reducedMotion }),
+
+  addToast: (severity, message) => {
+    const id = `t${++toastSeq}`;
+    set((state) => ({ toasts: [...state.toasts, { id, severity, message }] }));
+    return id;
+  },
+  dismissToast: (id) => {
+    set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
+  },
 }));
 
 /** Derived global view-state (SPEC-200 §2.7). */

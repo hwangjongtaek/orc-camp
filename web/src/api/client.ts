@@ -11,6 +11,10 @@ import type {
   ApiErrorBody,
   CampResponse,
   ClientApiError,
+  ControlResultBody,
+  InputRequest,
+  InterruptRequest,
+  KeyRequest,
   OrcPreviewResponse,
   SettingsResponse,
   SnapshotResponse,
@@ -124,5 +128,31 @@ export class ApiClient {
       },
       'global',
     );
+  }
+
+  // --- SPEC-400 control actions (state-changing; Bearer-gated) ---------------
+
+  private control(orcId: string, sub: string, body: unknown): Promise<ApiResult<ControlResultBody>> {
+    return this.request<ControlResultBody>(
+      `/api/orcs/${encodeURIComponent(orcId)}/${sub}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      'orc',
+    );
+  }
+
+  sendInput(orcId: string, body: InputRequest): Promise<ApiResult<ControlResultBody>> {
+    return this.control(orcId, 'input', body);
+  }
+
+  sendKey(orcId: string, body: KeyRequest): Promise<ApiResult<ControlResultBody>> {
+    return this.control(orcId, 'key', body);
+  }
+
+  sendInterrupt(orcId: string, body: InterruptRequest): Promise<ApiResult<ControlResultBody>> {
+    return this.control(orcId, 'interrupt', body);
   }
 }

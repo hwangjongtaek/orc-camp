@@ -123,13 +123,13 @@ img {
 .oc-btn--primary {
   background: var(--oc-color-primary);
   border-color: var(--oc-color-primary);
-  color: #1a1206;
+  color: var(--oc-color-on-primary);
   font-weight: 600;
 }
 .oc-btn--danger {
   background: var(--oc-color-danger);
   border-color: var(--oc-color-danger);
-  color: #fff;
+  color: var(--oc-color-on-danger);
 }
 
 /* --- Banners (layer B overlays) --- */
@@ -143,15 +143,15 @@ img {
   border: 1px solid var(--oc-color-border);
 }
 .oc-banner--disconnected {
-  background: rgba(201, 76, 76, 0.16);
+  background: var(--oc-tint-danger);
   border-color: var(--oc-color-danger);
 }
 .oc-banner--stale {
-  background: rgba(214, 164, 63, 0.16);
+  background: var(--oc-tint-warning);
   border-color: var(--oc-color-warning);
 }
 .oc-banner--error {
-  background: rgba(201, 76, 76, 0.12);
+  background: var(--oc-tint-danger-weak);
   border-color: var(--oc-color-danger);
 }
 .oc-banner__label {
@@ -536,6 +536,149 @@ img {
 .oc-form input[type='number'],
 .oc-form input[type='range'] {
   font: inherit;
+}
+
+/* --- Per-orc scoped tmux error (layer C) --- */
+.oc-slot__error {
+  font-size: 10px;
+  color: var(--oc-color-danger);
+  border: 1px solid var(--oc-color-danger);
+  border-radius: 3px;
+  padding: 0 var(--oc-space-1);
+}
+
+/* --- Command dock (SPEC-400 control flow) --- */
+.oc-dock {
+  margin-top: var(--oc-space-3);
+  border-top: 1px solid var(--oc-color-border);
+  padding-top: var(--oc-space-2);
+}
+.oc-dock__context {
+  margin: 0 0 var(--oc-space-2);
+  display: grid;
+  gap: 2px;
+}
+.oc-dock__ctxrow {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: var(--oc-space-2);
+  align-items: baseline;
+}
+.oc-dock__ctxrow dt,
+.oc-dock__ctxrow dd {
+  margin: 0;
+}
+.oc-dock__input {
+  display: flex;
+  gap: var(--oc-space-1);
+}
+.oc-dock__input input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: var(--oc-space-1) var(--oc-space-2);
+  background: var(--oc-color-surface-base);
+  color: var(--oc-color-text);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+}
+.oc-dock__submit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-1);
+  font-size: 11px;
+  color: var(--oc-color-text-muted);
+  margin-top: var(--oc-space-1);
+}
+.oc-dock__keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oc-space-1);
+}
+.oc-dock__key {
+  min-height: 24px;
+  padding: 0 var(--oc-space-2);
+  font-size: 11px;
+}
+
+/* --- Modal (focus-trap, SPEC-202 K5) --- */
+.oc-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--oc-color-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: var(--oc-space-4);
+}
+.oc-modal {
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-danger);
+  border-radius: var(--oc-radius-card);
+  padding: var(--oc-space-4);
+  max-width: 420px;
+  width: 100%;
+}
+.oc-modal__fields {
+  margin: var(--oc-space-3) 0;
+  display: grid;
+  gap: var(--oc-space-1);
+}
+.oc-modal__field {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: var(--oc-space-2);
+}
+.oc-modal__field dt,
+.oc-modal__field dd {
+  margin: 0;
+}
+.oc-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--oc-space-2);
+  margin-top: var(--oc-space-3);
+}
+
+/* --- Toasts (SPEC-400 result surface) --- */
+.oc-toasts {
+  position: fixed;
+  bottom: var(--oc-space-4);
+  right: var(--oc-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-2);
+  z-index: 60;
+  max-width: 380px;
+}
+.oc-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--oc-space-2);
+  padding: var(--oc-space-2) var(--oc-space-3);
+  border-radius: var(--oc-radius-card);
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-border);
+  box-shadow: var(--oc-shadow-pixel);
+}
+.oc-toast--info {
+  border-color: var(--oc-color-accent);
+}
+.oc-toast--warn {
+  border-color: var(--oc-color-warning);
+}
+.oc-toast--error {
+  border-color: var(--oc-color-danger);
+}
+.oc-toast__close {
+  background: none;
+  border: none;
+  color: var(--oc-color-text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
 }
 
 .oc-muted {

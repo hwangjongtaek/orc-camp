@@ -6,6 +6,7 @@
  */
 import { useMemo } from 'react';
 import { useStore } from '../../store/store';
+import { orcTmuxErrors } from '../../store/diagnostics';
 import { OrcSprite } from '../sprite/OrcSprite';
 import { StatusBadge } from '../status/StatusBadge';
 
@@ -85,6 +86,11 @@ function OrcSlot({
   onSelect: (orcId: string) => void;
 }): JSX.Element | null {
   const orc = useStore((s) => s.server.orcsById[orcId]);
+  // SPEC-201 AC-12 — tmux error scoped to this pane (target === paneId) shows locally.
+  const errorCount = useStore((s) =>
+    orc ? orcTmuxErrors(s.server.diagnostics.tmuxErrors, orc.paneId).length : 0,
+  );
+  const hasError = errorCount > 0;
   if (!orc) return null;
   return (
     <button
@@ -102,6 +108,11 @@ function OrcSlot({
       />
       <StatusBadge status={orc.status} confidence={orc.statusConfidence} />
       <span className="oc-slot__target">{orc.tmuxTarget}</span>
+      {hasError && (
+        <span className="oc-slot__error" title="tmux capture error for this pane">
+          ▲ capture error
+        </span>
+      )}
     </button>
   );
 }

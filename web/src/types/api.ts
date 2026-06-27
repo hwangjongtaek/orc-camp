@@ -2,7 +2,7 @@
  * SPEC-101 §2.4 — REST envelopes consumed by the dashboard.
  * Mirrors `src/server/types.ts` (SnapshotResponse/CampResponse/HealthResponse/...).
  */
-import type { Camp, ScanResult } from './domain';
+import type { AgentType, Camp, ScanResult } from './domain';
 
 export interface ActivityEvent {
   id: string;
@@ -77,6 +77,48 @@ export interface ApiErrorBody {
       allowed?: string;
     }>;
   };
+}
+
+// --- SPEC-400 control actions ------------------------------------------------
+
+export type ControlAction = 'input' | 'key' | 'interrupt';
+
+/** SPEC-400 §2.2 — "what you see = what's revalidated" (cwd is context-only, not here). */
+export interface ExpectedTarget {
+  paneId: string;
+  tmuxTarget: string;
+  command: string;
+  agentType: AgentType;
+}
+
+export interface InputRequest {
+  text: string;
+  submit?: boolean;
+  expected: ExpectedTarget;
+  requestId?: string;
+}
+export interface KeyRequest {
+  key: string;
+  expected: ExpectedTarget;
+  requestId?: string;
+}
+export interface InterruptRequest {
+  confirmed: true;
+  expected: ExpectedTarget;
+  requestId?: string;
+}
+
+/** SPEC-400 §2.2 — success body (HTTP 200). */
+export interface ControlResultBody {
+  ok: true;
+  action: ControlAction;
+  orcId: string;
+  paneId: string;
+  tmuxTarget: string;
+  outcome: 'success' | 'partial';
+  executedAt: string;
+  requestId: string | null;
+  auditEventId: string;
 }
 
 /** SPEC-200 §2.4 — client-side error mapping (user-safe message only). */

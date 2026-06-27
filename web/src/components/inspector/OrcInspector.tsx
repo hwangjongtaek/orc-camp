@@ -13,6 +13,8 @@ import { AGENT_BAND, STATUS_BAND, confidenceTier } from '../../types/domain';
 import { AGENT_LABEL } from '../status/statusMeta';
 import { StatusBadge } from '../status/StatusBadge';
 import { TerminalPreview, type PreviewMeta } from '../preview/TerminalPreview';
+import { CommandDock } from '../control/CommandDock';
+import { orcTmuxErrors } from '../../store/diagnostics';
 import { clockTime, relativeTime } from '../../util/time';
 
 interface PreviewState {
@@ -25,6 +27,7 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
   const orc = useStore((s) => (orcId ? s.server.orcsById[orcId] : undefined));
   const settings = useStore((s) => s.settings);
   const wsStatus = useStore((s) => s.connection.wsStatus);
+  const tmuxErrors = useStore((s) => s.server.diagnostics.tmuxErrors);
   const { api } = useServices();
 
   const exposureEnabled = settings?.preview.exposureEnabled ?? false;
@@ -79,12 +82,20 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
     );
   }
 
-  const controlDisabled =
-    !hasToken() ||
-    wsStatus === 'disconnected' ||
-    wsStatus === 'reconnecting' ||
-    orc.status === 'terminated' ||
-    orc.status === 'stale';
+  // SPEC-400 §2.11 entry-point enable predicate.
+  const disabledReason = !hasToken()
+    ? 'no token'
+    : wsStatus === 'disconnected' || wsStatus === 'reconnecting'
+      ? 'disconnected'
+      : orc.status === 'terminated'
+        ? 'orc terminated'
+        : orc.status === 'stale'
+          ? 'orc stale'
+          : null;
+  const controlDisabled = disabledReason !== null;
+
+  // SPEC-201 AC-12 — tmux errors scoped to THIS orc (target === paneId) render locally.
+  const orcErrors = orcTmuxErrors(tmuxErrors, orc.paneId);
 
   return (
     <aside className="oc-inspector" aria-label="Orc inspector">
@@ -94,6 +105,15 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
           ({confidenceTier(orc.statusConfidence, STATUS_BAND)})
         </span>
       </div>
+
+      {orcErrors.length > 0 && (
+        <div className="oc-banner oc-banner--error" role="status" style={{ marginBottom: 'var(--oc-space-2)' }}>
+          <span className="oc-banner__label">tmux error</span>
+          <span className="oc-muted">
+            {orcErrors[0]!.command} {orcErrors[0]!.kind} — this pane's data may be incomplete.
+          </span>
+        </div>
+      )}
 
       <Field label="Agent type">
         {AGENT_LABEL[orc.agentType]}{' '}
@@ -134,6 +154,30 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
         {relativeTime(orc.lastActivityAt)} <span className="oc-muted">({clockTime(orc.lastActivityAt)})</span>
       </Field>
 
+      {(orc.agentSignals.length > 0 || orc.statusSignals.length > 0) && (
+        <details className="oc-field">
+          <summary className="oc-field__label" style={{ cursor: 'pointer' }}>
+            Why (provenance)
+          </summary>
+          {orc.agentSignals.length > 0 && (
+            <div className="oc-field__value" style={{ fontSize: '12px' }}>
+              agent:{' '}
+              <span className="oc-mono">
+                {orc.agentSignals.map((s) => `${s.ruleId}(${s.tier})`).join(', ')}
+              </span>
+            </div>
+          )}
+          {orc.statusSignals.length > 0 && (
+            <div className="oc-field__value" style={{ fontSize: '12px' }}>
+              status:{' '}
+              <span className="oc-mono">
+                {orc.statusSignals.map((s) => `${s.ruleId}(${s.strength})`).join(', ')}
+              </span>
+            </div>
+          )}
+        </details>
+      )}
+
       {orc.status === 'terminated' && (
         <p className="oc-muted">This pane ended. Showing the last known metadata.</p>
       )}
@@ -155,27 +199,7 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
         }
       />
 
-      <div style={{ marginTop: 'var(--oc-space-3)' }}>
-        <div className="oc-field__label">Controls</div>
-        <div style={{ display: 'flex', gap: 'var(--oc-space-1)', flexWrap: 'wrap' }}>
-          <button className="oc-btn" disabled={controlDisabled} aria-label="Send text to agent">
-            Send…
-          </button>
-          <button className="oc-btn" disabled={controlDisabled} aria-label="Send key to agent">
-            Key…
-          </button>
-          <button
-            className="oc-btn oc-btn--danger"
-            disabled={controlDisabled}
-            aria-label="Interrupt agent"
-          >
-            Interrupt…
-          </button>
-        </div>
-        <p className="oc-muted" style={{ fontSize: '11px', marginTop: 'var(--oc-space-1)' }}>
-          Control actions are wired in a later slice (SPEC-400).
-        </p>
-      </div>
+      <CommandDock orc={orc} disabled={controlDisabled} disabledReason={disabledReason} />
     </aside>
   );
 }

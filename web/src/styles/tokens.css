@@ -15,6 +15,15 @@
   --oc-color-danger: #c94c4c; /* danger */
   --oc-color-warning: #d6a43f; /* warning */
   --oc-color-border: rgba(216, 201, 163, 0.24); /* assumption: bone @ 24% */
+  --oc-color-on-primary: #1a1206; /* text on ember */
+  --oc-color-on-danger: #ffffff; /* text on danger */
+
+  /* Derived tints / overlays (assumption tokens — DESIGN.md has no state tints) */
+  --oc-color-overlay: rgba(0, 0, 0, 0.6); /* modal backdrop */
+  --oc-tint-danger: rgba(201, 76, 76, 0.16);
+  --oc-tint-danger-weak: rgba(201, 76, 76, 0.12);
+  --oc-tint-warning: rgba(214, 164, 63, 0.16);
+  --oc-shadow-pixel: 0 2px 0 rgba(0, 0, 0, 0.4);
 
   /* Spacing / radius (values = DESIGN.md Spacing) */
   --oc-space-1: 4px;
