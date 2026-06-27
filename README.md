@@ -8,6 +8,15 @@ tags:
   - tmux
 ---
 
+<p align="center">
+  <img src="asset-packs/orc-camp-default/brand/orc-camp-logo-transparent.png" alt="Orc Camp" width="480">
+</p>
+
+<p align="center">
+  <b>command line 기반 AI agent orchestration tool</b><br>
+  실행 중인 tmux session을 <b>camp</b>로, 그 안의 AI agent session(Claude Code · Codex)을 <b>orc</b>로 시각화한다.
+</p>
+
 # Orc Camp
 
 Orc Camp는 command line 기반 AI agent orchestration tool이다. 사용자가 실행 중인 tmux session을 "camp"로 보고, 각 session 안에서 동작하는 Claude Code, Codex 등 AI agent terminal session을 "orc character"로 시각화해 상태 확인, 작업 맥락 파악, 제어를 돕는다.

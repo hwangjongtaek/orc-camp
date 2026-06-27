@@ -299,6 +299,49 @@ generate four directional views of the same original orc character, south, east,
 generate eight directional views of the same original orc character for a top-down pixel game, keep proportions, armor, weapon and color accents consistent, 64x64 each, transparent background, crisp pixel art, no text, no logo
 ```
 
+## Logo & Brand Mark
+
+> **현황 (2026-06-27): 공식 로고 확정.** 제품 로고는 직접 제작한 아트워크로 확정했다.
+> - 파일: `asset-packs/orc-camp-default/brand/orc-camp-logo-transparent.png` (1747×900, RGBA 투명 — 기본 사용), `…/orc-camp-logo.png` (RGB solid).
+> - PixelLab MCP는 텍스트/워드마크/풀씬 로고를 생성하지 못하므로(모든 생성 prompt가 `no text, no logo`), 로고는 외부에서 제작했다. 아래 §A/§B는 *확정 로고를 설명·재현*하기 위한 기준 문서이며, README·dashboard header·첫 페이지에는 이 아트워크를 그대로 사용한다.
+> - PixelLab로 생성했던 emblem object들은 로고가 아니라 **in-app 장식 crest/badge 등 다른 용도**로 활용한다(§C).
+
+### A. 확정 로고 설명 (canonical description)
+
+가로 lockup. 좌측 원형 엠블럼 + 우측 워드마크.
+
+- **엠블럼(좌)**: 통나무(timber) 원형 링 + 로프/금속 리벳 결속, 링 뒤로 양날 도끼 2자루가 X자로 교차. 링 외곽 상하좌우에 청록(teal) 보석 cabochon, 상단에 다이아몬드형 보석 장식. 링 안쪽 어두운 배경에 정면을 응시하는 사나운 녹색 orc 얼굴(빛나는 amber 눈, 두꺼운 눈썹, 크게 솟은 아래 엄니, 옅은 war paint). orc 머리 위 작은 어두운 명판에 청록색 `</>` 코드 태그. orc 아래에는 돌로 둘러싼 캠프파이어(주황·노랑 불꽃).
+- **워드마크(우)**: `ORC CAMP`, 두껍고 가독성 높은 pixel/bitmap typeface, parchment-cream→tan 글자 + 두꺼운 dark outline + 살짝 돌출된 3D 하단 엣지.
+- **palette**: dark `ink` 배경, `moss`/olive green orc, `ember` orange 불, `parchment`/`bone` 글자, teal(`</>`·보석) accent, brown timber.
+- **의미**: orc(agent) + 캠프파이어(camp) + `</>`(개발 도구)를 한 배지에 결합 — 제품 컨셉을 한 마크로 압축.
+
+### B. 외부 image generator prompt (로고 재현 / variant 생성용)
+
+PixelLab로는 불가. 외부 pixel-art image generator로 확정 로고를 재현하거나 variant를 만들 때 아래 prose prompt를 사용한다(확정 아트워크를 그대로 쓰는 것이 1순위, 이 prompt는 보조).
+
+```text
+Create an original pixel art horizontal logo lockup for a developer tool called "Orc Camp". Left: a round emblem made of a timber-log ring bound with rope and iron rivets, two double-bladed axes crossed in an X behind the ring, teal gem cabochons at the four cardinal points and a small diamond gem ornament at the top. Inside the ring on a dark background: a fierce front-facing green orc face with glowing amber eyes, heavy brow, large protruding lower tusks and subtle war paint; a small dark plaque above the orc head showing a teal "</>" code bracket symbol; a lit campfire with orange-yellow flames and stones below the orc face. Right: the wordmark "ORC CAMP" in a chunky highly legible pixel/bitmap typeface, parchment-cream to tan letters with a thick dark outline and a slight extruded 3D bottom edge, baseline-aligned to the emblem height. Limited dark-fantasy palette: dark ink background, moss/olive green, ember orange, parchment, bone, teal accent, brown timber. Crisp nearest-neighbor pixel art, thick clean blocky outlines, no blur, no smooth gradients, no photorealism. Transparent background. Horizontal lockup, generous padding, readable at small sizes. Do not copy any existing game logo, character, location, or faction emblem.
+```
+
+Variants:
+
+- mark-only(favicon/header): 좌측 엠블럼만, 워드마크 문장 제거.
+- 세로 stacked(첫 페이지 중앙): `horizontal logo lockup` → `vertical stacked lockup, emblem on top, wordmark below, centered`로 교체.
+
+검수: AI는 `ORC CAMP` 철자와 `</>`를 틀리게 렌더한다. 틀리면 확정 아트워크(`brand/`)를 그대로 쓰고, 워드마크가 따로 필요하면 §D로 합성한다.
+
+### C. PixelLab emblem objects — 로고 아님, 다른 용도로 활용
+
+PixelLab `create_map_object`로 만든 아래 emblem object는 **로고가 아니다.** in-app 장식 crest/badge, empty/loading state, section/about 아이콘 등으로 재활용한다(상세·sha256은 [[13-PixelLab-Asset-Registry]]).
+
+- `brand/orc-camp-emblem-candidate-6d4f79aa.png` — 대족장 흉상 crest(원형 석재·철 링 + 화염 배경). empty/loading state 또는 about/section 장식 후보.
+- `brand/orc-camp-emblem-candidate-49e81156.png` — orc 두상 + 캠프파이어, 단순 실루엣. small badge / generic camp icon 후보.
+- 정식 채택·용도 확정 시 manifest에 항목 추가(asset pack v0.1.0는 `generation_status: closed`이므로 버전업 결정 필요).
+
+### D. web-rendered 워드마크 (보조)
+
+정적 로고 외에 in-app에서 "Orc Camp" 텍스트가 필요하면 이미지가 아니라 `--oc-font-pixel` pixel font로 web에서 렌더한다(SPEC-202, DESIGN.md typography). 색은 `parchment`/`ember` on `ink`. 확정 로고 워드마크와 톤을 맞춘다.
+
 ## Camp Background Prompts
 
 ### Orc City Warbase / Wartable Direction
@@ -345,6 +388,32 @@ Review notes:
 - 좌우/상단에 tower, palisade, spike silhouette를 배치해 dashboard panel과 겹쳐도 배경 정체성이 남도록 한다.
 - banner는 추상적인 붉은 cloth만 허용하고 readable symbol은 금지한다.
 - character close-up은 배경 generation에서 제외한다. Mascot은 별도 sprite layer로 배치한다.
+
+### Dashboard First-Page Background (Hero / Loading / Empty)
+
+> 용도: web dashboard **첫 페이지**(loading "Scanning tmux sessions…" / empty / connect 상태) 배경. 중앙 상단에 logo lockup, 하단 clearing에 mascot sprite를 얹는다. DESIGN.md의 "marketing landing page를 첫 화면으로 만들지 않는다" 원칙에 맞춰 **marketing hero가 아니라 첫 진입(로딩/빈) 상태 화면**으로 설계한다.
+>
+> 생성 경로: PixelLab MCP로는 단일 풀씬을 만들 수 없다. 외부 image generator prose prompt를 쓴다. 기존 `warbase-sunset-dashboard`(in-app camp detail용)와 달리 **실제 게임 위치를 reference로 쓰지 않는다** — IP 안전을 위해 처음부터 original composition으로 생성한다.
+
+Positive:
+
+```text
+Create an original pixel art background for the first screen of a developer dashboard called Orc Camp. Scene: a quiet dark-fantasy orc camp at dusk from a calm wide angle — a central ember campfire with warm orange glow, a few rugged tents and timber workbenches, tool racks, moss-green terrain, packed-dirt and stone paths, scattered braziers, faint teal magic-utility glow, distant red-clay canyon walls fading into a deep ink-blue night sky with a few stars. Mood is calm, atmospheric and uncluttered — an empty camp waiting for its orcs. Composition: 16:9, with a large darker safe area in the upper-center for a logo and one line of status text, and an open lower-center clearing for a single small mascot sprite. Limited palette: dark ink background, moss green, ember orange, parchment, bone, small teal accent. Crisp nearest-neighbor pixel art, clean outlines, high contrast, no blur, no gradients, no photorealism. No text, no letters, no logo, no readable map, no faction symbol, no close-up character, not based on any existing game location.
+```
+
+Negative:
+
+```text
+existing game location, recognizable city skyline, faction emblem, clan symbol, readable map, readable text, logo, watermark, photorealism, smooth gradient, blur, busy clutter, crowded composition, character close-up, bright daylight, marketing hero banner
+```
+
+Review notes:
+
+- 중앙 상단은 logo lockup + `Scanning tmux sessions…` 한 줄을 얹을 어두운 safe area로 비운다.
+- 하단 중앙 clearing에는 mascot(`orc-high-warchief-mascot`) `idle`/`south` sprite를 별도 layer로 배치한다(배경에 캐릭터를 굽지 않는다).
+- 첫 화면이므로 저자극·차분 톤. 강한 노을·과밀 디테일은 in-app `warbase-sunset-dashboard`와 구분되게 피한다.
+- 생성 후 `backgrounds/`에 추가하고 manifest `backgrounds`에 `logical_size`·`safe_area`·`sha256`·`usage: "dashboard first-page"`로 등록한다.
+- IP 최안전 in-house 대안: 외부 생성 대신 `tiles/orc-camp-terrain-square-topdown` + prop object들을 frontend에서 조합해 깐 뒤 campfire glow/vignette를 CSS로 얹어 첫 페이지 배경을 구성한다.
 
 ### Wartable Command Room Background
 
