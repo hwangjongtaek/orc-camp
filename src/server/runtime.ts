@@ -10,7 +10,8 @@
 import { PREVIEW_LINES, type Camp, type ScanResult } from '../types';
 import { ScanRunner, type ScanRuntimeDeps } from '../scan';
 import { diffSnapshots, snapshotChanged, type DiffEvent } from './diff';
-import type { ActivityEvent, HealthResponse, OrcPreviewResponse, ServerSettings, SnapshotResponse } from './types';
+import type { SettingsProvider } from './settings';
+import type { ActivityEvent, HealthResponse, OrcPreviewResponse, SnapshotResponse } from './types';
 
 /** SPEC-102 runtime → WS frames (envelope added by the WS layer). */
 export type RuntimeEvent =
@@ -22,7 +23,7 @@ const ACTIVITY_RING_MAX = 200;
 
 export interface RuntimeOptions {
   deps: ScanRuntimeDeps;
-  settings: ServerSettings;
+  settings: SettingsProvider; // live source (scanInterval/preview read each use)
   runtimeEpoch: string;
   now: () => Date;
 }
@@ -92,7 +93,7 @@ export class SnapshotRuntime {
     if (this.stopped) return;
     this.timer = setTimeout(() => {
       void this.runScan().finally(() => this.schedule());
-    }, this.opts.settings.scanIntervalS * 1000);
+    }, this.opts.settings.effective().scanIntervalS * 1000); // live-reload: read each cycle
     if (typeof this.timer.unref === 'function') this.timer.unref();
   }
 
@@ -203,8 +204,9 @@ export class SnapshotRuntime {
     };
     if (orc.preview === null) return { ...base, preview: null };
 
-    const exposureEnabled = this.opts.settings.preview.exposureEnabled;
-    const lineCount = Math.min(this.opts.settings.preview.lineCount, PREVIEW_LINES);
+    const eff = this.opts.settings.effective();
+    const exposureEnabled = eff.preview.exposureEnabled;
+    const lineCount = Math.min(eff.preview.lineCount, PREVIEW_LINES);
     const preview: NonNullable<OrcPreviewResponse['preview']> = {
       lines: orc.preview.lines,
       truncated: orc.preview.truncated,

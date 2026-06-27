@@ -14,6 +14,7 @@ import { SnapshotRuntime } from './runtime';
 import { createHttpServer } from './http';
 import { bindWithFallback, PREFERRED_PORT, isLoopback } from './net';
 import { generateToken } from './token';
+import { SettingsStore, resolveConfigDir } from './settings';
 import type { SecurityConfig } from './security';
 import type { ServerSettings } from './types';
 
@@ -29,7 +30,8 @@ export interface StartOptions {
   explicitPort?: boolean; // user passed --port → no ephemeral fallback
   allowExternal?: boolean;
   deps?: ScanRuntimeDeps;
-  settings?: ServerSettings;
+  settings?: ServerSettings; // in-memory store (tests; no disk)
+  configDir?: string; // disk-backed config (takes precedence over `settings`)
   now?: () => Date;
   runtimeEpoch?: string;
   devOrigins?: string[];
@@ -43,6 +45,7 @@ export interface ServerHandle {
   token: string;
   fellBack: boolean;
   runtime: SnapshotRuntime;
+  settings: SettingsStore;
   ready: Promise<void>; // resolves after the first published snapshot
   close: () => Promise<void>;
 }
@@ -53,17 +56,21 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
   const token = generateToken();
   const runtimeEpoch = opts.runtimeEpoch ?? randomUUID();
   const now = opts.now ?? ((): Date => new Date());
-  const settings = opts.settings ?? defaultSettings();
+  const store = opts.configDir
+    ? SettingsStore.fromDir(opts.configDir)
+    : opts.settings
+      ? SettingsStore.inMemory(opts.settings)
+      : SettingsStore.fromDir(resolveConfigDir());
   const deps = opts.deps ?? createDefaultDeps();
 
-  const runtime = new SnapshotRuntime({ deps, settings, runtimeEpoch, now });
+  const runtime = new SnapshotRuntime({ deps, settings: store, runtimeEpoch, now });
   const security: SecurityConfig = {
     host,
     port: preferred,
     allowExternal: opts.allowExternal ?? false,
     devOrigins: opts.devOrigins ?? DEV_ORIGINS,
   };
-  const server = createHttpServer({ runtime, security, token, now, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
+  const server = createHttpServer({ runtime, security, token, now, settings: store, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
 
   const { port, fellBack } = await bindWithFallback(server, host, preferred, opts.explicitPort ?? false);
   security.port = port; // fix CORS/Host to the actual port (single source, §3.4)
@@ -76,7 +83,7 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
     await new Promise<void>((resolve) => server.close(() => resolve()));
   };
 
-  return { url, host, port, token, fellBack, runtime, ready, close };
+  return { url, host, port, token, fellBack, runtime, settings: store, ready, close };
 }
 
 // --- CLI wrapper -----------------------------------------------------------
@@ -207,7 +214,7 @@ export async function serveCommand(argv: string[], opts: ServeCommandOptions): P
   if (handle.fellBack) io.stderr(`preferred port busy; using ${handle.port}\n`);
   if (!isLoopback(args.host)) io.stderr(`WARNING: bound to ${args.host} — anyone on your network with the token URL can control your tmux\n`);
 
-  if (opts.open && !args.noOpen) {
+  if (opts.open && !args.noOpen && handle.settings.current().browserAutoOpen) {
     const ok = await openBrowser(handle.url, spawn);
     io.stderr(ok ? 'opened dashboard in your default browser\n' : `could not open a browser; open this URL manually: ${handle.url}\n`);
   }

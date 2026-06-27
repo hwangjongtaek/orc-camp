@@ -16,6 +16,7 @@ import {
 } from './security';
 import { bearerFromAuthHeader, tokensEqual } from './token';
 import { attachWebSocket } from './ws';
+import type { SettingsStore } from './settings';
 import type { ApiError } from './types';
 
 const CAMP_ID_RE = /^session:\$[0-9]+$/;
@@ -25,6 +26,7 @@ const REFRESH_MIN_MS = 1000; // R_min (PoC hypothesis)
 export interface HttpConfig {
   runtime: SnapshotRuntime;
   security: SecurityConfig;
+  settings: SettingsStore;
   token: string;
   now: () => Date;
   heartbeatMs?: number;
@@ -211,7 +213,64 @@ async function handle(req: IncomingMessage, res: ServerResponse, cfg: HttpConfig
     return;
   }
 
+  if (route[0] === 'settings' && route.length === 1) {
+    if (method === 'GET') {
+      sendJson(res, 200, cfg.settings.response(), corsHeaders);
+      return;
+    }
+    if (method === 'PATCH') {
+      let body: unknown;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        sendError(res, 400, 'bad_request', 'invalid JSON body', requestId, undefined, corsHeaders);
+        return;
+      }
+      const result = cfg.settings.patch(body);
+      if (result.ok) {
+        sendJson(res, 200, cfg.settings.response(), corsHeaders);
+        return;
+      }
+      if (result.status === 500) {
+        sendError(res, 500, 'config_write_failed', 'could not persist settings', requestId, result.fieldErrors, corsHeaders);
+        return;
+      }
+      sendError(res, 422, 'validation_failed', 'settings validation failed', requestId, result.fieldErrors, corsHeaders);
+      return;
+    }
+    return methodNotAllowed(res, requestId, corsHeaders);
+  }
+
   sendError(res, 404, 'not_found', 'not found', requestId, undefined, corsHeaders);
+}
+
+function readJsonBody(req: IncomingMessage, maxBytes = 64 * 1024): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => {
+      size += c.length;
+      if (size > maxBytes) {
+        reject(new Error('body too large'));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => {
+      const text = Buffer.concat(chunks).toString('utf8').trim();
+      if (text === '') {
+        resolve({});
+        return;
+      }
+      try {
+        resolve(JSON.parse(text));
+      } catch (e) {
+        reject(e);
+      }
+    });
+    req.on('error', reject);
+  });
 }
 
 function methodNotAllowed(res: ServerResponse, requestId: string, headers: Record<string, string>): void {
