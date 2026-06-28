@@ -699,6 +699,211 @@ img {
   border: 0;
 }
 
+/* --- Camp MAP scene (SPEC-301) --- */
+.oc-map {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--oc-color-surface-base);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-card);
+}
+.oc-map__viewport {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.oc-map__content {
+  position: relative;
+  transform-origin: top left;
+}
+.oc-map__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  z-index: var(--oc-z-map-bg);
+}
+.oc-map__ground {
+  position: absolute;
+  inset: 0;
+  background: var(--oc-map-ground);
+  z-index: var(--oc-z-map-bg);
+}
+
+/* zone headers + station markers (ground layer, never above sprites/labels) */
+.oc-stations,
+.oc-zone,
+.oc-map__orcs {
+  position: absolute;
+  inset: 0;
+}
+.oc-zone__rect {
+  position: absolute;
+  border: 1px dashed var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  z-index: var(--oc-z-map-station);
+  pointer-events: none;
+}
+.oc-zone__label {
+  position: absolute;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: var(--oc-font-size-label);
+  color: var(--oc-color-text-muted);
+  z-index: var(--oc-z-map-station);
+  pointer-events: none;
+}
+.oc-station__prop {
+  position: absolute;
+  image-rendering: pixelated;
+  z-index: var(--oc-z-map-station);
+  pointer-events: none;
+}
+.oc-station__marker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  background: var(--oc-color-surface-raised);
+  color: var(--oc-color-text-muted);
+  font-size: var(--oc-font-size-label);
+  opacity: 0.7;
+  z-index: var(--oc-z-map-station);
+  pointer-events: none;
+}
+
+/* orc actor button */
+.oc-orc {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  overflow: visible;
+  z-index: var(--oc-z-map-orc);
+}
+.oc-orc--selected {
+  border-color: var(--oc-color-accent);
+  border-radius: var(--oc-radius-pixel);
+}
+.oc-orc__sprite {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.oc-orc__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.oc-orc__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: repeating-conic-gradient(
+      var(--oc-color-surface-base) 0% 25%,
+      var(--oc-color-surface-raised) 0% 50%
+    )
+    50% / 8px 8px;
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  font-size: 9px;
+  color: var(--oc-color-text-muted);
+  text-align: center;
+}
+.oc-orc__overlay {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  image-rendering: pixelated;
+  z-index: var(--oc-z-map-overlay);
+  pointer-events: none;
+}
+.oc-orc__overlay--glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--oc-color-text);
+}
+.oc-orc__label {
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--oc-space-1);
+  white-space: nowrap;
+  font-size: var(--oc-font-size-label);
+  background: var(--oc-color-surface-base);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  z-index: var(--oc-z-map-label);
+}
+.oc-orc__label-glyph {
+  font-weight: 700;
+  line-height: 1;
+}
+.oc-orc__target {
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--oc-font-mono);
+  font-size: 10px;
+  color: var(--oc-color-text-muted);
+  z-index: var(--oc-z-map-label);
+}
+.oc-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 22px);
+  transform: translateX(-50%);
+  min-width: 120px;
+  max-width: 220px;
+  padding: var(--oc-space-1) var(--oc-space-2);
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-accent);
+  border-radius: var(--oc-radius-card);
+  box-shadow: var(--oc-shadow-pixel);
+  font-size: var(--oc-font-size-label);
+  z-index: var(--oc-z-map-bubble);
+  pointer-events: none;
+}
+.oc-bubble__summary {
+  color: var(--oc-color-text);
+  word-break: break-word;
+}
+.oc-bubble__est {
+  margin-left: var(--oc-space-1);
+  color: var(--oc-color-warning);
+  font-size: 10px;
+}
+.oc-bubble__source {
+  margin-top: 2px;
+  color: var(--oc-color-text-muted);
+  font-size: 10px;
+}
+
 /* --- Reduced motion (SPEC-202 §2.5 M2/M4) --- */
 @media (prefers-reduced-motion: reduce) {
   .oc-spinner {

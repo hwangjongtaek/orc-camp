@@ -15,12 +15,18 @@ export interface OrcRenderInput {
   status: OrcStatus;
   statusConfidence: number;
   tmuxTarget: string;
+  /** SPEC-301 — requested 8-direction facing; undefined ⇒ MVP south. */
+  direction?: string;
+  /** SPEC-301 — 'roaming' selects the walk-cycle animation; undefined/'arrived' ⇒ status. */
+  movementState?: 'roaming' | 'arrived';
 }
 
 export interface RenderEnvironment {
   manifest: AssetManifest | null;
   assetBasePath: string;
   prefersReducedMotion: boolean;
+  /** SPEC-301 §2.1 — map sprite scale, applied EQUALLY to asset + placeholder. Default 1. */
+  mapSpriteScale?: number;
 }
 
 export type RenderMode = 'animated' | 'static' | 'placeholder';
@@ -34,10 +40,15 @@ export interface SpriteRenderState {
   animationState: string | null;
   direction: string;
   framePaths: string[] | null;
+  frames: number;
   fps: number | null;
   staticFramePath: string | null;
   overlayPath: string | null;
   loop: boolean;
+  // SPEC-301 §2.1 — uniform map scale echoed + applied to box/anchor (asset==placeholder).
+  mapSpriteScale: number;
+  scaledFrameSize: [number, number];
+  scaledAnchor: [number, number];
 }
 
 const DEFAULT_FRAME_SIZE: [number, number] = [232, 232];
@@ -100,7 +111,7 @@ function placeholderState(
   frameSize: [number, number],
   anchor: [number, number],
   overlayPath: string | null,
-): SpriteRenderState {
+): CoreSpriteState {
   return {
     orcId: input.id,
     characterKey: AGENT_TO_CHARACTER[input.agentType],
@@ -110,6 +121,7 @@ function placeholderState(
     animationState: null,
     direction: MVP_DIRECTION,
     framePaths: null,
+    frames: 1,
     fps: null,
     staticFramePath: null,
     overlayPath,
@@ -130,10 +142,13 @@ function resolveCharacter(
   return null;
 }
 
-export function resolveSprite(
-  input: OrcRenderInput,
-  env: RenderEnvironment,
-): SpriteRenderState {
+/** SpriteRenderState before the uniform map scale is applied (§2.1). */
+type CoreSpriteState = Omit<
+  SpriteRenderState,
+  'mapSpriteScale' | 'scaledFrameSize' | 'scaledAnchor'
+>;
+
+function resolveCore(input: OrcRenderInput, env: RenderEnvironment): CoreSpriteState {
   const packRoot = stripTrailingSlash(env.assetBasePath);
 
   // L2: no manifest → placeholder at default frame size (overlay unavailable).
@@ -172,6 +187,7 @@ export function resolveSprite(
       animationState: null,
       direction: character.reduced_motion.fallback_direction,
       framePaths: null,
+      frames: 1,
       fps: null,
       staticFramePath: reducedFrame,
       overlayPath,
@@ -190,6 +206,7 @@ export function resolveSprite(
       animationState: character.reduced_motion.fallback_state,
       direction: character.reduced_motion.fallback_direction,
       framePaths: null,
+      frames: 1,
       fps: null,
       staticFramePath: reducedFrame,
       overlayPath,
@@ -197,8 +214,9 @@ export function resolveSprite(
     };
   }
 
-  // Animated: status → state (with state/direction fallback).
-  let state = STATUS_TO_STATE[input.status];
+  // SPEC-301 — roaming selects the walk-cycle; otherwise status → state (MVP path).
+  const roaming = input.movementState === 'roaming';
+  let state = roaming ? 'roaming' : STATUS_TO_STATE[input.status];
   let anim = character.animations[state];
   if (!anim || !anim.folders) {
     state = 'idle';
@@ -209,12 +227,15 @@ export function resolveSprite(
     return placeholderState(input, frameSize, anchor, overlayPath);
   }
 
-  let direction = MVP_DIRECTION;
+  // Direction: requested 8-dir (roaming) or south (MVP) → south fallback → first available
+  // (SPEC-300 §3.2-4 fallback delegation).
+  const requestedDir = roaming ? input.direction ?? MVP_DIRECTION : MVP_DIRECTION;
+  let direction = requestedDir;
   let folder = anim.folders[direction];
   if (!folder) {
-    direction = MVP_DIRECTION; // already south; fall through to first available
     const firstDir = Object.keys(anim.folders)[0];
     if (anim.folders[MVP_DIRECTION]) {
+      direction = MVP_DIRECTION;
       folder = anim.folders[MVP_DIRECTION];
     } else if (firstDir) {
       direction = firstDir;
@@ -242,9 +263,29 @@ export function resolveSprite(
     animationState: state,
     direction,
     framePaths,
+    frames,
     fps,
     staticFramePath: framePaths[0] ?? null,
     overlayPath,
     loop: true,
+  };
+}
+
+/**
+ * Resolve the sprite render state, then apply the uniform map scale (§2.1) to the box +
+ * anchor for BOTH asset and placeholder modes (so toggling assets never shifts layout —
+ * AC-08 / AC-14c). `mapSpriteScale` defaults to 1 (the SPEC-300 MVP behavior is unchanged).
+ */
+export function resolveSprite(
+  input: OrcRenderInput,
+  env: RenderEnvironment,
+): SpriteRenderState {
+  const scale = env.mapSpriteScale ?? 1;
+  const core = resolveCore(input, env);
+  return {
+    ...core,
+    mapSpriteScale: scale,
+    scaledFrameSize: [core.frameSize[0] * scale, core.frameSize[1] * scale],
+    scaledAnchor: [core.anchor[0] * scale, core.anchor[1] * scale],
   };
 }

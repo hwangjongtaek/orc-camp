@@ -37,9 +37,31 @@ export interface StatusUiDef {
   items: Record<string, { file: string }>;
 }
 
+/** SPEC-301 §2.1 — camp-map background (logical size + play-field safe area). */
+export interface BackgroundDef {
+  file?: string; // relative to packRoot
+  logical_size?: [number, number];
+  safe_area?: [number, number, number, number]; // [x, y, w, h]
+}
+
+/** SPEC-301 §2.3/§2.2 — station + zone-header prop images. */
+export interface PropsDef {
+  root: string; // relative to packRoot
+  items: Record<string, { file?: string }>;
+}
+
+/** SPEC-301 §3.4 — terrain tileset (ground placeholder layer). */
+export interface TilesetDef {
+  root: string; // relative to packRoot
+  tile_size?: [number, number];
+  tiles?: Record<string, string>;
+}
+
 export interface AssetManifest {
   characters: Record<string, CharacterDef>;
-  objects?: { 'status-ui'?: StatusUiDef };
+  backgrounds?: Record<string, BackgroundDef>;
+  tilesets?: Record<string, TilesetDef>;
+  objects?: { 'status-ui'?: StatusUiDef; props?: PropsDef };
 }
 
 export async function loadManifest(assetBase: string): Promise<AssetManifest | null> {

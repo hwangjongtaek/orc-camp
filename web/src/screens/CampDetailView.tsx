@@ -9,7 +9,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { STATUS_KEYS } from '../types/domain';
 import { relativeTime, clockTime } from '../util/time';
-import { CampScene } from '../components/scene/CampScene';
+import { CampMap } from '../components/scene/CampMap';
 import { OrcInspector } from '../components/inspector/OrcInspector';
 import { StatusCountChip } from '../components/status/StatusBadge';
 
@@ -87,7 +87,7 @@ export function CampDetailView(): JSX.Element {
 
       <div className="oc-detail">
         <div>
-          <CampScene campId={campId} selectedOrcId={selectedOrcId} onSelect={onSelect} />
+          <CampMap campId={campId} selectedOrcId={selectedOrcId} onSelect={onSelect} />
           <ActivityRail />
         </div>
         <OrcInspector orcId={selectedOrcId} />

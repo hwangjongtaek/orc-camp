@@ -44,4 +44,17 @@
   --oc-font-size-label: 12px;
 
   --oc-focus-ring: 2px solid var(--oc-color-accent);
+
+  /* Camp map z-layers (SPEC-301 §2.7 back→front) + ground tint */
+  --oc-z-map-bg: 0;
+  --oc-z-map-station: 1;
+  --oc-z-map-orc: 10;
+  --oc-z-map-overlay: 12;
+  --oc-z-map-label: 13;
+  --oc-z-map-bubble: 20;
+  --oc-map-ground: linear-gradient(
+    160deg,
+    var(--oc-color-success) 0%,
+    var(--oc-color-surface-base) 100%
+  );
 }
