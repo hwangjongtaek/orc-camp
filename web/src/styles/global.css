@@ -716,18 +716,73 @@ img {
   position: relative;
   transform-origin: top left;
 }
+/* ① backdrop/horizon (SPEC-300 §2.6b / §2.8a) — backmost; cover-width, anchored top.
+   Parallax transform is set by CampMap on scroll (transform-only). pointer-events:none. */
+.oc-map__backdrop {
+  position: absolute;
+  inset: 0;
+  background-position: top center;
+  background-size: 100% auto;
+  image-rendering: pixelated;
+  z-index: var(--oc-z-map-backdrop);
+  pointer-events: none;
+  will-change: transform;
+}
+/* ground base: opaque dusk gradient when there is no backdrop (terrain L2); a translucent
+   glaze when a backdrop is present so the horizon shows through (depth). */
 .oc-map__ground {
   position: absolute;
   inset: 0;
   background: var(--oc-map-ground);
   z-index: var(--oc-z-map-bg);
+  pointer-events: none;
 }
-/* world-sized tiled terrain (moss-ground); falls back to the gradient when the tile 404s */
-.oc-map__ground--tiled {
+.oc-map__ground--glaze {
+  opacity: 0.5;
+}
+
+/* ② terrain (SPEC-300 §2.6a) — per-zone Wang/flat tiles, static paint, never interactive. */
+.oc-terrain {
+  position: absolute;
+  inset: 0;
+  z-index: var(--oc-z-map-terrain);
+  pointer-events: none;
+}
+.oc-terrain__zone {
+  position: absolute;
+  overflow: hidden;
+}
+.oc-terrain__zone--tiled {
   background-repeat: repeat;
   background-position: top left;
-  background-size: var(--oc-map-tile-size) var(--oc-map-tile-size);
   image-rendering: pixelated;
+}
+.oc-terrain__cell {
+  position: absolute;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+/* ③ decor/scenery (SPEC-300 §2.6c) — below stations/sprites/labels, never interactive. */
+.oc-decor {
+  position: absolute;
+  inset: 0;
+  z-index: var(--oc-z-map-decor);
+  pointer-events: none;
+}
+.oc-decor__item {
+  position: absolute;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* ⑧ dusk lighting/vignette (SPEC-301 §2.8d) — above sprites, below status overlay/label. */
+.oc-map__lighting {
+  position: absolute;
+  inset: 0;
+  background: var(--oc-map-lighting);
+  z-index: var(--oc-z-map-lighting);
+  pointer-events: none;
 }
 
 /* zone headers + station markers (ground layer, never above sprites/labels) */
@@ -791,10 +846,21 @@ img {
   border-color: var(--oc-color-accent);
   border-radius: var(--oc-radius-pixel);
 }
+/* ⑤ per-sprite ground shadow (SPEC-300 §2.6e) — CSS ellipse under the scaled ground anchor.
+   Absolute decoration: never affects the sprite box/layout. Asset == placeholder (parity). */
+.oc-orc__shadow {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--oc-shadow-ground);
+  filter: blur(1px);
+  z-index: var(--oc-z-map-shadow);
+  pointer-events: none;
+}
 .oc-orc__sprite {
   position: absolute;
   inset: 0;
   display: block;
+  z-index: var(--oc-z-map-orc);
 }
 .oc-orc__img {
   width: 100%;

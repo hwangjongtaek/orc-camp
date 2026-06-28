@@ -45,10 +45,17 @@
 
   --oc-focus-ring: 2px solid var(--oc-color-accent);
 
-  /* Camp map z-layers (SPEC-301 §2.7 back→front) + ground tint */
-  --oc-z-map-bg: 0;
-  --oc-z-map-station: 1;
+  /* Camp map z-layers (SPEC-301 §2.7 back→front): backdrop → terrain → decor → station →
+     shadow → orc → dusk lighting → status overlay → label → selection marker → bubble.
+     Depth layers (backdrop/terrain/decor/shadow/lighting) ALWAYS stay below overlay/label. */
+  --oc-z-map-bg: 0; /* backdrop + ground base share the back plane (DOM order resolves) */
+  --oc-z-map-backdrop: 0;
+  --oc-z-map-terrain: 1;
+  --oc-z-map-decor: 2;
+  --oc-z-map-station: 3;
+  --oc-z-map-shadow: 4;
   --oc-z-map-orc: 10;
+  --oc-z-map-lighting: 11; /* above sprites, below status overlay/label (§2.7 ⑧) */
   --oc-z-map-overlay: 12;
   --oc-z-map-label: 13;
   --oc-z-map-bubble: 20;
@@ -57,6 +64,21 @@
     var(--oc-color-success) 0%,
     var(--oc-color-surface-base) 100%
   );
+  /* SPEC-301 §2.8d — static dusk lighting/vignette (tokens-only, no raw hex outside this
+     file; values live here per SPEC-202 §2.1). Warm low-sun wash + corner vignette. */
+  --oc-map-lighting: radial-gradient(
+      130% 105% at 50% 22%,
+      transparent 44%,
+      rgba(23, 28, 31, 0.62) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(214, 114, 63, 0.12) 0%,
+      transparent 34%,
+      rgba(23, 28, 31, 0.24) 100%
+    );
+  /* §2.6e — per-sprite ground shadow color (opacity is applied per element). */
+  --oc-shadow-ground: rgba(0, 0, 0, 0.55);
   /* SPEC-301 §2.7 — fixed on-screen map viewport that scrolls over the world; tiled terrain. */
   --oc-map-viewport-h: 72vh;
   --oc-map-viewport-min-h: 460px;

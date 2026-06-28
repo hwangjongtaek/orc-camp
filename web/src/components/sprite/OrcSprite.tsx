@@ -197,6 +197,16 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
   const usePlaceholder = sprite.mode === 'placeholder' || imgError;
   const meta = STATUS_META[status];
 
+  // §2.6e/§2.8e — per-sprite CSS ground shadow at the scaled ground anchor. Sized from the
+  // footprint (frame_size × mapSpriteScale × footprint_ratio); a pure absolute decoration so
+  // it never changes the sprite box/layout (zero layout shift). Asset & placeholder sprites
+  // get the SAME shadow (parity, AC-18). Tokens-only color; opacity from the manifest.
+  const shadowCss = manifest?.scene?.shadow?.css;
+  const shadowRatio = shadowCss?.footprint_ratio ?? 0.6;
+  const shadowOpacity = shadowCss?.opacity ?? 0.35;
+  const shadowW = bw * shadowRatio;
+  const shadowH = shadowW * 0.34;
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>): void => {
     if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
       e.preventDefault();
@@ -235,6 +245,18 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
       onMouseLeave={() => setBubbleActive(false)}
       onKeyDown={onKeyDown}
     >
+      <span
+        className="oc-orc__shadow"
+        aria-hidden="true"
+        data-testid="orc-shadow"
+        style={{
+          left: `${ax - shadowW / 2}px`,
+          top: `${ay - shadowH / 2}px`,
+          width: `${shadowW}px`,
+          height: `${shadowH}px`,
+          opacity: shadowOpacity,
+        }}
+      />
       <span className="oc-orc__sprite" aria-hidden="true">
         {usePlaceholder ? (
           <span className="oc-orc__placeholder">

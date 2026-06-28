@@ -1,13 +1,13 @@
 {
   "id": "orc-camp-default",
   "name": "Orc Camp Default",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "created_at": "2026-06-25",
   "source": "pixellab",
   "generation_status": {
     "state": "closed",
     "closed_at": "2026-06-26",
-    "note": "Asset generation for this version is closed. Further improvements happen via asset pack version bumps. Deferred enhancements are tracked in docs/13-PixelLab-Asset-Registry.md (Deferred to Future Versions).",
+    "note": "Character/sprite generation for this version is closed. v0.2.0 is a manifest-wiring bump (SPEC-300 §6 C4 / SPEC-301 C4): it adds the corner-Wang terrain tileset declaration (the orc-camp-terrain-wang-topdown.png sheet was already generated) plus the scene.backdrop/decor/shadow consumption contract (SPEC-300 §2.5). No new character assets were generated. Further improvements happen via asset pack version bumps. Deferred enhancements are tracked in docs/13-PixelLab-Asset-Registry.md (Deferred to Future Versions).",
     "character_count": 5,
     "deferred_enhancements_ref": "docs/13-PixelLab-Asset-Registry.md#deferred-to-future-versions-보강-여지"
   },
@@ -780,6 +780,47 @@
     }
   },
   "tilesets": {
+    "orc-camp-terrain-wang-topdown": {
+      "display_name": "Orc Camp Terrain Wang Corner Topdown",
+      "pixellab_tileset_id": "6d215c1d-474e-477f-8724-662f3a13757c",
+      "type": "wang_corner",
+      "tile_shape": "square_topdown",
+      "view": "top-down",
+      "tile_size": [32, 32],
+      "tile_count": 16,
+      "root": "tiles/orc-camp-terrain-wang-topdown",
+      "image": "orc-camp-terrain-wang-topdown.png",
+      "image_size": [128, 128],
+      "metadata": "orc-camp-terrain-wang-topdown.metadata.json",
+      "wang": {
+        "kind": "corner",
+        "corner_count": 4,
+        "terrains": ["moss", "dirt"],
+        "base_terrain": "moss",
+        "terrain_map": { "lower": "moss", "upper": "dirt" },
+        "corner_order": ["NW", "NE", "SE", "SW"],
+        "base_tile_ids": { "moss": "0000", "dirt": "1111" },
+        "tiles": {
+          "0000": { "x": 64, "y": 32, "w": 32, "h": 32 },
+          "0001": { "x": 64, "y": 64, "w": 32, "h": 32 },
+          "0010": { "x": 96, "y": 32, "w": 32, "h": 32 },
+          "0011": { "x": 32, "y": 64, "w": 32, "h": 32 },
+          "0100": { "x": 64, "y": 0, "w": 32, "h": 32 },
+          "0101": { "x": 0, "y": 32, "w": 32, "h": 32 },
+          "0110": { "x": 96, "y": 64, "w": 32, "h": 32 },
+          "0111": { "x": 96, "y": 96, "w": 32, "h": 32 },
+          "1000": { "x": 32, "y": 32, "w": 32, "h": 32 },
+          "1001": { "x": 32, "y": 0, "w": 32, "h": 32 },
+          "1010": { "x": 64, "y": 96, "w": 32, "h": 32 },
+          "1011": { "x": 0, "y": 64, "w": 32, "h": 32 },
+          "1100": { "x": 96, "y": 0, "w": 32, "h": 32 },
+          "1101": { "x": 32, "y": 96, "w": 32, "h": 32 },
+          "1110": { "x": 0, "y": 0, "w": 32, "h": 32 },
+          "1111": { "x": 0, "y": 96, "w": 32, "h": 32 }
+        }
+      },
+      "source": "tiles/orc-camp-terrain-wang-topdown/orc-camp-terrain-wang-topdown.metadata.json"
+    },
     "orc-camp-terrain-square-topdown": {
       "display_name": "Orc Camp Terrain Square Topdown",
       "pixellab_tiles_pro_id": "0c9705cb-1efc-4953-9046-60c530481739",
@@ -837,6 +878,45 @@
         "teal-utility-magic-accent": "tile-15-teal-utility-magic-accent.png"
       },
       "source": "generation/non-character-assets.json"
+    }
+  },
+  "scene": {
+    "backdrop": {
+      "background_ref": "warbase-sunset-dashboard",
+      "role": "horizon",
+      "fit": "cover-width",
+      "vertical_anchor": "top",
+      "repeat_x": true,
+      "parallax": 0.3
+    },
+    "decor": {
+      "source_objects": ["props", "wartable-warbase"],
+      "items": [
+        { "ref": "props/log-pile", "category": "ground", "weight": 3 },
+        { "ref": "props/barrel", "category": "ground", "weight": 2 },
+        { "ref": "props/rope-coil", "category": "ground", "weight": 2 },
+        { "ref": "props/supply-crate", "category": "ground", "weight": 2 },
+        { "ref": "props/tool-rack", "category": "tall", "weight": 1 },
+        { "ref": "wartable-warbase/ember-brazier", "category": "light-source", "weight": 1 },
+        { "ref": "wartable-warbase/timber-palisade-corner", "category": "boundary", "weight": 1 }
+      ],
+      "exclude_reserved": true,
+      "reserved": [
+        "workbench",
+        "campfire",
+        "bedroll",
+        "notice-board",
+        "stone-marker",
+        "utility-totem",
+        "locked-chest",
+        "command-tent",
+        "banner-pole"
+      ]
+    },
+    "shadow": {
+      "mode": "css",
+      "asset_ref": null,
+      "css": { "shape": "ellipse", "opacity": 0.35, "footprint_ratio": 0.6 }
     }
   },
   "objects": {

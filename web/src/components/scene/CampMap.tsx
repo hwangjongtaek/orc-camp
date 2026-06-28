@@ -14,15 +14,18 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useAssets } from '../../assets/AssetContext';
-import type { AssetManifest } from '../../assets/manifest';
 import { useStore } from '../../store/store';
 import { computeLayout, type OrcMapInput } from '../../scene/layout';
 import { getTime } from '../../scene/clock';
 import { RoamingController } from '../../scene/roaming';
+import { parallaxTransform } from '../../scene/terrain';
 import { BASE_SCALE, MAP_SPRITE_SCALE } from '../../scene/stations';
 import type { Orc } from '../../types/domain';
 import { OrcSprite } from '../sprite/OrcSprite';
 import { StationLayer } from './StationLayer';
+import { BackdropLayer } from './BackdropLayer';
+import { TerrainLayer } from './TerrainLayer';
+import { DecorLayer } from './DecorLayer';
 
 const EMPTY: string[] = [];
 
@@ -31,14 +34,6 @@ const ARROW_PREV = new Set(['ArrowLeft', 'ArrowUp']);
 
 function toInput(o: Orc): OrcMapInput {
   return { id: o.id, paneId: o.paneId, windowIndex: o.windowIndex, status: o.status };
-}
-
-/** §3.4 — world-sized tiled terrain ground tile (moss-ground), null when absent. */
-function terrainTileSrc(manifest: AssetManifest | null, assetBase: string): string | null {
-  const ts = manifest?.tilesets?.['orc-camp-terrain-square-topdown'];
-  const file = ts?.tiles?.['moss-ground'];
-  if (!ts || !file) return null;
-  return `${assetBase.replace(/\/+$/, '')}/${ts.root}/${file}`;
 }
 
 export function CampMap({
@@ -148,9 +143,28 @@ export function CampMap({
   // This ref is ALSO the IntersectionObserver root for the off-screen sprite gate (§3.3-3),
   // so sprites scrolled out of the world are correctly frozen.
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const backdropRef = useRef<HTMLDivElement | null>(null);
 
-  // §3.4 — world-sized tiled terrain ground (moss-ground), else CSS gradient fallback.
-  const groundTile = terrainTileSrc(manifest, assetBase);
+  // §2.8a — backdrop parallax: on scroll, translate the backdrop by scroll×parallax (slower
+  // than the 1× terrain) for depth. TRANSFORM-only (no layout/scroll mutation → CLS 0, AC-16);
+  // reduced-motion pins it (parallaxTransform returns translate(0,0), AC-19). Data refresh does
+  // not touch scroll, so parallax state is stable across WS batches.
+  const parallax = manifest?.scene?.backdrop?.parallax ?? 0.3;
+  const hasBackdrop = Boolean(
+    manifest?.scene?.backdrop?.background_ref &&
+      manifest?.backgrounds?.[manifest.scene.backdrop.background_ref]?.file,
+  );
+  useEffect(() => {
+    const vp = containerRef.current;
+    const bd = backdropRef.current;
+    if (!vp || !bd) return;
+    const apply = (): void => {
+      bd.style.transform = parallaxTransform(vp.scrollLeft, vp.scrollTop, parallax, reducedMotion);
+    };
+    apply();
+    vp.addEventListener('scroll', apply, { passive: true });
+    return () => vp.removeEventListener('scroll', apply);
+  }, [parallax, reducedMotion, orcs.length, hasBackdrop]);
 
   if (orcs.length === 0) {
     return (
@@ -171,11 +185,20 @@ export function CampMap({
         aria-label="Camp map"
         style={{ width: `${world.w * BASE_SCALE}px`, height: `${world.h * BASE_SCALE}px` }}
       >
+        {/* z-stack (§2.7 ①→⑫): backdrop → ground/terrain → decor → stations → sprites →
+            dusk lighting. Depth layers stay below status overlay/label/raw target. */}
+        <BackdropLayer ref={backdropRef} manifest={manifest} assetBase={assetBase} />
         <div
-          className={`oc-map__ground${groundTile ? ' oc-map__ground--tiled' : ''}`}
+          className={`oc-map__ground${hasBackdrop ? ' oc-map__ground--glaze' : ''}`}
           aria-hidden="true"
-          style={groundTile ? { backgroundImage: `url("${groundTile}")` } : undefined}
         />
+        <TerrainLayer
+          zones={layout.zones}
+          world={world}
+          manifest={manifest}
+          assetBase={assetBase}
+        />
+        <DecorLayer zones={layout.zones} manifest={manifest} assetBase={assetBase} />
 
         <StationLayer zones={layout.zones} manifest={manifest} assetBase={assetBase} />
 
@@ -212,6 +235,11 @@ export function CampMap({
             );
           })}
         </div>
+
+        {/* §2.8d — single static dusk lighting/vignette overlay. Tokens-only, pointer-events
+            none, above sprites but BELOW status overlay/label/raw target (§2.7 ⑧). No
+            pulsing animation → reduced-motion safe (AC-19). */}
+        <div className="oc-map__lighting" aria-hidden="true" data-testid="map-lighting" />
       </div>
     </div>
   );
