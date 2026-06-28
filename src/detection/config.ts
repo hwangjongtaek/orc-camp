@@ -89,6 +89,12 @@ export interface DetectorRuleConfig {
   /** G-WRAP / G-TITLE (Tier B): signature tested against cmdline / paneTitle. */
   readonly signature: PatternSpec;
   /**
+   * G-PROC (Tier A): agent package/module exec identifiers (e.g. `@anthropic-ai/claude-code`).
+   * Matched as exec token / path-segment / installed-entry basename in a subtree node argv —
+   * NOT an arbitrary substring (SPEC-003 §3.1.1). Optional; defaults to none.
+   */
+  readonly packageIds?: readonly string[];
+  /**
    * G-OUT (Tier C): DISTINCTIVE output banner tested against the redacted tail.
    * CALIBRATION CONTRACT (SPEC-003 §6, 2026-06-27): this MUST stay distinctive —
    * bare single tokens (`\bcodex\b` / `\bclaude\b`) over-detect non-agent panes
@@ -162,6 +168,70 @@ function cmdBasename(command: string): string {
   return (parts[parts.length - 1] ?? noTrailing).toLowerCase();
 }
 
+// --- G-PROC subtree matching (SPEC-003 §3.1.1) — MUST mirror adapters/*.ts exactly
+//     so config-compiled detectors stay byte-equivalent to the inline builtins. ----
+
+function execBasename(token: string): string {
+  return cmdBasename(token).replace(/\.(js|mjs|cjs|ts|py|exe)$/i, '');
+}
+
+function pathSegments(token: string): string[] {
+  return token.toLowerCase().split(/[/\\]/).filter((s) => s.length > 0);
+}
+
+function segmentsContain(hay: string[], packageId: string): boolean {
+  const needle = packageId.toLowerCase().split('/').filter((s) => s.length > 0);
+  if (needle.length === 0) return false;
+  for (let i = 0; i + needle.length <= hay.length; i++) {
+    let ok = true;
+    for (let j = 0; j < needle.length; j++) {
+      if (hay[i + j] !== needle[j]) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
+function nodeMatchesAgent(
+  command: string,
+  commands: Set<string>,
+  runtimes: Set<string>,
+  packageIds: string[],
+): boolean {
+  const tokens = command.trim().split(/\s+/).filter((t) => t.length > 0);
+  if (tokens.length === 0) return false;
+  const arg0 = execBasename(tokens[0]!);
+  if (commands.has(arg0)) return true; // rule 1
+  if (!runtimes.has(arg0)) return false; // rule 2 requires a generic runtime arg0
+  for (let i = 1; i < tokens.length; i++) {
+    const t = tokens[i]!;
+    if (packageIds.some((p) => t.toLowerCase() === p.toLowerCase())) return true; // 2a
+    if (packageIds.some((p) => segmentsContain(pathSegments(t), p))) return true; // 2b
+    if (/[/\\]/.test(t) && commands.has(execBasename(t))) return true; // 2c installed-entry PATH only
+  }
+  return false;
+}
+
+function detectProcSubtree(
+  pane: PaneSignal,
+  commands: Set<string>,
+  runtimes: Set<string>,
+  packageIds: string[],
+): { matched: boolean; minDepth: number } {
+  const tree = pane.processTree;
+  if (!tree || tree.length === 0) return { matched: false, minDepth: Number.POSITIVE_INFINITY };
+  let minDepth = Number.POSITIVE_INFINITY;
+  for (const node of tree) {
+    if (nodeMatchesAgent(node.command, commands, runtimes, packageIds) && node.depth < minDepth) {
+      minDepth = node.depth;
+    }
+  }
+  return { matched: minDepth !== Number.POSITIVE_INFINITY, minDepth };
+}
+
 /** §3.2 confidence from a set of same-type signals (output-only cap 0.60). */
 function confFromSignals(signals: SignalMatch[]): number {
   const maxBase = Math.max(...signals.map((s) => TIER_BASE[s.tier]));
@@ -227,6 +297,7 @@ export function createDetectorFromRule(rule: DetectorRuleConfig): AgentDetector 
   const prefix = rule.ruleIdPrefix ?? rule.id;
   const commands = new Set(rule.commands.map((c) => c.toLowerCase()));
   const runtimes = new Set((rule.genericRuntimes ?? DEFAULT_GENERIC_RUNTIMES).map((r) => r.toLowerCase()));
+  const packageIds = [...(rule.packageIds ?? [])];
   const sigTest = compilePattern(rule.signature);
   const bannerTest = compilePattern(rule.banner);
 
@@ -239,6 +310,12 @@ export function createDetectorFromRule(rule: DetectorRuleConfig): AgentDetector 
       // G-CMD (Tier A) — direct command basename match.
       if (commands.has(currentCommand)) {
         signals.push({ signal: 'command', tier: 'A', matchedType: id, ruleId: `${prefix}/cmd.basename` });
+      }
+
+      // G-PROC (Tier A) — live agent process anywhere in the subtree (SPEC-003 §3.1.1).
+      const proc = detectProcSubtree(pane, commands, runtimes, packageIds);
+      if (proc.matched) {
+        signals.push({ signal: 'process', tier: 'A', matchedType: id, ruleId: `${prefix}/proc.subtree`, depth: proc.minDepth });
       }
 
       const isRuntime = runtimes.has(currentCommand);
@@ -260,7 +337,12 @@ export function createDetectorFromRule(rule: DetectorRuleConfig): AgentDetector 
       }
 
       if (signals.length === 0) return null;
-      return { agentType: id, agentTypeConfidence: confFromSignals(signals), matchedSignals: signals };
+      return {
+        agentType: id,
+        agentTypeConfidence: confFromSignals(signals),
+        matchedSignals: signals,
+        processCorroborated: signals.some((s) => s.signal === 'command' || s.signal === 'process'),
+      };
     },
   };
 }
@@ -284,6 +366,8 @@ export const DEFAULT_DETECTOR_CONFIG: DetectorRulesConfig = {
       id: 'claude-code',
       interfaceVersion: DETECTOR_API_VERSION,
       commands: ['claude', 'claude-code'],
+      // G-PROC (Tier A) package/module exec ids — mirrors adapters/claude-code.ts CLAUDE_PACKAGE_IDS.
+      packageIds: ['@anthropic-ai/claude-code'],
       // bare \bclaude\b is allowed in the SIGNATURE (title/cmdline) path only.
       signature: { regex: '@anthropic-ai/claude-code|claude-code|\\bclaude\\b' },
       // distinctive-only OUTPUT banner (calibrated): no bare \bclaude\b here.
@@ -293,6 +377,8 @@ export const DEFAULT_DETECTOR_CONFIG: DetectorRulesConfig = {
       id: 'codex',
       interfaceVersion: DETECTOR_API_VERSION,
       commands: ['codex'],
+      // G-PROC (Tier A) package/module exec ids — mirrors adapters/codex.ts CODEX_PACKAGE_IDS.
+      packageIds: ['@openai/codex', 'codex-cli'],
       // bare \bcodex\b is allowed in the SIGNATURE (title/cmdline) path only.
       signature: { regex: '@openai/codex|codex-cli|\\bcodex\\b' },
       // distinctive-only OUTPUT banner (calibrated): no bare \bcodex\b here.

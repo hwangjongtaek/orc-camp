@@ -20,7 +20,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { collectInventory } from '../src/tmux/inventory';
 import { tmuxExec, safeSpawn } from '../src/tmux/exec';
-import { makeIntrospect } from '../src/tmux/introspect';
+import { makeProcessSnapshot } from '../src/tmux/introspect';
 import { redact, sanitizeCapture } from '../src/redaction/redact';
 import { detectOrc, defaultDetectors, basename } from '../src/detection/detect';
 import type { PaneRawRecord, PaneSignal } from '../src/types';
@@ -41,6 +41,7 @@ function toSignal(p: PaneRawRecord): PaneSignal {
     command: p.command,
     paneTitle: p.paneTitle,
     cmdline: p.cmdline,
+    processTree: p.processTree ?? null,
     cwd: p.cwd,
     recentOutput: p.capture ? p.capture.lines : [],
   };
@@ -58,7 +59,7 @@ function objectiveTruth(p: PaneRawRecord): Truth {
 async function main(): Promise<void> {
   const inv = await collectInventory({
     tmuxExec,
-    introspect: makeIntrospect(safeSpawn),
+    processSnapshot: makeProcessSnapshot(safeSpawn),
     sanitize: sanitizeCapture,
     redact,
     now: () => new Date(),

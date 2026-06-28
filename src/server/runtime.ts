@@ -191,14 +191,14 @@ export class SnapshotRuntime {
   async revalidate(paneId: string): Promise<{ paneId: string; tmuxTarget: string; command: string; agentType: AgentType } | null> {
     const d = this.opts.deps;
     const inv = await collectInventory({
-      tmuxExec: d.tmuxExec, introspect: d.introspect, sanitize: d.sanitize, redact: d.redact, now: d.now,
+      tmuxExec: d.tmuxExec, processSnapshot: d.processSnapshot, sanitize: d.sanitize, redact: d.redact, now: d.now,
       ...(d.timeoutMs !== undefined ? { timeoutMs: d.timeoutMs } : {}),
       ...(d.captureLines !== undefined ? { captureLines: d.captureLines } : {}),
     });
     const pane = inv.panes.find((p) => p.paneId === paneId);
     if (!pane) return null;
     const cand = d.detectOrc(
-      { paneId: pane.paneId, tmuxTarget: pane.tmuxTarget, command: pane.command, paneTitle: pane.paneTitle, cmdline: pane.cmdline, cwd: pane.cwd, recentOutput: pane.capture ? pane.capture.lines : [] },
+      { paneId: pane.paneId, tmuxTarget: pane.tmuxTarget, command: pane.command, paneTitle: pane.paneTitle, cmdline: pane.cmdline, processTree: pane.processTree ?? null, cwd: pane.cwd, recentOutput: pane.capture ? pane.capture.lines : [] },
       d.detectors,
     );
     return { paneId: pane.paneId, tmuxTarget: pane.tmuxTarget, command: pane.command, agentType: cand?.agentType ?? 'unknown' };

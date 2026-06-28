@@ -21,6 +21,8 @@ import type {
   CollectDeps,
   InventoryResult,
   PaneRawRecord,
+  ProcessNode,
+  ProcessSnapshotEntry,
   SanitizedCapture,
   SessionRawRecord,
   SpawnResult,
@@ -29,6 +31,7 @@ import type {
   TmuxExecFn,
 } from '../types';
 import { CAPTURE_LINES, FMT_P, FMT_S, US } from '../types';
+import { buildSubtree } from './introspect';
 
 // ---------------------------------------------------------------------------
 // Format field counts derived from the frozen format strings (stay in sync).
@@ -324,7 +327,7 @@ function finalize(
 export async function collectInventory(
   deps: CollectDeps,
 ): Promise<InventoryResult> {
-  const { tmuxExec, introspect, sanitize, redact, now } = deps;
+  const { tmuxExec, processSnapshot, sanitize, redact, now } = deps;
   const captureLines = deps.captureLines ?? CAPTURE_LINES;
   const errors: TmuxError[] = [];
 
@@ -431,19 +434,34 @@ export async function collectInventory(
   }
   parsed.sort(comparePaneFields);
 
-  // ---- Phase 3 (introspection) + Phase 4 (capture), per pane, target-isolated ----
+  // ---- Phase 3 (subtree introspection): ONE read-only `ps` snapshot for ALL panes
+  //      (SPEC-002 §2.9 — O(1) spawn, supersedes per-pid `ps -p`). Fail-closed. ----
+  let snapshot: ProcessSnapshotEntry[] | null = null;
+  try {
+    snapshot = await processSnapshot();
+  } catch {
+    snapshot = null; // never throws: all panes degrade to processTree=null
+  }
+
+  // ---- Phase 4 (capture), per pane, target-isolated ----
   const panes: PaneRawRecord[] = [];
   for (const f of parsed) {
-    // Process introspection — optional, degradable, isolated (D-020, §2.8).
+    // Derive cmdline / processAlive / processTree from the single snapshot (D-020, §2.9).
+    // Each subtree node argv passes the redact() chokepoint (SPEC-006 §2.7) — no raw
+    // argv (foreground OR non-foreground node) escapes the collector boundary.
     let cmdline: string | null = null;
     let processAlive: boolean | null = null;
-    try {
-      const ir = await introspect(f.panePid);
-      processAlive = ir.alive;
-      cmdline = ir.cmdline === null ? null : redact(ir.cmdline).text;
-    } catch {
-      cmdline = null;
-      processAlive = null;
+    let processTree: ProcessNode[] | null = null;
+    if (snapshot !== null) {
+      processTree = buildSubtree(snapshot, f.panePid).map((n) => ({
+        pid: n.pid,
+        ppid: n.ppid,
+        depth: n.depth,
+        command: redact(n.command).text,
+      }));
+      const depth0 = processTree.find((n) => n.depth === 0) ?? null;
+      cmdline = depth0 ? depth0.command : null; // pane_pid node argv (redacted)
+      processAlive = depth0 ? true : false; // pane_pid present in the live snapshot
     }
 
     // Capture only live panes; one capture failure never aborts the scan.
@@ -482,6 +500,7 @@ export async function collectInventory(
       paneActive: f.paneActive,
       cmdline,
       processAlive,
+      processTree,
       capture,
     });
   }

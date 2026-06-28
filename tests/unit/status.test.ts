@@ -394,3 +394,98 @@ describe('confidence bands are structurally ordered', () => {
     expect(idle).toBeGreaterThan(unknown);
   });
 });
+
+// ===========================================================================
+// SPEC-004 §3.1-2b / §3.8 — liveness-gate (agentProcessAlive) + agent-gone S-AGONE
+// ===========================================================================
+
+// --- TC-U-STAT-LIVEGATE (AC-16/18/19) ---------------------------------------
+
+describe('TC-U-STAT-LIVEGATE (SPEC-004-AC-16/18/19) — active requires a live agent', () => {
+  it('AC-19: agentProcessAlive=true + non-volatile change → active HIGH (gate does not block)', () => {
+    const r = inferStatus(
+      makeInput({
+        pane: { recentOutput: ['line A', 'line B', 'Editing src/foo.ts now'] },
+        lifecycle: { lastActivityAt: ACT_RECENT, agentProcessAlive: true },
+        prior: priorFor(['line A', 'line B']),
+      }),
+    );
+    expect(r.status).toBe('active');
+    expect(r.statusConfidence).toBeGreaterThanOrEqual(0.8);
+  });
+
+  it('AC-16: agentProcessAlive=false + change/recent stale scrollback → NOT active', () => {
+    const r = inferStatus(
+      makeInput({
+        pane: { recentOutput: ['line A', 'line B', 'Editing src/foo.ts now'] },
+        lifecycle: { lastActivityAt: ACT_RECENT, agentProcessAlive: false },
+        prior: priorFor(['line A', 'line B']),
+      }),
+    );
+    expect(r.status).not.toBe('active');
+    expect(r.status).toBe('terminated'); // agent-gone (S-AGONE) precedes the tail ladder
+  });
+
+  it('AC-18: agentProcessAlive=null (subtree unavailable) → active but NOT HIGH (degrade)', () => {
+    const r = inferStatus(
+      makeInput({
+        pane: { recentOutput: ['line A', 'line B', 'Editing src/foo.ts now'] },
+        lifecycle: { lastActivityAt: ACT_RECENT, agentProcessAlive: null },
+        prior: priorFor(['line A', 'line B']),
+      }),
+    );
+    expect(r.status).toBe('active');
+    expect(r.statusConfidence).toBeLessThan(0.8); // cannot prove liveness → not HIGH
+    expect(isMedium(r.statusConfidence)).toBe(true);
+  });
+
+  it('undefined agentProcessAlive (legacy/no-info) leaves the gate inert (AC-03 unchanged)', () => {
+    const r = inferStatus(
+      makeInput({
+        pane: { recentOutput: ['line A', 'line B', 'Editing src/foo.ts now'] },
+        lifecycle: { lastActivityAt: ACT_RECENT }, // no agentProcessAlive
+        prior: priorFor(['line A', 'line B']),
+      }),
+    );
+    expect(r.status).toBe('active');
+    expect(r.statusConfidence).toBeGreaterThanOrEqual(0.8);
+  });
+});
+
+// --- TC-U-STAT-AGONE (AC-17/20) ---------------------------------------------
+
+describe('TC-U-STAT-AGONE (SPEC-004-AC-17/20) — live shell, dead agent → terminated', () => {
+  it('AC-17: agentProcessAlive=false (shell alive, no agent) → terminated, distinct from stale', () => {
+    const r = inferStatus(
+      makeInput({
+        pane: { paneTitle: '✳ Claude Code', recentOutput: ['$ '] },
+        lifecycle: { paneDead: false, processAlive: true, agentProcessAlive: false },
+      }),
+    );
+    expect(r.status).toBe('terminated');
+    expect(isMedium(r.statusConfidence)).toBe(true); // S-AGONE MEDIUM (~0.65), not HIGH
+    expect(r.statusSignals.some((s) => s.ruleId === 'terminated/agent_gone')).toBe(true);
+  });
+
+  it('AC-20: dead-session scrollback error is NOT reported as live error (gate precedes tail)', () => {
+    const r = inferStatus(
+      makeInput({
+        pane: { recentOutput: ['compiling', 'Error: connection refused'] },
+        lifecycle: { agentProcessAlive: false },
+      }),
+    );
+    expect(r.status).toBe('terminated');
+    expect(r.status).not.toBe('error');
+  });
+
+  it('AC-20: dead-session scrollback (y/n) prompt is NOT reported as live waiting', () => {
+    const r = inferStatus(
+      makeInput({
+        pane: { recentOutput: ['Continue? (y/n)'] },
+        lifecycle: { agentProcessAlive: false },
+      }),
+    );
+    expect(r.status).toBe('terminated');
+    expect(r.status).not.toBe('waiting');
+  });
+});

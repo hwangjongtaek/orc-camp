@@ -41,6 +41,7 @@ const CONF = {
   stale: 0.9,
   terminatedDead: 0.95,
   terminatedProc: 0.65,
+  agentGone: 0.65, // S-AGONE: subtree present, no live agent process (SPEC-004 §3.7)
   errorTraceback: 0.85,
   errorKeyword: 0.55,
   waitingAdapter: 0.85,
@@ -52,6 +53,10 @@ const CONF = {
   idle: 0.65,
   unknown: 0.3,
 } as const;
+
+/** SPEC-004 §3.8 — when agent liveness is UNPROVEN (subtree unavailable), `active` may not
+ *  reach HIGH (kept strictly inside MEDIUM, < STATUS_BAND HIGH 0.80). */
+const LIVENESS_DEGRADE_CAP = 0.79;
 
 // --- pattern sets (HYPOTHESES — adapter-conceptual, embedded here because ----
 //     SPEC-004 may not import SPEC-003 adapters; co-tune via SPEC-007) --------
@@ -260,6 +265,20 @@ export function inferStatus(input: StatusInput): StatusInference {
     ]);
   }
 
+  // 2b. agent-gone (S-AGONE, liveness-gate) — subtree was collected but holds NO live agent
+  //     process (detection rests on a stale pane title / scrollback banner). The pane/shell may
+  //     be alive, but THIS agent's lifecycle ended. Precedes the tail ladder so a dead session's
+  //     scrollback (error/prompt/change) is never reported as live error/waiting/active
+  //     (SPEC-004 §3.1-2b/§3.7, AC-16/17/20). `null` (subtree unavailable) does NOT terminate —
+  //     it only degrades `active` below HIGH (§3.8). `undefined` (no info) leaves the gate inert.
+  const agentProcessAlive = lifecycle.agentProcessAlive;
+  if (agentProcessAlive === false) {
+    return finalize('terminated', CONF.agentGone, [
+      { signal: 'lifecycle', status: 'terminated', strength: 'B', ruleId: 'terminated/agent_gone' },
+    ]);
+  }
+  const livenessUnproven = agentProcessAlive === null;
+
   // Shared signals for the tail / time ladder.
   const region = trailingNonEmpty(pane.recentOutput, 8);
   const promptRegion = region.slice(-2);
@@ -301,6 +320,8 @@ export function inferStatus(input: StatusInput): StatusInference {
         signals.push({ signal: 'idle_time', status: 'active', strength: 'C', ruleId: 'active/recent' });
         conf = CONF.activeChangeRecent; // corroboration: change + recent activity
       }
+      // liveness-gate degrade (§3.8): subtree unavailable → cannot prove a live agent → not HIGH.
+      if (livenessUnproven) conf = Math.min(conf, LIVENESS_DEGRADE_CAP);
       return finalize('active', conf, signals);
     }
   }

@@ -7,7 +7,7 @@
  */
 import { FMT_P, FMT_S, US, type ProcessSpawn, type SpawnResult } from '../../src/types';
 import { makeTmuxExec, safeSpawn } from '../../src/tmux/exec';
-import { makeIntrospect } from '../../src/tmux/introspect';
+import { makeProcessSnapshot } from '../../src/tmux/introspect';
 import { redact, sanitizeCapture } from '../../src/redaction/redact';
 import { detectOrc, defaultDetectors } from '../../src/detection/detect';
 import { inferStatus } from '../../src/status/infer';
@@ -44,7 +44,9 @@ export interface Scenario {
   captures?: Record<string, string>; // paneId → raw capture text
   captureFail?: string[]; // paneIds whose capture-pane fails
   inventoryFail?: boolean; // list-panes exits non-zero on a running server
-  ps?: Record<string, string>; // pid → cmdline argv string
+  ps?: Record<string, string>; // pid → cmdline argv (snapshot synthesized as `<pid> 1 <cmdline>`)
+  /** Full process-table snapshot (SPEC-002 §2.9) for subtree tests. Overrides `ps`. */
+  processTable?: Array<{ pid: number; ppid: number; command: string }>;
 }
 
 const DEFAULT_EPOCH = Math.floor(Date.parse('2026-06-27T10:00:00.000Z') / 1000);
@@ -125,10 +127,16 @@ export function makeScenarioSpawn(scenario: Scenario): {
     }
 
     if (file === 'ps') {
-      const pIdx = args.indexOf('-p');
-      const pid = pIdx !== -1 ? args[pIdx + 1] : undefined;
-      const cmdline = pid && scenario.ps ? scenario.ps[pid] : undefined;
-      return cmdline !== undefined ? ok(cmdline + '\n') : fail('ps: no such process');
+      // SPEC-002 §2.9 single read-only snapshot: `ps -axo pid=,ppid=,command=` (or -eo … args=).
+      // Build a `<pid> <ppid> <argv>` table from processTable (preferred) or the `ps` pid→cmdline
+      // map (ppid synthesized = 1). No process info → empty stdout → snapshot null (fail-closed).
+      const rows: string[] = [];
+      if (scenario.processTable) {
+        for (const n of scenario.processTable) rows.push(`${n.pid} ${n.ppid} ${n.command}`);
+      } else if (scenario.ps) {
+        for (const [pid, cmd] of Object.entries(scenario.ps)) rows.push(`${pid} 1 ${cmd}`);
+      }
+      return rows.length > 0 ? ok(rows.join('\n') + '\n') : fail('ps: no process info');
     }
 
     return fail(`unexpected spawn: ${file}`);
@@ -146,7 +154,7 @@ export function makeDeps(
   const { spawn, log } = makeScenarioSpawn(scenario);
   const deps: ScanRuntimeDeps = {
     tmuxExec: makeTmuxExec(spawn),
-    introspect: makeIntrospect(spawn),
+    processSnapshot: makeProcessSnapshot(spawn),
     sanitize: sanitizeCapture,
     redact,
     detectOrc,

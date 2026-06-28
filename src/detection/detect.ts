@@ -35,6 +35,13 @@ const TIER_RANK: Record<'A' | 'B' | 'C', number> = { A: 0, B: 1, C: 2 };
 const AMBIGUOUS_CONFIDENCE = 0.3;
 /** Conflict winner cap — kept strictly inside MEDIUM band (< AGENT_BAND.mediumMax). */
 const CONFLICT_CAP = 0.84;
+/**
+ * Residual cap (SPEC-003 §3.2-3): when the subtree is AVAILABLE but the candidate is
+ * process-uncorroborated (only title/cmdline/output — a possible stale title/banner of an
+ * already-exited agent), confidence is capped to LOW so a residual can never masquerade as
+ * a confident live agent. Kept strictly inside LOW (< AGENT_BAND.lowMax).
+ */
+const RESIDUAL_CAP = 0.49;
 
 /**
  * Generic runtimes whose presence (with an explicit AI-agent marker) makes a
@@ -83,6 +90,42 @@ function bestRank(signals: SignalMatch[]): number {
   return Math.min(...signals.map((s) => TIER_RANK[s.tier]));
 }
 
+/**
+ * Foreground-proximity of a claim's live-agent evidence (SPEC-003 §3.4 multi-agent):
+ * a `command` (G-CMD foreground) match is depth 0; a `process` (G-PROC) match uses its
+ * subtree depth; non-process/command signals contribute Infinity (no liveness depth).
+ */
+function minAgentDepth(signals: SignalMatch[]): number {
+  let min = Number.POSITIVE_INFINITY;
+  for (const s of signals) {
+    const d = s.signal === 'command' ? 0 : s.signal === 'process' ? s.depth ?? Number.POSITIVE_INFINITY : Number.POSITIVE_INFINITY;
+    if (d < min) min = d;
+  }
+  return min;
+}
+
+/** True ⟺ the claim has live-agent-process evidence (G-CMD or G-PROC) — SPEC-003 §2.2. */
+function isProcessCorroborated(signals: SignalMatch[]): boolean {
+  return signals.some((s) => s.signal === 'command' || s.signal === 'process');
+}
+
+/**
+ * Finalize a candidate (SPEC-003 §2.2/§3.2-3): set `processCorroborated`, and apply the
+ * residual cap when the subtree is AVAILABLE but the candidate is process-uncorroborated.
+ * `processTree == null/undefined` (introspection unavailable) → NO cap (degrade, no regression).
+ */
+function finalize(
+  agentType: AgentType,
+  confidence: number,
+  signals: SignalMatch[],
+  pane: PaneSignal,
+): OrcCandidate {
+  const processCorroborated = isProcessCorroborated(signals);
+  const subtreeAvailable = pane.processTree != null; // != null also excludes undefined
+  const conf = subtreeAvailable && !processCorroborated ? Math.min(confidence, RESIDUAL_CAP) : confidence;
+  return { agentType, agentTypeConfidence: conf, matchedSignals: signals, processCorroborated };
+}
+
 /** De-duplicate signal provenance (stable order) so merges stay deterministic. */
 function dedupeSignals(signals: SignalMatch[]): SignalMatch[] {
   const seen = new Set<string>();
@@ -129,7 +172,7 @@ export function detectOrc(pane: PaneSignal, detectors: AgentDetector[]): OrcCand
   if (claims.length === 0) {
     const marker = genericMarkerSignal(pane, currentCommand);
     if (marker) {
-      return { agentType: 'unknown', agentTypeConfidence: AMBIGUOUS_CONFIDENCE, matchedSignals: [marker] };
+      return finalize('unknown', AMBIGUOUS_CONFIDENCE, [marker], pane);
     }
     return null;
   }
@@ -141,27 +184,39 @@ export function detectOrc(pane: PaneSignal, detectors: AgentDetector[]): OrcCand
   if (types.length === 1) {
     const onlyType: AgentType = types[0] ?? 'unknown';
     const signals = dedupeSignals(claims.flatMap((c) => c.matchedSignals));
-    return { agentType: onlyType, agentTypeConfidence: computeConfidence(signals), matchedSignals: signals };
+    return finalize(onlyType, computeConfidence(signals), signals, pane);
   }
 
   // Conflict: different concrete types (§3.4).
-  const ranked = claims.map((c) => ({ claim: c, rank: bestRank(c.matchedSignals) }));
+  const ranked = claims.map((c) => ({ claim: c, rank: bestRank(c.matchedSignals), depth: minAgentDepth(c.matchedSignals) }));
   const minRank = Math.min(...ranked.map((r) => r.rank));
-  const top = ranked.filter((r) => r.rank === minRank);
+  let top = ranked.filter((r) => r.rank === minRank);
   const allSignals = dedupeSignals(claims.flatMap((c) => c.matchedSignals));
 
+  // Multi-agent (§3.4): if several claims tie at the strongest tier, prefer the one whose
+  // live-agent evidence is closest to the foreground (smallest subtree depth). Only a UNIQUE
+  // foreground-most live agent breaks the tie; otherwise fall through to `unknown`.
+  if (top.length > 1) {
+    const minDepth = Math.min(...top.map((r) => r.depth));
+    if (Number.isFinite(minDepth)) {
+      const byDepth = top.filter((r) => r.depth === minDepth);
+      if (byDepth.length === 1) top = byDepth;
+    }
+  }
+
   if (top.length === 1) {
-    // Unique strongest tier → pick it, but cap confidence into MEDIUM and keep
+    // Unique strongest (tier, then foreground-proximity) → pick it, cap into MEDIUM, keep
     // the conflicting signals as provenance.
     const winner = top[0]?.claim;
     if (winner) {
       const capped = Math.min(computeConfidence(winner.matchedSignals), CONFLICT_CAP);
-      return { agentType: winner.agentType, agentTypeConfidence: capped, matchedSignals: allSignals };
+      return finalize(winner.agentType, capped, allSignals, pane);
     }
   }
 
-  // Tie at the strongest tier → do not assert a false concrete type (R-ORC-002).
-  return { agentType: 'unknown', agentTypeConfidence: AMBIGUOUS_CONFIDENCE, matchedSignals: allSignals };
+  // Tie at the strongest tier (and no unique foreground agent) → do not assert a false
+  // concrete type (R-ORC-002).
+  return finalize('unknown', AMBIGUOUS_CONFIDENCE, allSignals, pane);
 }
 
 /**

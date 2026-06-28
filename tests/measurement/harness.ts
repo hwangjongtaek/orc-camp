@@ -17,6 +17,7 @@ import {
   type OrcStatus,
   type PaneSignal,
   type PriorOrcState,
+  type ProcessNode,
   type StatusInput,
 } from '../../src/types';
 import { redact, sanitizeCapture } from '../../src/redaction/redact';
@@ -41,6 +42,8 @@ export interface LabeledPaneSample {
     paneDead: boolean;
     panePid: number | null;
     processAlive?: boolean | null;
+    /** SPEC-002 §2.9 pane subtree (RAW argv; harness redacts each node). Absent = legacy (null). */
+    processTree?: ProcessNode[] | null;
   };
   /** Prior orc state (status diff). Either supply directly or via `priorCapture`. */
   prior?: PriorOrcState | null;
@@ -61,12 +64,18 @@ export interface LabeledPaneSample {
 
 export function toPaneSignal(s: LabeledPaneSample): PaneSignal {
   const cap = sanitizeCapture(s.rawCapture);
+  // Absent processTree ≡ legacy sample → null (no G-PROC, no residual cap — existing M1 unchanged).
+  // Present → redact EACH node argv (SPEC-006 §2.7 chokepoint), mirroring collectInventory.
+  const rawTree = s.paneMeta.processTree;
+  const processTree =
+    rawTree == null ? null : rawTree.map((n) => ({ ...n, command: redact(n.command).text }));
   return {
     paneId: s.paneMeta.paneId,
     tmuxTarget: s.paneMeta.tmuxTarget,
     command: s.paneMeta.currentCommand, // raw passthrough (structural id)
     paneTitle: s.paneMeta.paneTitle === null ? null : redact(s.paneMeta.paneTitle).text,
     cmdline: s.paneMeta.cmdline === null ? null : redact(s.paneMeta.cmdline).text,
+    processTree,
     cwd: redact(s.paneMeta.cwd).text,
     recentOutput: cap.lines,
   };
@@ -83,6 +92,14 @@ export function toStatusInput(s: LabeledPaneSample, candidate: OrcCandidate): St
       observedAt: s.scannedAt,
     };
   }
+  // agentProcessAlive (SPEC-004 §2.1): legacy (no processTree) → undefined (gate inert);
+  // present → processTree==null ? null : candidate.processCorroborated.
+  const hasTree = s.paneMeta.processTree !== undefined;
+  const agentProcessAlive = hasTree
+    ? s.paneMeta.processTree === null
+      ? null
+      : (candidate.processCorroborated ?? false)
+    : undefined;
   return {
     candidate,
     pane: toPaneSignal(s),
@@ -91,6 +108,7 @@ export function toStatusInput(s: LabeledPaneSample, candidate: OrcCandidate): St
       paneDead: s.paneMeta.paneDead,
       panePid: s.paneMeta.panePid,
       processAlive: s.paneMeta.processAlive ?? null,
+      agentProcessAlive,
       lastActivityAt: s.paneMeta.lastActivityAt,
     },
     scannedAt: s.scannedAt,

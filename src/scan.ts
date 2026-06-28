@@ -19,7 +19,7 @@ import {
   type AgentDetector,
   type DetectOrcFn,
   type InferStatusFn,
-  type IntrospectFn,
+  type ProcessSnapshotFn,
   type InventoryResult,
   type Orc,
   type PriorOrcState,
@@ -32,14 +32,14 @@ import {
 import { collectInventory } from './tmux/inventory';
 import { assembleScanResult } from './assemble';
 import { tmuxExec as defaultTmuxExec, safeSpawn } from './tmux/exec';
-import { makeIntrospect } from './tmux/introspect';
+import { makeProcessSnapshot } from './tmux/introspect';
 import { redact, sanitizeCapture } from './redaction/redact';
 import { detectOrc as defaultDetectOrc, defaultDetectors } from './detection/detect';
 import { inferStatus as defaultInferStatus } from './status/infer';
 
 export interface ScanRuntimeDeps {
   tmuxExec: TmuxExecFn;
-  introspect: IntrospectFn;
+  processSnapshot: ProcessSnapshotFn;
   sanitize: SanitizeFn;
   redact: RedactFn;
   detectOrc: DetectOrcFn;
@@ -54,7 +54,7 @@ export interface ScanRuntimeDeps {
 export function createDefaultDeps(spawn: ProcessSpawn = safeSpawn): ScanRuntimeDeps {
   return {
     tmuxExec: defaultTmuxExec,
-    introspect: makeIntrospect(spawn),
+    processSnapshot: makeProcessSnapshot(spawn),
     sanitize: sanitizeCapture,
     redact,
     detectOrc: defaultDetectOrc,
@@ -93,7 +93,7 @@ export class ScanRunner {
 
     const fresh = await collectInventory({
       tmuxExec: this.deps.tmuxExec,
-      introspect: this.deps.introspect,
+      processSnapshot: this.deps.processSnapshot,
       sanitize: this.deps.sanitize,
       redact: this.deps.redact,
       now: this.deps.now,

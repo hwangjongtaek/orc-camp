@@ -3,7 +3,7 @@
  * Covers SPEC-003-AC-01..09. Deterministic, no live tmux; placeholder text only.
  */
 import { describe, expect, it } from 'vitest';
-import type { AgentDetector, OrcCandidate, PaneSignal } from '../../src/types';
+import type { AgentDetector, OrcCandidate, PaneSignal, ProcessNode } from '../../src/types';
 import { AGENT_BAND } from '../../src/types';
 import { claudeCode } from '../../src/detection/adapters/claude-code';
 import { codex } from '../../src/detection/adapters/codex';
@@ -289,5 +289,132 @@ describe('detection determinism + redaction-safe provenance', () => {
     const c = claudeCode.detect(makePane({ command: 'claude' }));
     expect(c?.agentType).toBe('claude-code');
     expect(codex.detect(makePane({ command: 'claude' }))).toBeNull();
+  });
+});
+
+// ===========================================================================
+// SPEC-003 §3.1.1 / §3.2-3 / §3.4 — G-PROC (process subtree), residual cap, multi-agent
+// ===========================================================================
+
+function node(pid: number, ppid: number, depth: number, command: string): ProcessNode {
+  return { pid, ppid, depth, command };
+}
+
+// --- TC-U-DET-PROC — G-PROC recall + exec-token precision (AC-10/15/16) ------
+
+describe('TC-U-DET-PROC (SPEC-003-AC-10/15/16) — G-PROC exec/module token', () => {
+  it('AC-10: wrapper chain with agent argv in a DESCENDANT → claude-code HIGH, Tier A process', () => {
+    const tree = [
+      node(1000, 1, 0, '-zsh'),
+      node(2000, 1000, 1, 'node /usr/lib/node_modules/@anthropic-ai/claude-code/cli.js'),
+      node(2001, 2000, 2, 'npm exec'),
+    ];
+    const r = detectOrc(makePane({ command: 'node', processTree: tree }), defaultDetectors);
+    const c = r as OrcCandidate;
+    expect(c.agentType).toBe('claude-code');
+    expect(c.agentTypeConfidence).toBeGreaterThanOrEqual(0.85);
+    expect(isHigh(c.agentTypeConfidence)).toBe(true);
+    const proc = c.matchedSignals.find((s) => s.signal === 'process');
+    expect(proc?.tier).toBe('A');
+    expect(c.processCorroborated).toBe(true);
+  });
+
+  it('AC-16: generic runtime + package-id path-segment fires G-PROC (module token)', () => {
+    const tree = [node(1000, 1, 0, 'node /x/node_modules/@openai/codex/bin/codex.js')];
+    const c = detectOrc(makePane({ command: 'node', processTree: tree }), defaultDetectors) as OrcCandidate;
+    expect(c.agentType).toBe('codex');
+    expect(c.matchedSignals.some((s) => s.signal === 'process' && s.tier === 'A')).toBe(true);
+    expect(c.processCorroborated).toBe(true);
+  });
+
+  it('AC-16: installed-entry basename (…/bin/claude under a runtime) fires G-PROC', () => {
+    const tree = [node(1000, 1, 0, 'node /opt/claude-code/bin/claude')];
+    const c = detectOrc(makePane({ command: 'node', processTree: tree }), defaultDetectors) as OrcCandidate;
+    expect(c.agentType).toBe('claude-code');
+    expect(c.processCorroborated).toBe(true);
+  });
+
+  it('AC-15 (negative): runtime running a user script with a mere path SUBSTRING does NOT match', () => {
+    const tree = [
+      node(1000, 1, 0, '-zsh'),
+      node(2000, 1000, 1, 'node /home/u/claude-notes/build.js'),
+      node(2001, 1000, 1, 'python codex_experiment.py'),
+    ];
+    const r = detectOrc(makePane({ command: 'zsh', processTree: tree }), defaultDetectors);
+    expect(r).toBeNull(); // no exec/package token → no G-PROC, no other signal → non-candidate
+  });
+
+  it('AC-15 (negative): a bare agent name as a non-exec argv token does not fire', () => {
+    const tree = [node(1000, 1, 0, 'node build.js --label claude')];
+    const r = detectOrc(makePane({ command: 'zsh', processTree: tree }), defaultDetectors);
+    expect(r).toBeNull();
+  });
+});
+
+// --- TC-U-DET-RESIDUAL — residual cap + degrade + monotonicity (AC-11/12/14) -
+
+describe('TC-U-DET-RESIDUAL (SPEC-003-AC-11/12/14) — process-uncorroborated residual', () => {
+  it('AC-11: subtree available + no agent + stale title → candidate kept but LOW (residual cap)', () => {
+    const tree = [node(1000, 1, 0, '-zsh')]; // shell only; no agent process anywhere
+    const c = detectOrc(
+      makePane({ command: 'zsh', paneTitle: '✳ Claude Code', processTree: tree }),
+      defaultDetectors,
+    ) as OrcCandidate;
+    expect(c.agentType).toBe('claude-code'); // title still names the agent
+    expect(c.agentTypeConfidence).toBeLessThanOrEqual(0.49);
+    expect(isLow(c.agentTypeConfidence)).toBe(true);
+    expect(c.processCorroborated).toBe(false);
+    expect(c.matchedSignals.some((s) => s.signal === 'command' || s.signal === 'process')).toBe(false);
+  });
+
+  it('AC-12: processTree absent (introspection unavailable) → NO residual cap (no regression)', () => {
+    const c = detectOrc(
+      makePane({ command: 'zsh', paneTitle: '✳ Claude Code' }), // no processTree
+      defaultDetectors,
+    ) as OrcCandidate;
+    expect(c.agentType).toBe('claude-code');
+    expect(c.agentTypeConfidence).toBeGreaterThanOrEqual(0.5); // Tier B title, uncapped
+    expect(isMedium(c.agentTypeConfidence)).toBe(true);
+  });
+
+  it('AC-14: process-corroborated (live) ranks strictly above residual (title-only)', () => {
+    const live = detectOrc(
+      makePane({
+        command: 'node',
+        processTree: [node(1000, 1, 0, 'node /x/@anthropic-ai/claude-code/cli.js')],
+      }),
+      defaultDetectors,
+    ) as OrcCandidate;
+    const residual = detectOrc(
+      makePane({ command: 'zsh', paneTitle: '✳ Claude Code', processTree: [node(1000, 1, 0, '-zsh')] }),
+      defaultDetectors,
+    ) as OrcCandidate;
+    expect(live.agentTypeConfidence).toBeGreaterThan(residual.agentTypeConfidence);
+  });
+});
+
+// --- AC-13 — multiple live agents in one subtree → foreground-most (depth) ----
+
+describe('SPEC-003-AC-13 multi-agent subtree → smaller-depth wins, tie → unknown', () => {
+  it('picks the agent whose live process is closest to depth-0 (smaller depth)', () => {
+    const tree = [
+      node(1000, 1, 0, '-zsh'),
+      node(2000, 1000, 1, 'node /x/@anthropic-ai/claude-code/cli.js'), // claude at depth 1
+      node(2001, 2000, 2, 'node /x/@openai/codex/bin.js'), // codex at depth 2
+    ];
+    const c = detectOrc(makePane({ command: 'zsh', processTree: tree }), defaultDetectors) as OrcCandidate;
+    expect(c.agentType).toBe('claude-code');
+    expect(c.matchedSignals.some((s) => s.matchedType === 'codex')).toBe(true); // conflict recorded
+  });
+
+  it('two agents at the SAME depth → unknown (no false assertion)', () => {
+    const tree = [
+      node(1000, 1, 0, '-zsh'),
+      node(2000, 1000, 1, 'node /x/@anthropic-ai/claude-code/cli.js'),
+      node(2001, 1000, 1, 'node /x/@openai/codex/bin.js'),
+    ];
+    const c = detectOrc(makePane({ command: 'zsh', processTree: tree }), defaultDetectors) as OrcCandidate;
+    expect(c.agentType).toBe('unknown');
+    expect(isLow(c.agentTypeConfidence)).toBe(true);
   });
 });

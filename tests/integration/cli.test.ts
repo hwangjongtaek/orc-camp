@@ -170,9 +170,16 @@ describe('TC-I-READONLY (SPEC-002-AC-13, SPEC-006-AC-12b)', () => {
       const sub = call.args[0]!;
       expect(sub === '-V' || READONLY_ALLOWLIST.has(sub)).toBe(true);
     }
-    for (const call of log.filter((e) => e.file === 'ps')) {
-      expect(call.args.slice(0, 3)).toEqual(['-o', 'command=', '-p']); // fixed read-only argv
-      expect(call.args).toHaveLength(4); // + the pid
+    // SPEC-002 §2.9: a single read-only process-table snapshot (no per-pid `ps -p`, no
+    // state-changing flags). One ps spawn for the whole scan (O(1)); platform-robust argv.
+    const psCalls = log.filter((e) => e.file === 'ps');
+    expect(psCalls.length).toBe(1);
+    const READONLY_PS_ARGV = [
+      ['-axo', 'pid=,ppid=,command='], // darwin/bsd
+      ['-eo', 'pid=,ppid=,args='], // linux
+    ];
+    for (const call of psCalls) {
+      expect(READONLY_PS_ARGV.some((v) => JSON.stringify(v) === JSON.stringify(call.args))).toBe(true);
     }
   });
 });

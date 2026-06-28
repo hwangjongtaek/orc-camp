@@ -19,7 +19,7 @@
  */
 import { collectInventory } from '../src/tmux/inventory';
 import { tmuxExec, safeSpawn } from '../src/tmux/exec';
-import { makeIntrospect } from '../src/tmux/introspect';
+import { makeProcessSnapshot } from '../src/tmux/introspect';
 import { redact, sanitizeCapture } from '../src/redaction/redact';
 import { detectOrc, defaultDetectors, basename } from '../src/detection/detect';
 import { inferStatus } from '../src/status/infer';
@@ -37,6 +37,7 @@ function toSignal(p: PaneRawRecord): PaneSignal {
     command: p.command,
     paneTitle: p.paneTitle,
     cmdline: p.cmdline,
+    processTree: p.processTree ?? null,
     cwd: p.cwd,
     recentOutput: p.capture ? p.capture.lines : [],
   };
@@ -65,7 +66,7 @@ interface Rec {
 async function main(): Promise<void> {
   const deps = {
     tmuxExec,
-    introspect: makeIntrospect(safeSpawn),
+    processSnapshot: makeProcessSnapshot(safeSpawn),
     sanitize: sanitizeCapture,
     redact,
     now: () => new Date(),
@@ -95,6 +96,8 @@ async function main(): Promise<void> {
           paneDead: pane.paneDead,
           panePid: pane.panePid,
           processAlive: pane.processAlive,
+          agentProcessAlive:
+            pane.processTree == null ? pane.processTree ?? null : (cand.processCorroborated ?? false),
           lastActivityAt: pane.lastActivityAt,
         },
         scannedAt,

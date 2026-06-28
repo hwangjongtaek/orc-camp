@@ -6,7 +6,8 @@
  */
 import { US, FMT_S, FMT_P } from '../../../src/types';
 import type {
-  IntrospectFn,
+  ProcessSnapshotEntry,
+  ProcessSnapshotFn,
   ProcessSpawn,
   RedactFn,
   SanitizeFn,
@@ -157,28 +158,23 @@ export function makeFakeTmux(fx: InventoryFixture): {
 }
 
 // ---------------------------------------------------------------------------
-// Fake introspect / redact / sanitize spies
+// Fake process snapshot / redact / sanitize spies (SPEC-002 §2.9)
 // ---------------------------------------------------------------------------
 
-export interface IntrospectResult {
-  cmdline: string | null;
-  alive: boolean | null;
-}
-
-export function makeFakeIntrospect(
-  byPid: Record<number, IntrospectResult> = {},
-  fallback: IntrospectResult = { cmdline: null, alive: null },
-): { introspect: IntrospectFn; calls: Array<number | null> } {
-  const calls: Array<number | null> = [];
-  const introspect: IntrospectFn = async (pid) => {
-    calls.push(pid);
-    if (pid !== null) {
-      const hit = byPid[pid];
-      if (hit !== undefined) return hit;
-    }
-    return fallback;
+/**
+ * Fake single-snapshot process collector. `entries` is the whole process table
+ * (raw argv); `null` simulates an unavailable/failed snapshot (fail-closed →
+ * every pane's processTree = null). `calls` counts invocations (asserts O(1) spawn).
+ */
+export function makeFakeProcessSnapshot(
+  entries: ProcessSnapshotEntry[] | null = null,
+): { processSnapshot: ProcessSnapshotFn; calls: { n: number } } {
+  const calls = { n: 0 };
+  const processSnapshot: ProcessSnapshotFn = async () => {
+    calls.n += 1;
+    return entries;
   };
-  return { introspect, calls };
+  return { processSnapshot, calls };
 }
 
 /** Deterministic redaction: masks placeholder GitHub tokens and argv `--token=`. */

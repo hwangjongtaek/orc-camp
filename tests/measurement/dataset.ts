@@ -141,6 +141,64 @@ export const STATUS_SAMPLES: LabeledPaneSample[] = [
 ];
 
 // ===========================================================================
+// PROCTREE (TC-M-PROCTREE) — live-process-tree oracle samples (SPEC-007-AC-14)
+//   PROC-SUBTREE-WRAP : wrapper chain, agent argv only in a descendant → recall
+//   PROC-STALE-TITLE  : shell-only subtree + stale title → no live agent (oracle non-agent)
+//   STAT-AGENT-GONE   : live shell, dead agent → terminated (active-FP blocked)
+// ===========================================================================
+
+function pnode(pid: number, ppid: number, depth: number, command: string): {
+  pid: number; ppid: number; depth: number; command: string;
+} {
+  return { pid, ppid, depth, command };
+}
+
+/** Wrapper chain `zsh → claude(@anthropic-ai/claude-code) → npm → node` — agent in a descendant. */
+const WRAP_TREE = [
+  pnode(1000, 1, 0, '-zsh'),
+  pnode(2000, 1000, 1, 'node /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js'),
+  pnode(2001, 2000, 2, 'npm exec'),
+  pnode(2002, 2001, 3, 'node worker.js'),
+];
+/** Shell-only subtree — NO live agent process anywhere (stale title is residual). */
+const SHELL_ONLY_TREE = [pnode(1000, 1, 0, '-zsh')];
+
+export const PROCTREE_DETECT_SAMPLES: LabeledPaneSample[] = [
+  // PROC-SUBTREE-WRAP: foreground is `node`, agent argv only in a descendant → G-PROC recall.
+  {
+    id: 'pt-wrap-claude', source: 'fixture', rawCapture: 'working…',
+    paneMeta: meta({ currentCommand: 'node', panePid: 1000, processTree: WRAP_TREE }),
+    scannedAt: T0, gold: { isAgent: true, agentType: 'claude-code' },
+  },
+  // PROC-STALE-TITLE: stale pane title names claude, but subtree has NO live agent →
+  // oracle ground truth = non-agent (residual must not be a confident live agent).
+  {
+    id: 'pt-stale-title', source: 'fixture', rawCapture: '✳ Welcome to Claude Code\n~/proj $ ',
+    paneMeta: meta({ currentCommand: 'zsh', paneTitle: '✳ Claude Code', panePid: 1000, processTree: SHELL_ONLY_TREE }),
+    scannedAt: T0, gold: { isAgent: false, agentType: null },
+  },
+];
+
+export const PROCTREE_STATUS_SAMPLES: LabeledPaneSample[] = [
+  // STAT-AGENT-GONE: live shell + no agent in subtree + scrollback residue → terminated, not active.
+  {
+    id: 'pt-agent-gone', source: 'fixture',
+    priorCapture: 'building project\nstep 1',
+    rawCapture: 'building project\nstep 1\nstep 2 — newer line',
+    paneMeta: meta({ currentCommand: 'zsh', paneTitle: '✳ Claude Code', panePid: 1000, processTree: SHELL_ONLY_TREE }),
+    scannedAt: T0, gold: { status: 'terminated' },
+  },
+  // live wrapped agent with a change → active (gate allows; recall + liveness both hold).
+  {
+    id: 'pt-wrap-active', source: 'fixture',
+    priorCapture: 'building project\nstep 1',
+    rawCapture: 'building project\nstep 1\nstep 2 — newer line',
+    paneMeta: meta({ currentCommand: 'node', panePid: 1000, processTree: WRAP_TREE }),
+    scannedAt: T0, gold: { status: 'active' },
+  },
+];
+
+// ===========================================================================
 // CORPUS-SECRET / CORPUS-KEEP (M5 false-redaction + secret-recall)
 // ===========================================================================
 

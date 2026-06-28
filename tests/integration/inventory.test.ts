@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { CAPTURE_LINES, READONLY_ALLOWLIST, STATE_CHANGING_DENYLIST } from '../../src/types';
-import type { CollectDeps } from '../../src/types';
+import type { CollectDeps, ProcessSnapshotEntry } from '../../src/types';
 import { collectInventory } from '../../src/tmux/inventory';
 import {
   INV_NORMAL,
@@ -19,13 +19,12 @@ import {
   PANE_PIDS,
   GHP_TOKEN,
   makeFakeTmux,
-  makeFakeIntrospect,
+  makeFakeProcessSnapshot,
   makeFakeRedact,
   makeFakeSanitize,
   now,
   type ExecCall,
   type InventoryFixture,
-  type IntrospectResult,
 } from '../fixtures/inventory';
 
 interface Harness {
@@ -33,33 +32,31 @@ interface Harness {
   argvLog: ExecCall[];
   redactCalls: string[];
   sanitizeCalls: string[];
-  introspectCalls: Array<number | null>;
+  snapshotCalls: { n: number };
 }
 
 function harness(
   fx: InventoryFixture,
   opts: {
-    introspectByPid?: Record<number, IntrospectResult>;
-    introspectFallback?: IntrospectResult;
+    processTable?: ProcessSnapshotEntry[] | null;
     captureLines?: number;
   } = {},
 ): Harness {
   const { tmuxExec, argvLog } = makeFakeTmux(fx);
-  const { introspect, calls: introspectCalls } = makeFakeIntrospect(
-    opts.introspectByPid ?? {},
-    opts.introspectFallback ?? { cmdline: null, alive: null },
+  const { processSnapshot, calls: snapshotCalls } = makeFakeProcessSnapshot(
+    opts.processTable ?? null,
   );
   const { redact, calls: redactCalls } = makeFakeRedact();
   const { sanitize, calls: sanitizeCalls } = makeFakeSanitize();
   const deps: CollectDeps = {
     tmuxExec,
-    introspect,
+    processSnapshot,
     redact,
     sanitize,
     now,
     ...(opts.captureLines !== undefined ? { captureLines: opts.captureLines } : {}),
   };
-  return { deps, argvLog, redactCalls, sanitizeCalls, introspectCalls };
+  return { deps, argvLog, redactCalls, sanitizeCalls, snapshotCalls };
 }
 
 const tmuxSubs = (log: ExecCall[]) => log.map((c) => c.subcommand);
@@ -279,43 +276,83 @@ describe('SPEC-002-AC-04/05 — capture timeout + per-pane isolation', () => {
   });
 });
 
-describe('SPEC-002-AC-15/16 — process introspection (Tier B input)', () => {
-  it('PROC-CMDLINE: cmdline (redacted) + processAlive populated from introspect', async () => {
+describe('SPEC-002-AC-15/16/18/21 — process subtree introspection (single snapshot)', () => {
+  it('PROC-CMDLINE: cmdline (depth-0, redacted) + processAlive + processTree from ONE snapshot', async () => {
     const wrapperArgv = 'node /home/u/app/cli.js --token=' + GHP_TOKEN;
     const h = harness(INV_NORMAL, {
-      introspectByPid: {
-        [PANE_PIDS.workNode]: { cmdline: wrapperArgv, alive: true },
-      },
+      processTable: [
+        { pid: PANE_PIDS.workNode, ppid: 1, command: wrapperArgv },
+        { pid: PANE_PIDS.workShell, ppid: 1, command: '-zsh' },
+        { pid: PANE_PIDS.playVim, ppid: 1, command: 'vim' },
+      ],
     });
     const r = await collectInventory(h.deps);
     const node = r.panes.find((p) => p.paneId === '%1');
     expect(node?.processAlive).toBe(true);
     expect(node?.cmdline).toBe('node /home/u/app/cli.js --token=[REDACTED:token]');
-    // raw argv secret never survives the redaction chokepoint
+    // raw argv secret never survives the redaction chokepoint (depth-0 node redacted too)
     expect(node?.cmdline).not.toContain(GHP_TOKEN);
-    // introspect was invoked with the pane pid
-    expect(h.introspectCalls).toContain(PANE_PIDS.workNode);
+    expect(node?.processTree?.[0]?.command).toBe('node /home/u/app/cli.js --token=[REDACTED:token]');
+    expect(node?.processTree?.[0]?.depth).toBe(0);
+    // SPEC-002-AC-21: ONE ps snapshot for ALL panes (O(1) spawn, not per-pane)
+    expect(h.snapshotCalls.n).toBe(1);
   });
 
-  it('PROC-FAIL: introspect nulls → cmdline=null, pane still collected, isolated', async () => {
+  it('PROC-SUBTREE (AC-18): wrapper-chain agent argv in a DESCENDANT node is exposed', async () => {
+    // zsh(1000) → claude(2000) → npm(2001) → node(2002): agent argv only in a descendant.
     const h = harness(INV_NORMAL, {
-      introspectFallback: { cmdline: null, alive: null },
+      processTable: [
+        { pid: PANE_PIDS.workShell, ppid: 1, command: '-zsh' },
+        { pid: 2000, ppid: PANE_PIDS.workShell, command: 'node /usr/lib/node_modules/@anthropic-ai/claude-code/cli.js' },
+        { pid: 2001, ppid: 2000, command: 'npm exec' },
+        { pid: 2002, ppid: 2001, command: 'node worker.js' },
+      ],
     });
+    const r = await collectInventory(h.deps);
+    const shell = r.panes.find((p) => p.paneId === '%0');
+    expect(shell?.processTree).toHaveLength(4);
+    expect(shell?.processTree?.map((n) => n.depth)).toEqual([0, 1, 2, 3]);
+    expect(shell?.processTree?.[0]?.command).toBe('-zsh'); // depth-0 = pane_pid
+    expect(shell?.processTree?.some((n) => n.command.includes('@anthropic-ai/claude-code'))).toBe(true);
+  });
+
+  it('TC-I-PROC-SUBTREE-SECRET (SPEC-006-AC-18): a secret in a NON-foreground node is redacted', async () => {
+    // secret lives in a depth-2 descendant argv (not the pane_pid/foreground node).
+    const secretArgv = 'node /run.js --token=' + GHP_TOKEN;
+    const h = harness(INV_NORMAL, {
+      processTable: [
+        { pid: PANE_PIDS.workShell, ppid: 1, command: '-zsh' },
+        { pid: 3000, ppid: PANE_PIDS.workShell, command: 'npm exec' },
+        { pid: 3001, ppid: 3000, command: secretArgv },
+      ],
+    });
+    const r = await collectInventory(h.deps);
+    const shell = r.panes.find((p) => p.paneId === '%0');
+    const allNodeArgv = (shell?.processTree ?? []).map((n) => n.command).join('\n');
+    // every node argv passed redact() — the non-foreground secret is masked, no raw leak
+    expect(allNodeArgv).not.toContain(GHP_TOKEN);
+    expect(shell?.processTree?.[2]?.command).toBe('node /run.js --token=[REDACTED:token]');
+    expect(h.redactCalls.some((c) => c.includes(GHP_TOKEN))).toBe(true); // raw seen only at the boundary
+  });
+
+  it('PROC-FAIL: snapshot null → cmdline/processAlive/processTree null, panes still collected', async () => {
+    const h = harness(INV_NORMAL, { processTable: null });
     const r = await collectInventory(h.deps);
     expect(r.panes).toHaveLength(3);
     for (const p of r.panes) {
       expect(p.cmdline).toBeNull();
       expect(p.processAlive).toBeNull();
+      expect(p.processTree).toBeNull();
     }
+    // still only one snapshot attempt for the whole scan
+    expect(h.snapshotCalls.n).toBe(1);
   });
 });
 
 describe('SPEC-006 chokepoint wiring — redact/sanitize are actually invoked', () => {
-  it('title/cwd → redact; cmdline → redact; capture → sanitize; command RAW', async () => {
+  it('title/cwd → redact; cmdline (depth-0 argv) → redact; capture → sanitize; command RAW', async () => {
     const h = harness(INV_NORMAL, {
-      introspectByPid: {
-        [PANE_PIDS.workShell]: { cmdline: 'node /x/a.js', alive: true },
-      },
+      processTable: [{ pid: PANE_PIDS.workShell, ppid: 1, command: 'node /x/a.js' }],
     });
     const r = await collectInventory(h.deps);
 

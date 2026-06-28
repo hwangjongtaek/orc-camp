@@ -16,7 +16,7 @@ import {
   parseSessionLine,
   parseVersion,
 } from '../../src/tmux/inventory';
-import { makeIntrospect } from '../../src/tmux/introspect';
+import { makeProcessSnapshot, parsePsSnapshot, buildSubtree } from '../../src/tmux/introspect';
 import {
   mkSpawnResult,
   enoent,
@@ -254,60 +254,78 @@ describe('availability classifiers (SPEC-002-AC-08/09/10)', () => {
   });
 });
 
-describe('makeIntrospect (SPEC-002 §2.8 — AC-15/16/17)', () => {
-  it('uses FIXED read-only argv `ps -o command= -p <pid>` and per-call timeout', async () => {
-    const { spawn, calls } = makeFakeSpawn(() => ({ stdout: 'node /x/cli.js --foo\n' }));
-    const introspect = makeIntrospect(spawn, 1234);
-    const res = await introspect(4242);
-    expect(res).toEqual({ cmdline: 'node /x/cli.js --foo', alive: true });
+describe('process snapshot (SPEC-002 §2.9 — AC-15/16/17/18/21)', () => {
+  it('parsePsSnapshot parses `<pid> <ppid> <argv>` rows, skips garbled lines, keeps raw argv', () => {
+    const entries = parsePsSnapshot(
+      '  1001  1 node /x/cli.js --foo\n 1002 1001 npm exec\nhdr garbage\n\n',
+    );
+    expect(entries).toEqual([
+      { pid: 1001, ppid: 1, command: 'node /x/cli.js --foo' },
+      { pid: 1002, ppid: 1001, command: 'npm exec' },
+    ]);
+  });
+
+  it('buildSubtree walks descendants from pane_pid with depth (deterministic depth→pid order)', () => {
+    const entries = [
+      { pid: 1000, ppid: 1, command: '-zsh' },
+      { pid: 2000, ppid: 1000, command: 'claude' },
+      { pid: 2001, ppid: 2000, command: 'node x' },
+      { pid: 9999, ppid: 1, command: 'unrelated' },
+    ];
+    expect(buildSubtree(entries, 1000).map((n) => [n.pid, n.depth])).toEqual([
+      [1000, 0],
+      [2000, 1],
+      [2001, 2],
+    ]);
+  });
+
+  it('buildSubtree returns [] for an absent / invalid pane_pid (vs null snapshot)', () => {
+    const entries = [{ pid: 1000, ppid: 1, command: '-zsh' }];
+    expect(buildSubtree(entries, 4242)).toEqual([]);
+    expect(buildSubtree(entries, null)).toEqual([]);
+    expect(buildSubtree(entries, 0)).toEqual([]);
+  });
+
+  it('makeProcessSnapshot issues ONE fixed read-only `ps` argv with a per-call timeout', async () => {
+    const { spawn, calls } = makeFakeSpawn(() => ({ stdout: '1001 1 node /x/cli.js\n' }));
+    const entries = await makeProcessSnapshot(spawn, 1234, 'darwin')();
+    expect(entries).toEqual([{ pid: 1001, ppid: 1, command: 'node /x/cli.js' }]);
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toEqual({
-      file: 'ps',
-      args: ['-o', 'command=', '-p', '4242'],
-      timeoutMs: 1234,
-    });
+    expect(calls[0]).toEqual({ file: 'ps', args: ['-axo', 'pid=,ppid=,command='], timeoutMs: 1234 });
   });
 
-  it('returns RAW cmdline (collector applies redact, not introspect)', async () => {
+  it('selects the Linux argv projection on linux', async () => {
+    const { spawn, calls } = makeFakeSpawn(() => ({ stdout: '1 0 /sbin/init\n' }));
+    await makeProcessSnapshot(spawn, 1000, 'linux')();
+    expect(calls[0]?.args).toEqual(['-eo', 'pid=,ppid=,args=']);
+  });
+
+  it('returns RAW argv (collector applies redact, not the snapshot)', async () => {
     const { spawn } = makeFakeSpawn(() => ({
-      stdout: 'node /x/cli.js --token=ghp_PLACEHOLDER0123\n',
+      stdout: '10 1 node /x/cli.js --token=ghp_PLACEHOLDER0123\n',
     }));
-    const introspect = makeIntrospect(spawn);
-    const res = await introspect(10);
-    expect(res.cmdline).toBe('node /x/cli.js --token=ghp_PLACEHOLDER0123');
+    const entries = await makeProcessSnapshot(spawn)();
+    expect(entries?.[0]?.command).toBe('node /x/cli.js --token=ghp_PLACEHOLDER0123');
   });
 
-  it('does NOT spawn for null / non-integer / non-positive pid', async () => {
-    const { spawn, calls } = makeFakeSpawn(() => ({ stdout: 'x' }));
-    const introspect = makeIntrospect(spawn);
-    for (const bad of [null, 0, -1, 12.5, Number.NaN]) {
-      expect(await introspect(bad)).toEqual({ cmdline: null, alive: null });
-    }
-    expect(calls).toHaveLength(0);
-  });
-
-  it('alive=false on a clear "process not found" (non-zero exit)', async () => {
-    const { spawn } = makeFakeSpawn(() => ({ exitCode: 1, stdout: '' }));
-    const introspect = makeIntrospect(spawn);
-    expect(await introspect(99999)).toEqual({ cmdline: null, alive: false });
-  });
-
-  it('degrades to nulls on timeout / spawnError / empty-stdout (ambiguous)', async () => {
+  it('fail-closed → null on timeout / spawnError / non-zero exit / empty output', async () => {
     const t = makeFakeSpawn(() => ({ timedOut: true }));
-    expect(await makeIntrospect(t.spawn)(5)).toEqual({ cmdline: null, alive: null });
+    expect(await makeProcessSnapshot(t.spawn)()).toBeNull();
 
     const e = makeFakeSpawn(() => ({ spawnError: enoent('ps missing') }));
-    expect(await makeIntrospect(e.spawn)(5)).toEqual({ cmdline: null, alive: null });
+    expect(await makeProcessSnapshot(e.spawn)()).toBeNull();
+
+    const nz = makeFakeSpawn(() => ({ exitCode: 1, stdout: '' }));
+    expect(await makeProcessSnapshot(nz.spawn)()).toBeNull();
 
     const empty = makeFakeSpawn(() => ({ exitCode: 0, stdout: '   \n' }));
-    expect(await makeIntrospect(empty.spawn)(5)).toEqual({ cmdline: null, alive: null });
+    expect(await makeProcessSnapshot(empty.spawn)()).toBeNull();
   });
 
   it('never throws even if the injected spawn rejects', async () => {
     const spawn = (async () => {
       throw new Error('boom');
-    }) as unknown as Parameters<typeof makeIntrospect>[0];
-    const introspect = makeIntrospect(spawn);
-    await expect(introspect(7)).resolves.toEqual({ cmdline: null, alive: null });
+    }) as unknown as Parameters<typeof makeProcessSnapshot>[0];
+    await expect(makeProcessSnapshot(spawn)()).resolves.toBeNull();
   });
 });

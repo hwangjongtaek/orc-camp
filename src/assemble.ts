@@ -85,9 +85,26 @@ function paneToSignal(rec: PaneRawRecord): PaneSignal {
     command: rec.command,
     paneTitle: rec.paneTitle,
     cmdline: rec.cmdline,
+    processTree: rec.processTree ?? null,
     cwd: rec.cwd,
     recentOutput: rec.capture ? rec.capture.lines : [],
   };
+}
+
+/**
+ * SPEC-004 §2.1 liveness-gate input. Derived from subtree availability + detector's
+ * process-corroboration (no re-detection):
+ *   processTree === undefined → undefined (legacy/no-info → gate inert)
+ *   processTree === null      → null      (introspection unavailable → degrade)
+ *   else                      → candidate.processCorroborated (live agent? true : false)
+ */
+function deriveAgentProcessAlive(
+  rec: PaneRawRecord,
+  processCorroborated: boolean,
+): boolean | null | undefined {
+  if (rec.processTree === undefined) return undefined;
+  if (rec.processTree === null) return null;
+  return processCorroborated;
 }
 
 function buildPreview(rec: PaneRawRecord): Preview | null {
@@ -117,6 +134,7 @@ function buildOrc(
       paneDead: rec.paneDead,
       panePid: rec.panePid,
       processAlive: rec.processAlive,
+      agentProcessAlive: deriveAgentProcessAlive(rec, candidate.processCorroborated ?? false),
       lastActivityAt: rec.lastActivityAt,
     },
     scannedAt: input.scannedAt,

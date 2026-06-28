@@ -15,11 +15,21 @@ import {
   computeStatusMetrics,
   isMonotonic,
   toPaneSignal,
+  toStatusInput,
   type CalibrationRow,
 } from './harness';
-import { BANNER_COHERENCE, CORPUS_KEEP, CORPUS_SECRET, DETECT_SAMPLES, STATUS_SAMPLES } from './dataset';
+import {
+  BANNER_COHERENCE,
+  CORPUS_KEEP,
+  CORPUS_SECRET,
+  DETECT_SAMPLES,
+  STATUS_SAMPLES,
+  PROCTREE_DETECT_SAMPLES,
+  PROCTREE_STATUS_SAMPLES,
+} from './dataset';
 import { redact } from '../../src/redaction/redact';
 import { detectOrc, defaultDetectors } from '../../src/detection/detect';
+import { inferStatus } from '../../src/status/infer';
 
 function pct(n: number): string {
   return Number.isNaN(n) ? '  n/a' : `${(n * 100).toFixed(1)}%`;
@@ -86,6 +96,46 @@ describe('TC-M-FALSERED (M5) — false-redaction + secret-recall', () => {
     expect(m.secretRecall).toBe(1); // confirmed: every known secret masked
     expect(m.leaked).toEqual([]);
     expect(m.falseRedactionRate).toBeLessThanOrEqual(0.05); // PoC hypothesis τ
+  });
+});
+
+describe('TC-M-PROCTREE (SPEC-007-AC-14) — live-process-tree oracle: recall + active-FP', () => {
+  it('wrapper-chain agent (argv in descendant) is detected = RECALL fix', () => {
+    const m = computeDetectionMetrics(PROCTREE_DETECT_SAMPLES);
+    // eslint-disable-next-line no-console
+    console.log(
+      `\n[M1-PROCTREE] detection (n=${m.n})  claude-code recall=${pct(m.perType['claude-code'].recall)}`,
+    );
+    // the wrapped pane (foreground=node, agent only in a descendant) is now detected
+    const wrap = PROCTREE_DETECT_SAMPLES.find((s) => s.id === 'pt-wrap-claude')!;
+    const cand = detectOrc(toPaneSignal(wrap), defaultDetectors);
+    expect(cand?.agentType).toBe('claude-code');
+    expect(cand?.processCorroborated).toBe(true);
+    expect(cand?.matchedSignals.some((sig) => sig.signal === 'process' && sig.tier === 'A')).toBe(true);
+    expect(m.perType['claude-code'].recall).toBe(1); // wrapper chain no longer missed
+  });
+
+  it('no-live-agent pane (stale title) is NOT a confident live agent (residual LOW)', () => {
+    const stale = PROCTREE_DETECT_SAMPLES.find((s) => s.id === 'pt-stale-title')!;
+    const cand = detectOrc(toPaneSignal(stale), defaultDetectors);
+    // candidate kept (retention) but residual-capped LOW + not process-corroborated
+    expect(cand?.agentTypeConfidence).toBeLessThanOrEqual(0.49);
+    expect(cand?.processCorroborated).toBe(false);
+  });
+
+  it('no-live-agent pane is never reported active; agent-gone → terminated = active-FP fix', () => {
+    const gone = PROCTREE_STATUS_SAMPLES.find((s) => s.id === 'pt-agent-gone')!;
+    const cand = detectOrc(toPaneSignal(gone), defaultDetectors)!;
+    const inf = inferStatus(toStatusInput(gone, cand));
+    expect(inf.status).not.toBe('active');
+    expect(inf.status).toBe('terminated');
+
+    // live wrapped agent with a change still resolves to active (gate allows liveness)
+    const live = PROCTREE_STATUS_SAMPLES.find((s) => s.id === 'pt-wrap-active')!;
+    const liveCand = detectOrc(toPaneSignal(live), defaultDetectors)!;
+    const liveInf = inferStatus(toStatusInput(live, liveCand));
+    expect(liveInf.status).toBe('active');
+    expect(liveInf.statusConfidence).toBeGreaterThanOrEqual(0.8);
   });
 });
 

@@ -119,7 +119,8 @@ export interface Orc {
 
 /** SPEC-005 §2.1 — serialized form of SPEC-003 SignalMatch (matchedSignals→agentSignals). */
 export interface AgentSignal {
-  signal: 'command' | 'title' | 'cmdline' | 'output';
+  // 'process' = G-PROC (live subtree process, Tier A) — primary wrapper-chain recall signal (SPEC-005 §2.1)
+  signal: 'command' | 'process' | 'title' | 'cmdline' | 'output';
   tier: 'A' | 'B' | 'C';
   matchedType: AgentType;
   ruleId: string; // matched rule id (never raw text)
@@ -225,9 +226,28 @@ export interface PaneRawRecord {
   panePid: number | null; // #{pane_pid}
   paneDead: boolean; // #{pane_dead}
   paneActive: boolean; // #{pane_active}
-  cmdline: string | null; // ps argv (redacted); null if unavailable (D-020)
-  processAlive: boolean | null; // from ps; null if unavailable (fallback to !paneDead)
+  cmdline: string | null; // depth-0 (pane_pid) node argv (redacted); null if unavailable (D-020, SPEC-002 §2.8/§2.9)
+  processAlive: boolean | null; // pane_pid node present in snapshot; null if unavailable (fallback to !paneDead)
+  // SPEC-002 §2.9 — pane_pid process subtree (self + descendants), each node argv redacted.
+  // null = snapshot introspection unavailable/failed (fail-closed). ps lists only live processes.
+  // Optional (additive/widening): absent ≡ null ≡ degrade.
+  processTree?: ProcessNode[] | null;
   capture: SanitizedCapture | null; // null if capture-pane failed (target-isolated)
+}
+
+/** SPEC-002 §2.9 — one node of a pane's process subtree (redacted argv). */
+export interface ProcessNode {
+  pid: number;
+  ppid: number;
+  depth: number; // pane_pid = 0, direct child = 1, … (foreground-proximity ordering)
+  command: string; // node argv, redacted (SPEC-006 §2.7 chokepoint)
+}
+
+/** SPEC-002 §2.9 — raw process-table snapshot entry (pre-redaction, pre-depth). */
+export interface ProcessSnapshotEntry {
+  pid: number;
+  ppid: number;
+  command: string; // RAW argv (collector applies redact at the boundary)
 }
 
 /** Output of the inventory collection step (SPEC-002). */
@@ -253,21 +273,31 @@ export interface PaneSignal {
   command: string; // #{pane_current_command} raw (basename derived by detector, once)
   paneTitle: string | null; // redacted
   cmdline: string | null; // redacted; null if unavailable
+  // SPEC-002 §2.9 / SPEC-003 G-PROC — pane subtree argv (redacted); null/absent = unavailable → G-PROC degrades.
+  processTree?: ProcessNode[] | null;
   cwd: string; // not a type signal (passthrough)
   recentOutput: string[]; // sanitized capture tail, oldest→newest; may be empty
 }
 
 export interface SignalMatch {
-  signal: 'command' | 'title' | 'cmdline' | 'output';
-  tier: 'A' | 'B' | 'C'; // A=direct, B=wrapper+signature, C=output corroboration
+  // 'process' = G-PROC (live subtree process, Tier A; SPEC-003 §3.1/§3.1.1)
+  signal: 'command' | 'process' | 'title' | 'cmdline' | 'output';
+  tier: 'A' | 'B' | 'C'; // A=direct command / live subtree process, B=wrapper+signature, C=output corroboration
   matchedType: AgentType; // 'unknown' = generic agent marker
   ruleId: string; // matched rule id (never raw text)
+  // SPEC-003 §3.4 — subtree depth of a 'process' match (foreground-proximity, multi-agent
+  // tie-break). Internal only; NOT serialized to wire AgentSignal (SPEC-005 §3.2-7).
+  depth?: number;
 }
 
 export interface OrcCandidate {
   agentType: AgentType; // undecidable candidate → 'unknown' (R-ORC-002)
   agentTypeConfidence: number; // [0,1]
   matchedSignals: SignalMatch[]; // always >=1 (else not a candidate)
+  // SPEC-003 §2.2 — true ⟺ matchedSignals has signal ∈ {command, process} (live agent process evidence).
+  // Detector-owned; SPEC-004 liveness-gate derives agentProcessAlive from this + processTree availability.
+  // Optional (additive): absent ≡ false (legacy candidates without process info).
+  processCorroborated?: boolean;
 }
 
 export interface AgentDetector {
@@ -294,7 +324,11 @@ export interface StatusInput {
     paneId: string; // authoritative identity "%12"
     paneDead: boolean; // #{pane_dead}
     panePid: number | null; // #{pane_pid}
-    processAlive: boolean | null; // from ps (S-PID); null if unknown
+    processAlive: boolean | null; // pane_pid (≈shell) alive (S-PID); null if unknown
+    // SPEC-004 §2.1/§3.1-2b — liveness-gate input. Derived (assemble): processTree==null ? null : candidate.processCorroborated.
+    //   true = live agent process in subtree (G-CMD/G-PROC); false = subtree present but no agent (residual title/banner);
+    //   null = subtree unavailable (degrade). undefined = legacy/no-info (gate inert).
+    agentProcessAlive?: boolean | null;
     lastActivityAt: string; // ISO 8601
   };
   scannedAt: string; // ISO 8601
@@ -340,10 +374,14 @@ export type TmuxExecFn = (
 export type RedactFn = (text: string) => RedactionResult;
 export type SanitizeFn = (raw: string) => SanitizedCapture;
 
-/** Process introspection (SPEC-002 §2.8): pane_pid → ps for cmdline + alive. */
-export type IntrospectFn = (
-  pid: number | null,
-) => Promise<{ cmdline: string | null; alive: boolean | null }>;
+/**
+ * Process introspection (SPEC-002 §2.9): a SINGLE read-only `ps` process-table
+ * snapshot (raw argv per live process). The collector builds each pane's subtree
+ * in-memory by walking ppid from pane_pid (no per-pane spawn — O(1) ps spawns).
+ * Returns null on snapshot failure/timeout/unsupported platform (fail-closed →
+ * all panes' processTree = null). Supersedes the per-pid `ps -p` IntrospectFn.
+ */
+export type ProcessSnapshotFn = () => Promise<ProcessSnapshotEntry[] | null>;
 
 export type DetectOrcFn = (
   pane: PaneSignal,
@@ -355,9 +393,9 @@ export type InferStatusFn = (input: StatusInput) => StatusInference;
 /** Injected dependencies for the inventory collector (SPEC-002). */
 export interface CollectDeps {
   tmuxExec: TmuxExecFn;
-  introspect: IntrospectFn;
+  processSnapshot: ProcessSnapshotFn; // SPEC-002 §2.9 single ps snapshot (supersedes per-pid introspect)
   sanitize: SanitizeFn; // capture → SanitizedCapture (raw never escapes collector)
-  redact: RedactFn; // single-field redaction for paneTitle/cwd/cmdline
+  redact: RedactFn; // single-field redaction for paneTitle/cwd/cmdline/processTree node argv
   now: () => Date; // injectable clock (determinism)
   timeoutMs?: number; // per-command timeout (default TMUX_TIMEOUT_MS)
   captureLines?: number; // capture-pane -S -N (default CAPTURE_LINES)
