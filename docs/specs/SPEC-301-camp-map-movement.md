@@ -78,41 +78,41 @@ interface OrcMapInput {
   // agentType/agentTypeConfidence → character·sprite는 SPEC-300이 소비
 }
 
-// 맵 치수 — background manifest에서 resolve (asset 누락 시도 동일 logical 치수, §3.4)
+// 맵 치수 — zone grid(§2.2)에서 산출하는 "큰 논리 월드". background safe_area에 갇히지 않는다.
 interface MapDims {
-  logical: [number, number]; // background logical_size, 기본 [1672, 941]
-  playField: { x: number; y: number; w: number; h: number }; // safe_area, 기본 {390,520,890,330}
+  world: { w: number; h: number };  // 전체 월드 logical 치수 = zone grid 합(§2.2)
+  zone: { w: number; h: number };   // 단일 zone 고정 logical 치수(full-size sprite 수용)
+  cols: number;                     // zone grid 열 수(= min(Z, ZONE_COLS_MAX))
 }
+// 뷰포트는 이 월드를 스크롤/팬한다(§2.7). background 이미지는 비-제약 backdrop(§3.4).
 ```
 
 - `OrcMapInput`은 모두 [[SPEC-005-data-contract]]가 산출한 필드의 **읽기 전용 subset**이다. 본 spec은 어떤 필드도 추가·합성하지 않는다(INV-1).
-- `MapDims`는 manifest `backgrounds.warbase-sunset-dashboard.logical_size`(`[1672,941]`)와 `safe_area`(`[390,520,890,330]` = `[x,y,w,h]`)에서 resolve한다. **background 이미지가 없어도** logical 치수·playField는 상수로 유지된다(§3.4) → asset 유무와 무관하게 zone/station 좌표가 동일하다.
+- `MapDims`는 **zone 수와 고정 ZONE 치수(§2.2)에서 산출**하며 background 이미지 치수에 의존하지 않는다(원본-크기 sprite를 위해 placement를 background에서 분리 — F2 재결정). background/terrain이 없어도 zone/station/world 좌표는 상수로 유지된다(§3.4) → asset 유무와 무관하게 배치가 동일하다.
 
-**맵 스프라이트 스케일 `mapSpriteScale`(확정 메커니즘, 값은 가설)**:
+**맵 스프라이트 스케일 `mapSpriteScale`(확정 메커니즘, 값 가설) — 원본 크기 우선**:
 
-- native sprite frame(232/228px)은 play-field(890×330 logical)에 비해 과대하므로(한 zone에 다수 sprite 불가) **맵 레벨 균일 스케일** `mapSpriteScale < 1`을 도입한다. 이는 [[SPEC-300-asset-rendering]] §2.2의 per-character render `scale`(현재 1)과 **별개의 맵 배치용 스케일**이다.
-- logical sprite box = `frame_size × mapSpriteScale`, scaled anchor = `anchor × mapSpriteScale`. **asset과 placeholder 박스에 동일하게 적용**한다(toggle parity 보존 — [[SPEC-202-design-accessibility]] AC-17, [[SPEC-300-asset-rendering]] §3.6). 균일 스케일이므로 frame_size 종횡비는 보존된다.
-- `mapSpriteScale` 가설 초기값 `0.20`(232px → on-field footprint ≈ 46px), 범위 가설 `[0.15, 0.30]`. station 앵커·ring 간격(§2.4)·zone 분할(§2.2)은 이 **scaled footprint**가 들어맞는 좌표계에서 동작한다(§4 AC-14로 feasibility 검증).
-- **`REF_FRAME_MAX`(확정 메커니즘, 값 가설 `232`)**: ring/stack 간격(§2.4-3/§2.4-5)의 scaled footprint는 character별 `frame_size`(232 vs 228)가 아니라 **layout 상수 `REF_FRAME_MAX`** 기준(`REF_FRAME_MAX * mapSpriteScale`)으로 정의한다. 이는 같은 `(windowIndex, status, paneId)` 입력의 slot 좌표가 **`agentType`(=character frame_size)에 의존하지 않도록** 보장하기 위함이다(INV-1·§2.5 순수성: 위치는 `windowIndex`/`status`/`paneId`의 함수이며 character 종류와 무관). 즉 spacing은 character-independent 상수로 고정하고, 개별 sprite 박스만 자기 `frame_size × mapSpriteScale`로 그린다.
-- **불변식 보존**: scaled box는 fixed-aspect 컨테이너 안 logical 좌표로 배치되므로 zero layout shift(§3.2)와 frame_size 종횡비 고정은 그대로 유지된다.
+- orc sprite는 **원본 크기에 가깝게** 표시한다(R-UI-008 "공간 표현"의 가독성 요구). native frame(232/228px)을 거의 그대로 쓰도록 `mapSpriteScale` 가설 초기값 **`0.9`**(232px → ≈209px footprint), 범위 가설 `[0.7, 1.0]`. 이는 [[SPEC-300-asset-rendering]] §2.2 per-character render `scale`(현재 1)과 별개의 맵 배치 스케일이며, asset·placeholder 박스에 동일 적용(toggle parity — [[SPEC-202-design-accessibility]] AC-17·[[SPEC-300-asset-rendering]] §3.6), 종횡비 보존.
+- **핵심 구조 변경(F2 재결정)**: 더 이상 sprite를 background safe_area(890×330)에 맞춰 축소(구 `0.20`)하지 않는다. 대신 **placement 좌표계를 background에서 분리**해, full-size sprite가 들어맞는 **큰 논리 월드**(§2.2 고정-크기 zone grid)를 만들고 **뷰포트가 그 월드 위를 스크롤/팬**한다(§2.7). 즉 sprite 크기는 background 치수와 **무관**하다. 작은 camp은 월드가 뷰포트에 다 들어오고, orc/​window가 많은 camp만 스크롤로 탐색한다.
+- **`REF_FRAME_MAX`(확정 메커니즘, 값 가설 `232`)**: ring/stack 간격(§2.4-3/§2.4-5)의 scaled footprint는 character별 `frame_size`(232 vs 228)가 아니라 **layout 상수 `REF_FRAME_MAX`** 기준(`REF_FRAME_MAX * mapSpriteScale`)으로 정의한다(같은 `(windowIndex, status, paneId)` slot 좌표가 `agentType`에 의존하지 않도록 — INV-1·§2.5). 개별 sprite 박스만 자기 `frame_size × mapSpriteScale`로 그린다.
+- **불변식 보존**: sprite box는 월드 logical 좌표에 절대 배치되므로 zero layout shift(§3.2)·종횡비 고정 유지(스크롤·팬은 layout shift가 아니다; 데이터 refresh가 scroll 위치를 바꾸지 않는다 — §3.2).
 
 ### 2.2 zone = window (분할 계약)
 
-play-field(`MapDims.playField`)를 `windowIndex`별로 **하나의 zone**으로 분할한다([[SPEC-201-dashboard-screens]] §2.3 "window=lane" 의미를 공간으로 보존).
+각 `windowIndex`를 **고정 logical 치수의 zone 하나**로 만들고, zone들을 grid로 이어붙여 **큰 논리 월드**를 구성한다([[SPEC-201-dashboard-screens]] §2.3 "window=lane" 의미를 공간으로 보존). 뷰포트는 이 월드를 **스크롤/팬**한다(§2.7). 이는 구 모델의 "play-field 안에 zone을 욱여넣어 sprite를 축소"를 대체한다(F2 재결정 — 원본 크기 sprite 우선).
 
 **분할 규칙(확정 구조, 상수는 가설)**:
 
 1. `Z` = camp 내 distinct `windowIndex` 수(≥1). `windows` = `windowIndex` 오름차순 distinct 배열.
-2. zone은 `cols × rows` grid로 배치한다: `cols = min(Z, ZONE_COLS_MAX)`, `rows = ceil(Z / cols)`. `ZONE_COLS_MAX`는 가설(초기 `4`).
-3. zone은 `windows` 오름차순으로 **row-major**(좌→우, 상→하) 배치한다. `zoneIndexOf(windowIndex)` = `windows`에서 그 값의 rank(0-based).
-4. cell 치수: `cw = (playField.w - (cols-1)*ZONE_GUTTER) / cols`, `ch = (playField.h - (rows-1)*ZONE_GUTTER) / rows`. `ZONE_GUTTER` 가설(초기 `16` logical px).
-5. grid 위치 `(c,r)`: `c = zoneIndex mod cols`, `r = floor(zoneIndex / cols)`.
-   `zoneRect = { x: playField.x + c*(cw+ZONE_GUTTER), y: playField.y + r*(ch+ZONE_GUTTER), w: cw, h: ch }`.
-6. **zone header**: 각 zone 상단-중앙에 `command-tent` + `banner-pole`(manifest `objects/props`) prop과 plain-text label **"window {windowIndex}"**를 둔다. header는 ground layer(낮은 z)로 sprite/label을 가리지 않는다.
+2. **zone 치수는 고정**: `ZONE_W × ZONE_H`(가설 `ZONE_W=1100`, `ZONE_H=820` logical px) — §2.1 full-size sprite(≈209px) 기준 7 station + fan-out을 비-중첩 수용하도록 산정한 값이며 동시에 `MIN_ZONE` 하한이다. zone은 `cols × rows` grid: `cols = min(Z, ZONE_COLS_MAX)`(가설 `ZONE_COLS_MAX=4`), `rows = ceil(Z / cols)`.
+3. zone은 `windows` 오름차순 **row-major**(좌→우, 상→하) 배치. `zoneIndexOf(windowIndex)` = `windows` rank(0-based). grid 위치 `c = zoneIndex mod cols`, `r = floor(zoneIndex / cols)`.
+4. `zoneRect = { x: c*(ZONE_W+ZONE_GUTTER), y: r*(ZONE_H+ZONE_GUTTER), w: ZONE_W, h: ZONE_H }`. `ZONE_GUTTER` 가설 `48` logical px.
+5. **월드 치수**: `world = { w: cols*ZONE_W + (cols-1)*ZONE_GUTTER, h: rows*ZONE_H + (rows-1)*ZONE_GUTTER }`. 월드는 보통 뷰포트보다 크며 뷰포트가 그 위를 스크롤/팬한다(§2.7).
+6. **zone header**: 각 zone 상단-중앙에 `command-tent` + `banner-pole`(manifest `objects/props`) prop과 plain-text label **"window {windowIndex}"**. header는 ground layer(낮은 z)로 sprite/label을 가리지 않는다.
 
-- `zoneRect`는 `(windowIndex, windows, mapDims)`의 결정적 함수다(같은 window 집합·치수 → 같은 rect).
-- **inner rect**(station 배치 영역) = `zoneRect`를 `ZONE_PAD`(가설 `24px`)로 inset하고 상단 `ZONE_HEADER_H`(가설 `40px`)를 header에 양보한 사각형.
-- **최소 zone 보장·스크롤 commitment(확정, F10)**: zone이 7 station + 최소 fan-out을 담으려면 inner rect가 degenerate하면 안 된다. 따라서 `MIN_ZONE = { w: MIN_ZONE_W, h: MIN_ZONE_H }`(가설 `MIN_ZONE_W=260`, `MIN_ZONE_H=200` logical px, §2.1 `mapSpriteScale` 기준 7 station+1 ring 수용치)를 **하한으로 강제**한다. window가 많아 `cw < MIN_ZONE_W` 또는 `ch < MIN_ZONE_H`가 되면(특히 `rows ≥ 4`), play-field를 `cols` 폭에 맞춘 **세로 스크롤 캔버스**로 전환한다(zone은 `MIN_ZONE` 크기를 유지하고 play-field의 logical 높이가 zone grid에 맞춰 늘어남). 가로는 `cols ≤ ZONE_COLS_MAX`로 고정해 가로 스크롤을 피한다. 이로써 station 배치가 다-window camp에서 깨지지 않는다(§4 AC-14). 스크롤 컨테이너도 fixed-aspect 변환·zero layout shift(§3.2)를 유지한다.
+- `zoneRect`·`world`는 `(windows, 상수)`의 결정적 함수다(같은 window 집합 → 같은 좌표).
+- **inner rect**(station 배치 영역) = `zoneRect`를 `ZONE_PAD`(가설 `48px`)로 inset하고 상단 `ZONE_HEADER_H`(가설 `64px`)를 header에 양보한 사각형.
+- **degenerate 없음·스크롤이 normal 모델(확정, F10 일반화)**: zone은 **항상 고정 `ZONE_W×ZONE_H`(=MIN_ZONE)**이므로 window 수와 무관하게 inner rect가 절대 degenerate하지 않는다. window/orc가 많으면 **월드가 커지고 뷰포트가 스크롤**로 탐색한다(가로는 `cols ≤ ZONE_COLS_MAX`로 묶어 주로 세로 스크롤; 구 "다-window 세로 스크롤 fallback"이 이제 **상시 normal 모델**). 스크롤·팬은 layout shift가 아니며 데이터 refresh가 scroll 위치를 바꾸지 않는다(§3.2).
 
 ### 2.3 station = status (앵커 매핑 계약)
 
@@ -143,7 +143,7 @@ play-field(`MapDims.playField`)를 `windowIndex`별로 **하나의 zone**으로 
 
 1. **slotRank**: 동일 `(zoneIndex, status)` orc를 `paneId` **숫자 오름차순**(`%N`의 `N` 파싱, tie-break 전체 문자열)으로 정렬한 rank(0-based). `paneId`가 안정하므로 slotRank는 tmuxTarget/window 표시값 reindex에 **불변**이다(INV-2).
 2. **ring 배치**(비-terminated): `slotRank=0`은 station 앵커 `S`에 놓는다. `slotRank≥1`은 동심 ring으로 펼친다. ring `k`(≥1) 용량 `cap(k) = RING_BASE * k`(가설 `RING_BASE=6`). 누적 용량으로 slotRank → `(ring k, 내부 index m)` 결정.
-3. **반경/각도**: `radius(k) = min(k * RING_STEP, R_MAX)`. **`RING_STEP`은 scaled sprite footprint 기준으로 정의한다**: `RING_STEP = RING_CLEARANCE * (REF_FRAME_MAX * mapSpriteScale)`(가설 `RING_CLEARANCE=1.15`; `REF_FRAME_MAX`는 §2.1의 character-independent 상수 — slot 좌표가 `agentType`에 의존하지 않도록) → ring이 §2.1 scaled sprite를 비-중첩으로 둘러싼다(890×330에 cramped되지 않음, §4 AC-14). `R_MAX` = inner rect로 클램프되는 상한. 각도 `θ = θ0 + (m / cap(k)) * 2π`, `θ0 = -π/2`(상단 시작) + ring별 half-step offset(방사 정렬 방지). `slotOffset = (radius*cosθ, radius*sinθ)`.
+3. **반경/각도**: `radius(k) = min(k * RING_STEP, R_MAX)`. **`RING_STEP`은 scaled sprite footprint 기준으로 정의한다**: `RING_STEP = RING_CLEARANCE * (REF_FRAME_MAX * mapSpriteScale)`(가설 `RING_CLEARANCE=1.15`; `REF_FRAME_MAX`는 §2.1의 character-independent 상수 — slot 좌표가 `agentType`에 의존하지 않도록) → ring이 §2.1 full-size scaled sprite를 비-중첩으로 둘러싼다(고정 zone inner rect 안, §4 AC-14). `R_MAX` = inner rect로 클램프되는 상한. 각도 `θ = θ0 + (m / cap(k)) * 2π`, `θ0 = -π/2`(상단 시작) + ring별 half-step offset(방사 정렬 방지). `slotOffset = (radius*cosθ, radius*sinθ)`.
 4. **overflow(확정 동작, 임계 가설)**: `SLOT_SOFT_MAX`(가설 `12`/station) 초과 시 ring을 계속 늘리되 `radius`가 `R_MAX`에 닿으면 외곽 ring에 **각도 밀집(controlled overlap)**으로 쌓고 `paneId` 오름차순 back-to-front로 그린다. **orc를 숨기지 않는다**(read-only 관측성: 모든 orc 표시). sprite를 frame_size 종횡비 미만으로 비-균일 축소하지 않는다(layout 불변, §2.7; 균일 스케일은 §2.1 `mapSpriteScale`만).
 5. **`terminated` 1-D edge stack(확정, F9)**: `terminated` orc는 ring이 아니라 **zone 가장자리(기본 우측 edge)를 따라 1차원으로 stack**한다. `slotRank`(paneId asc) 순으로 edge 위 시작점에서 `STACK_PITCH = STACK_CLEARANCE * (REF_FRAME_MAX * mapSpriteScale)`(가설 `STACK_CLEARANCE=1.05`; §2.1 character-independent 상수) 간격으로 배치하며, edge 길이를 넘으면 안쪽으로 한 칸 들여 다음 줄로 이어간다(corner를 ring으로 넘치게 하지 않음). 정적 배치이므로 roaming하지 않는다(§3.1-5).
 
@@ -187,7 +187,7 @@ function targetPosition(orc: OrcMapInput, ctx: CampLayoutContext, dims: MapDims)
 
 - **매체(확정): DOM 기본 / canvas P2 escape hatch**. 맵은 **DOM 절대 위치 sprite**를 background 위에 합성하는 것을 기본으로 한다. 성능 예산(§3.3)을 규모에서 못 맞추면 canvas/WebGL 렌더 레이어를 **P2 대체 경로**로 둔다(동일 `SpriteRenderState`([[SPEC-300-asset-rendering]] §2.4) + §2.5 position 계약 뒤에서 교체, 단 keyboard/selection/a11y는 DOM overlay로 보존). 이는 **[[SPEC-201-dashboard-screens]] Q4(DOM vs canvas scene)**를 **DOM=기본, canvas=P2**로 해소한다([[SPEC-300-asset-rendering]] Q4는 roaming 진입 질문으로 §3.1에서 별도 해소됨 — 혼동 금지).
 - **scene 배치 supersede(확정, F3)**: camp detail **scene 배치**(좌표·정렬)는 본 spec(§2.2~2.5)이 소유하며, **[[SPEC-201-dashboard-screens]] SPEC-201-AC-03의 "paneIndex 오름차순 lane slot 배치" 진술을 scene 컨텍스트에서 supersede**한다. SPEC-201의 `paneIndex` 오름차순 정렬은 list/table 등 비-scene 표시에 한정되도록 재범위화됐다(SPEC-201 §2.3·AC-03 개정). window grouping·selection·비-orc pane·layout 안정성은 SPEC-201이 계속 소유한다.
-- **fixed-aspect 컨테이너(확정)**: 맵은 background와 같은 16:9 logical 좌표계(`MapDims.logical`, 기본 `1672×941`)를 갖는 **고정 종횡비 컨테이너**다. sprite·station·label은 logical 좌표로 배치 후 컨테이너 스케일로 함께 변환된다 → 뷰포트 리사이즈가 sprite의 상대 위치를 바꾸지 않는다(**zero layout shift**, §3.2).
+- **스크롤/팬 뷰포트 + 큰 논리 월드(확정 — 원본-크기 sprite를 위한 구조)**: 맵은 화면상 고정 크기 **뷰포트**(panel)가 `MapDims.world`(§2.2 zone grid 합) logical 좌표계의 **큰 월드**를 `overflow: auto`(또는 pan transform)로 **스크롤/팬**하는 구조다. world 내부의 sprite·station·label·terrain은 world logical 좌표에 절대 배치되고, world는 **고정 base 스케일**(예: 1 logical px = 1 css px, 또는 가독 가능한 modest fit)로 렌더된다 → sprite는 `frame_size × mapSpriteScale`(≈원본)로 크게 보인다. 작은 camp은 월드가 뷰포트에 다 들어와 스크롤이 없고, 큰 camp만 스크롤된다. world 레이아웃은 안정적이라 sprite/status/roaming/hover/select 변화·데이터 refresh가 **scroll 위치를 바꾸지 않고 인접 reflow를 만들지 않는다**(zero layout shift, §3.2). 뷰포트 리사이즈는 보이는 영역만 바꾸고 world 내 상대 위치는 불변이다.
 - **sprite box(확정)**: 각 sprite는 해당 character의 manifest `frame_size`(232/228 등)에 **§2.1 `mapSpriteScale`을 곱한** logical box(= `frame_size × mapSpriteScale`, 종횡비 보존)이며, scaled anchor(`anchor × mapSpriteScale`)가 rendered ground 위치에 정렬된다. `mapSpriteScale`은 asset·placeholder에 동일 적용된다(§3.2, AC-08). `image-rendering: pixelated`.
 - **z 레이어(확정, back→front)**: background → terrain/ground → zone header + station prop → terminated edge sprite → active sprite(ground y, 동률 시 `paneId` asc 정렬) → status overlay icon → status label + raw target label → selection/hover marker(`ui/selection-markers`) → activity speech bubble.
 - **selection(참조 SPEC-201/200)**: sprite click / `Enter` / `Space` → `?orc=<orcId>` 설정해 inspector를 연다. selection 키는 `orcId`(reindex 불변, INV-2). control 진입점은 inspector(SPEC-201) → flow는 [[SPEC-400-control-actions]].
@@ -249,7 +249,7 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
 
 | 누락 대상 | 대체(확정) |
 | --- | --- |
-| background 이미지 | terrain tile(`orc-camp-terrain-square-topdown.moss-ground`) 타일링, 그것도 없으면 CSS gradient ground. logical 치수·playField는 상수 유지 → zone/station 좌표 불변 |
+| background 이미지 | **world 크기로** terrain tile(`orc-camp-terrain-square-topdown.moss-ground`) 타일링(ground), 없으면 CSS gradient ground. background 이미지는 **비-제약 backdrop**이며 world/zone/station 좌표(상수)에 영향 없음 → 배치 불변 |
 | station prop | 동일 station 앵커에 **CSS marker**(작은 box + station/status glyph + label) → 위치=상태 정보 보존 |
 | zone header prop | CSS label "window {windowIndex}"만 렌더 |
 | sprite | [[SPEC-300-asset-rendering]] L1/L2 placeholder(box = `frame_size × mapSpriteScale`, asset과 동일 스케일, 위치·interaction 불변) |
@@ -269,7 +269,7 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
 - **SPEC-301-AC-01** (R-UI-003, R-UI-008) — zone partition 결정성
   - Given distinct `windowIndex` 집합과 `MapDims`가 주어진 camp fixture에서
   - When 맵이 zone을 산출하면
-  - Then zone 수 = distinct `windowIndex` 수이고, 각 zone은 `windowIndex` 오름차순 row-major로 `cols×rows` grid에 배치되며, 모든 `zoneRect`가 `playField` 안에 있고, 같은 window 집합·치수에 대해 동일 `zoneRect`가 재현된다(§2.2).
+  - Then zone 수 = distinct `windowIndex` 수이고, 각 zone은 `windowIndex` 오름차순 row-major로 `cols×rows` grid에 배치되며, 모든 `zoneRect`가 `world`(= zone grid 합, §2.2) 안에 있고, 같은 window 집합에 대해 동일 `zoneRect`/`world`가 재현된다(§2.2).
 
 - **SPEC-301-AC-02** (R-UI-003, [[SPEC-202-design-accessibility]] R4 정합) — station↔status 매핑·terminated edge·label 비가림
   - Given 7 `OrcStatus` 각각의 orc가 한 zone에 있는 fixture에서
@@ -332,9 +332,9 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
   - Then (a) 모든 sprite의 frame 진행·보간이 **하나의 공유 시간원**(단일 `requestAnimationFrame` 루프)에서 파생되고 per-sprite 타이머/RAF(`setInterval` 등)가 **0건**이며, (b) frame index = `floor((t − tEnter)*fps) mod frames`([[SPEC-300-asset-rendering]] `fps`/`frames`)로 **state-entry `tEnter`에 anchor**되어, `idle→active` 전이에서 `active`가 **frame 0부터** 시작하고(`tEnter` 갱신) 이어지는 동일 `active` snapshot에서는 frame 0으로 강제 리셋하지 않는다(위상 보존). 즉 단일 clock이 [[SPEC-300-asset-rendering]] §3.3-2를 **위반하지 않는다**.
 
 - **SPEC-301-AC-14** (R-UI-003, R-UI-008, R-UI-006) — geometry feasibility·uniform map scale parity
-  - Given native `frame_size`(232/228) sprite와 play-field(890×330 logical), 그리고 한 zone에 동일 status orc 다수 + 다-window(`rows≥4`) camp fixture에서
-  - When 맵이 §2.1 `mapSpriteScale`·§2.2 zone·§2.4 ring을 산출하면
-  - Then (a) scaled sprite box(`frame_size × mapSpriteScale`)가 자신의 zone inner rect 안에 들어가고 ring 간격 `RING_STEP`이 scaled footprint 기준이라 인접 ring sprite가 비-중첩이며(890×330에 cramped되지 않음), (b) inner rect는 `MIN_ZONE` 하한을 만족하거나(다-window는 §2.2 스크롤 전환) degenerate하지 않고, (c) `mapSpriteScale`이 **asset과 placeholder 박스에 동일하게 적용**되어 toggle 시 box 크기·layout이 변하지 않으며(AC-08·[[SPEC-202-design-accessibility]] AC-17 동치), frame_size 종횡비가 보존된다.
+  - Given **원본 크기**에 가까운 sprite(`frame_size × mapSpriteScale`, `mapSpriteScale≈0.9` → ≈209px), 고정 `ZONE_W×ZONE_H` zone, 한 zone에 동일 status orc 다수 + 다-window camp fixture에서
+  - When 맵이 §2.1 `mapSpriteScale`·§2.2 고정 zone/world·§2.4 ring을 산출하면
+  - Then (a) full-size scaled sprite box가 자신의 zone inner rect 안에 들어가고 ring 간격 `RING_STEP`(scaled footprint 기준)이라 인접 ring sprite가 비-중첩이며, (b) zone은 **항상 고정 `ZONE_W×ZONE_H`(=MIN_ZONE)**라 window 수와 무관하게 degenerate하지 않고 window/orc가 많으면 **world가 커져 뷰포트가 스크롤**하며(§2.2/§2.7), (c) `mapSpriteScale`이 **asset과 placeholder 박스에 동일하게 적용**되어 toggle 시 box 크기·layout이 변하지 않으며(AC-08·[[SPEC-202-design-accessibility]] AC-17 동치), frame_size 종횡비가 보존된다.
 
 ## 5. Traceability
 
@@ -374,7 +374,7 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
 ### Open Questions (검토 필요)
 
 - **Q1 — station 앵커 정규 좌표·zone grid 상수 튜닝**: §2.3 앵커 `(nx,ny)`와 §2.2 `ZONE_COLS_MAX`/`ZONE_GUTTER`/`ZONE_PAD`/`ZONE_HEADER_H`는 시각 가설이다. 7 station 비가림·label 가독성·zone 가독 밀도로 prototype 보정 필요. 구조 규칙(서로 다른 앵커·terminated edge·label 비가림)은 확정.
-- **Q2 — slot ring 상수·overflow 임계(메커니즘 확정, 값만 가설)**: feasibility 메커니즘은 F2/F10으로 **확정**됐다 — 균일 `mapSpriteScale`(§2.1), scaled-footprint 기준 `RING_STEP`(§2.4-3), `MIN_ZONE` 하한 + 다-window 세로 스크롤(§2.2). 남은 것은 **튜닝 값**(`mapSpriteScale`/`RING_BASE`/`RING_CLEARANCE`/`R_MAX`/`SLOT_SOFT_MAX`/`MIN_ZONE_*`)과 한 station에 동일 status orc가 매우 많을 때(예: 한 window 50 active pane) 가독성 vs "모두 표시(read-only)" trade-off의 측정 보정뿐이다.
+- **Q2 — slot ring 상수·overflow 임계(메커니즘 확정, 값만 가설)**: feasibility는 **큰 논리 월드 + 스크롤/팬 뷰포트 + 원본 크기 sprite(`mapSpriteScale≈0.9`)**로 재결정됐다(F2 재결정, §2.1/§2.2/§2.7) — 고정 `ZONE_W×ZONE_H` zone이 7 station + fan-out을 full-size로 비-중첩 수용하고, world = zone grid, 뷰포트가 스크롤. 남은 것은 **튜닝 값**(`mapSpriteScale`/`ZONE_W`/`ZONE_H`/`ZONE_GUTTER`/`RING_BASE`/`RING_CLEARANCE`/`R_MAX`/`SLOT_SOFT_MAX`)과 한 station에 동일 status orc가 매우 많을 때(예: 한 window 50 active pane) 가독성 vs "모두 표시(read-only)" trade-off, 그리고 base 렌더 스케일/팬 UX의 측정 보정뿐이다.
 - **Q3 — roaming 보간 파라미터**: §3.1-6 `ROAM_SPEED`/`ROAM_MIN_MS`/`ROAM_MAX_MS`/easing, §3.1-1 `ε`, 최초 등장 spawn 방식(snap vs walk-in), ambient wander 활성화/`WANDER_R`(§3.1-8)는 가설·선택. reduced-motion에서는 모두 비활성(확정).
 - **Q4 — DOM↔canvas 전환 임계**: §2.7 canvas P2 escape hatch로 전환할 정확한 성능 임계(§3.3 예산 미달 시점)와 canvas 경로의 a11y/selection DOM overlay 설계는 [[SPEC-200-frontend-architecture]]·[[SPEC-007-test-validation]] FE 측정 계층(forward)과 함께 확정. MVP는 DOM.
 - **Q5 — overlay/bubble anchor 좌표 규약**: status overlay(64×64)·speech bubble의 sprite anchor 기준 정확 offset은 [[SPEC-300-asset-rendering]] Q1(overlay anchor)과 공동 확정 필요. 본 spec은 z-순서·비가림(§2.3-1, §2.6)까지 고정.
