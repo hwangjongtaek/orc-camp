@@ -2,6 +2,8 @@
 
 이 문서는 Orc Camp UI를 생성하거나 수정하는 agent가 따라야 하는 디자인 시스템 계약이다.
 
+> **두 DESIGN 문서의 역할(확정)**: 본 문서(`docs/design/DESIGN.md`)는 **prose 디자인 시스템 계약**(브랜드·원칙·voice·anti-pattern)으로 spec이 `[[DESIGN]]`로 참조하는 SSOT다. repo 루트 [`/DESIGN.md`](../../DESIGN.md)는 동일 디자인을 **google-labs `design.md` 포맷의 machine-readable 토큰+컴포넌트**로 표현한 파생 문서(UI 생성 agent용)다. 토큰 **값**(color/spacing/typography)은 양쪽이 일치하며, 실제 구현 값의 SSOT는 `web/src/styles/tokens.css`다(SPEC-202 §2.1: 변수 이름·역할은 SPEC-202, 값은 DESIGN). 값 변경 시 세 곳(tokens.css ↔ 두 DESIGN)을 함께 갱신한다.
+
 ## Brand
 
 - 제품명은 **Orc Camp**로 표기한다.
