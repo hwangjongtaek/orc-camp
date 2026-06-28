@@ -57,4 +57,8 @@
     var(--oc-color-success) 0%,
     var(--oc-color-surface-base) 100%
   );
+  /* SPEC-301 §2.7 — fixed on-screen map viewport that scrolls over the world; tiled terrain. */
+  --oc-map-viewport-h: 72vh;
+  --oc-map-viewport-min-h: 460px;
+  --oc-map-tile-size: 64px;
 }

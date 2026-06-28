@@ -148,9 +148,9 @@ describe('SPEC-301-AC-08 fixed sprite box (no layout shift)', () => {
     ]);
     const { container } = renderMap(campId);
     const btn = orcButtons(container)[0]!;
-    // 232 × 0.20 = 46.4 (placeholder uses the same default frame size → same box)
-    expect(parseFloat(btn.style.width)).toBeCloseTo(46.4, 1);
-    expect(parseFloat(btn.style.height)).toBeCloseTo(46.4, 1);
+    // 232 × 0.9 = 208.8 (placeholder uses the same default frame size → same box; original-size)
+    expect(parseFloat(btn.style.width)).toBeCloseTo(208.8, 1);
+    expect(parseFloat(btn.style.height)).toBeCloseTo(208.8, 1);
     expect(btn.style.transform).toContain('translate'); // positioned by transform, not flow
   });
 });

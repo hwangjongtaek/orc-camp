@@ -20,27 +20,45 @@ export interface Rect {
   h: number;
 }
 
-/** Map dimensions resolved from the background manifest (asset-independent, §2.1). */
+/**
+ * §2.1/§2.2 — map dimensions. A camp is a large logical WORLD = grid of FIXED-size zones;
+ * a fixed on-screen viewport scrolls/pans over it (§2.7). MapDims is derived PURELY from the
+ * window COUNT + fixed zone size — never from the background image (F2 re-decision: sprite
+ * size is decoupled from the background, so orcs render near original size).
+ */
 export interface MapDims {
-  logical: [number, number];
-  playField: Rect;
+  world: { w: number; h: number }; // total world logical size = zone-grid extent (§2.2)
+  zone: { w: number; h: number }; // single FIXED zone logical size (hosts full-size sprites)
+  cols: number; // zone-grid column count (= min(Z, ZONE_COLS_MAX))
 }
 
-// §2.1 — map sprite scale (applied EQUALLY to asset + placeholder boxes).
-export const MAP_SPRITE_SCALE = 0.2;
+// §2.1 — map sprite scale (applied EQUALLY to asset + placeholder boxes). Original-size
+// first: the native frame (232/228px) renders near 1:1 → ≈209px footprint at 0.9
+// (hypothesis range [0.7, 1.0]). This replaces the old 0.20 that shrank orcs to fit the
+// background safe_area; placement is now decoupled from the background (F2).
+export const MAP_SPRITE_SCALE = 0.9;
 // Layout reference footprint: the maximum native frame edge (232) scaled. Position math
 // must NOT depend on per-character frame_size (INV-1: position is a function of
 // windowIndex/status/paneId only), so ring/stack pitch use this constant footprint.
 export const REF_FRAME_MAX = 232;
-export const SCALED_FOOTPRINT = REF_FRAME_MAX * MAP_SPRITE_SCALE; // 46.4
+export const SCALED_FOOTPRINT = REF_FRAME_MAX * MAP_SPRITE_SCALE; // 208.8
 
-// §2.2 — zone (window) partition constants.
+// §2.7 — base render scale of the world layer (1 logical px = 1 css px → sprites render
+// large). The on-screen viewport scrolls the world at this scale.
+export const BASE_SCALE = 1;
+
+// §2.2 — zone (window) partition constants. Zones are ALWAYS exactly ZONE_W × ZONE_H
+// (= MIN_ZONE). Many windows/orcs grow the WORLD (the viewport scrolls), never shrink the
+// zone — so the inner rect is never degenerate. Sized (tuned up from the 1100×820
+// hypothesis) so 7 stations + a fan-out ring of ≈209px sprites fit without overlap (AC-14).
+export const ZONE_W = 1200;
+export const ZONE_H = 900;
+export const ZONE_GUTTER = 48;
+export const ZONE_PAD = 48;
+export const ZONE_HEADER_H = 64;
 export const ZONE_COLS_MAX = 4;
-export const ZONE_GUTTER = 16;
-export const ZONE_PAD = 24;
-export const ZONE_HEADER_H = 40;
-export const MIN_ZONE_W = 260;
-export const MIN_ZONE_H = 200;
+/** Zones are always exactly this size (fixed floor AND ceiling, §2.2 F10). */
+export const MIN_ZONE = { w: ZONE_W, h: ZONE_H } as const;
 
 // §2.4 — slot (paneId) fan-out constants.
 export const RING_BASE = 6;
@@ -84,9 +102,3 @@ export const STATIONS: Record<OrcStatus, StationDef> = {
 
 // §2.2 zone header props (ground layer).
 export const ZONE_HEADER_PROPS = ['command-tent', 'banner-pole'] as const;
-
-/** Default dims when the background manifest is absent (§2.1 / §3.4 placeholder parity). */
-export const DEFAULT_MAP_DIMS: MapDims = {
-  logical: [1672, 941],
-  playField: { x: 390, y: 520, w: 890, h: 330 },
-};

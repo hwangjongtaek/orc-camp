@@ -700,38 +700,34 @@ img {
 }
 
 /* --- Camp MAP scene (SPEC-301) --- */
+/* The .oc-map panel is the FIXED on-screen viewport; it scrolls/pans over the large world
+   (§2.7). The world div is rendered at BASE_SCALE (1:1) so sprites show near original size. */
 .oc-map {
   position: relative;
   width: 100%;
-  overflow: hidden;
+  height: var(--oc-map-viewport-h);
+  min-height: var(--oc-map-viewport-min-h);
+  overflow: auto;
   background: var(--oc-color-surface-base);
   border: 1px solid var(--oc-color-border);
   border-radius: var(--oc-radius-card);
 }
-.oc-map__viewport {
-  position: absolute;
-  inset: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-.oc-map__content {
+.oc-map__world {
   position: relative;
   transform-origin: top left;
-}
-.oc-map__bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  image-rendering: pixelated;
-  z-index: var(--oc-z-map-bg);
 }
 .oc-map__ground {
   position: absolute;
   inset: 0;
   background: var(--oc-map-ground);
   z-index: var(--oc-z-map-bg);
+}
+/* world-sized tiled terrain (moss-ground); falls back to the gradient when the tile 404s */
+.oc-map__ground--tiled {
+  background-repeat: repeat;
+  background-position: top left;
+  background-size: var(--oc-map-tile-size) var(--oc-map-tile-size);
+  image-rendering: pixelated;
 }
 
 /* zone headers + station markers (ground layer, never above sprites/labels) */

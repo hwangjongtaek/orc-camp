@@ -23,7 +23,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeLayout, type OrcMapInput } from '../../src/scene/layout';
 import { RoamingController } from '../../src/scene/roaming';
-import { DEFAULT_MAP_DIMS, ROAM_MAX_MS } from '../../src/scene/stations';
+import { ROAM_MAX_MS } from '../../src/scene/stations';
 import type { OrcStatus } from '../../src/types/domain';
 
 const SESSIONS = 20;
@@ -69,27 +69,25 @@ const fmt = (n: number): string => n.toFixed(4);
 
 describe('SPEC-301 §3.3 / AC-11 roaming perf measurement (M-layer, non-gating)', () => {
   it('measures snapshot()×100 per-tick and computeLayout() cost; asserts only generous ceilings', () => {
-    const dims = DEFAULT_MAP_DIMS;
-
     // --- computeLayout cost (M iterations) ---
     const orcsA = makeOrcs(0);
     const orcsB = makeOrcs(1); // every status shifted → every target moves
     const layoutSamples: number[] = [];
-    let layoutOut = computeLayout(orcsB, dims);
+    let layoutOut = computeLayout(orcsB);
     for (let i = 0; i < LAYOUT_ITERS; i += 1) {
       const t0 = performance.now();
-      layoutOut = computeLayout(i % 2 === 0 ? orcsA : orcsB, dims);
+      layoutOut = computeLayout(i % 2 === 0 ? orcsA : orcsB);
       layoutSamples.push(performance.now() - t0);
     }
 
     // --- put all 100 orcs into a simultaneous roam ---
     const controller = new RoamingController();
-    const layoutB = computeLayout(orcsB, dims);
+    const layoutB = computeLayout(orcsB);
     const entriesA = orcsA.map((o) => ({
       id: o.id,
       paneId: o.paneId,
       status: o.status,
-      target: computeLayout(orcsA, dims).targets.get(o.id)!.target,
+      target: computeLayout(orcsA).targets.get(o.id)!.target,
     }));
     controller.sync(entriesA, 0, { reducedMotion: false }); // spawn (arrived)
     const entriesB = orcsB.map((o) => ({

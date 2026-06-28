@@ -14,11 +14,12 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useAssets } from '../../assets/AssetContext';
+import type { AssetManifest } from '../../assets/manifest';
 import { useStore } from '../../store/store';
-import { computeLayout, mapDimsFromManifest, type OrcMapInput } from '../../scene/layout';
+import { computeLayout, type OrcMapInput } from '../../scene/layout';
 import { getTime } from '../../scene/clock';
 import { RoamingController } from '../../scene/roaming';
-import { MAP_SPRITE_SCALE } from '../../scene/stations';
+import { BASE_SCALE, MAP_SPRITE_SCALE } from '../../scene/stations';
 import type { Orc } from '../../types/domain';
 import { OrcSprite } from '../sprite/OrcSprite';
 import { StationLayer } from './StationLayer';
@@ -30,6 +31,14 @@ const ARROW_PREV = new Set(['ArrowLeft', 'ArrowUp']);
 
 function toInput(o: Orc): OrcMapInput {
   return { id: o.id, paneId: o.paneId, windowIndex: o.windowIndex, status: o.status };
+}
+
+/** §3.4 — world-sized tiled terrain ground tile (moss-ground), null when absent. */
+function terrainTileSrc(manifest: AssetManifest | null, assetBase: string): string | null {
+  const ts = manifest?.tilesets?.['orc-camp-terrain-square-topdown'];
+  const file = ts?.tiles?.['moss-ground'];
+  if (!ts || !file) return null;
+  return `${assetBase.replace(/\/+$/, '')}/${ts.root}/${file}`;
 }
 
 export function CampMap({
@@ -50,8 +59,6 @@ export function CampMap({
   if (controllerRef.current === null) controllerRef.current = new RoamingController();
   const controller = controllerRef.current;
 
-  const dims = useMemo(() => mapDimsFromManifest(manifest), [manifest]);
-
   // Read the live orcs for this camp (re-derived per applied version).
   const orcs = useMemo(() => {
     const byId = useStore.getState().server.orcsById;
@@ -59,10 +66,8 @@ export function CampMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orcIds, version]);
 
-  const layout = useMemo(
-    () => computeLayout(orcs.map(toInput), dims),
-    [orcs, dims],
-  );
+  const layout = useMemo(() => computeLayout(orcs.map(toInput)), [orcs]);
+  const { world } = layout.dims;
 
   // Drive the movement controller from the deterministic targets (§3.1).
   useEffect(() => {
@@ -136,26 +141,16 @@ export function CampMap({
     else buttonRefs.current.delete(orcId);
   };
 
-  // --- fixed-aspect scaling (one scaled unit → zero layout shift) ---
-  const [logicalW, logicalH] = dims.logical;
-  const fieldBottom = layout.grid.field.y + layout.grid.field.h;
-  const contentH = Math.max(logicalH, fieldBottom + 24);
+  // §2.7 — the .oc-map panel IS the fixed on-screen viewport; the world div below is rendered
+  // at BASE_SCALE (1 logical px = 1 css px) so sprites show near original size. The viewport
+  // scrolls/pans over the large world (small camps fit, large camps scroll). World layout is
+  // stable, so data refresh/hover/select never reflow or jump the scroll position (§3.2).
+  // This ref is ALSO the IntersectionObserver root for the off-screen sprite gate (§3.3-3),
+  // so sprites scrolled out of the world are correctly frozen.
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [scale, setScale] = useState(1);
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => {
-      const w = el.clientWidth;
-      if (w > 0) setScale(w / logicalW);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [logicalW]);
 
-  const bgFile = manifest?.backgrounds?.['warbase-sunset-dashboard']?.file;
-  const bgSrc = bgFile ? `${assetBase.replace(/\/+$/, '')}/${bgFile}` : null;
-  const [bgError, setBgError] = useState(false);
+  // §3.4 — world-sized tiled terrain ground (moss-ground), else CSS gradient fallback.
+  const groundTile = terrainTileSrc(manifest, assetBase);
 
   if (orcs.length === 0) {
     return (
@@ -169,64 +164,53 @@ export function CampMap({
   }
 
   return (
-    <div className="oc-map" ref={containerRef} style={{ height: `${logicalH * scale}px` }}>
-      <div className="oc-map__viewport">
+    <div className="oc-map" ref={containerRef}>
+      <div
+        className="oc-map__world"
+        role="group"
+        aria-label="Camp map"
+        style={{ width: `${world.w * BASE_SCALE}px`, height: `${world.h * BASE_SCALE}px` }}
+      >
         <div
-          className="oc-map__content"
-          role="group"
-          aria-label="Camp map"
-          style={{
-            width: `${logicalW}px`,
-            height: `${contentH}px`,
-            transform: `scale(${scale})`,
-          }}
-        >
-          {bgSrc && !bgError ? (
-            <img
-              className="oc-map__bg"
-              src={bgSrc}
-              alt=""
-              aria-hidden="true"
-              onError={() => setBgError(true)}
-            />
-          ) : (
-            <div className="oc-map__ground" aria-hidden="true" />
-          )}
+          className={`oc-map__ground${groundTile ? ' oc-map__ground--tiled' : ''}`}
+          aria-hidden="true"
+          style={groundTile ? { backgroundImage: `url("${groundTile}")` } : undefined}
+        />
 
-          <StationLayer zones={layout.zones} manifest={manifest} assetBase={assetBase} />
+        <StationLayer zones={layout.zones} manifest={manifest} assetBase={assetBase} />
 
-          <div className="oc-map__orcs">
-            {orcs.map((o) => {
-              const t = layout.targets.get(o.id);
-              const zi = t?.zoneIndex ?? 0;
-              // One tab stop per zone: the active orc, falling back to the zone's first orc
-              // until activeByZone settles (so every zone is always reachable).
-              const active = activeByZone[zi] ?? zoneOrder.get(zi)?.[0];
-              const tabIndex = active === o.id ? 0 : -1;
-              return (
-                <OrcSprite
-                  key={o.id}
-                  orcId={o.id}
-                  agentType={o.agentType}
-                  status={o.status}
-                  statusConfidence={o.statusConfidence}
-                  tmuxTarget={o.tmuxTarget}
-                  currentWorkSummary={o.currentWorkSummary}
-                  summarySource={o.summarySource}
-                  summaryIsEstimated={o.summaryIsEstimated}
-                  target={t?.target ?? { x: 0, y: 0 }}
-                  controller={controller}
-                  mapSpriteScale={MAP_SPRITE_SCALE}
-                  selected={o.id === selectedOrcId}
-                  tabIndex={tabIndex}
-                  onSelect={onSelect}
-                  onFocusOrc={onFocusOrc}
-                  onKeyNav={onKeyNav}
-                  registerButton={registerButton}
-                />
-              );
-            })}
-          </div>
+        <div className="oc-map__orcs">
+          {orcs.map((o) => {
+            const t = layout.targets.get(o.id);
+            const zi = t?.zoneIndex ?? 0;
+            // One tab stop per zone: the active orc, falling back to the zone's first orc
+            // until activeByZone settles (so every zone is always reachable).
+            const active = activeByZone[zi] ?? zoneOrder.get(zi)?.[0];
+            const tabIndex = active === o.id ? 0 : -1;
+            return (
+              <OrcSprite
+                key={o.id}
+                orcId={o.id}
+                agentType={o.agentType}
+                status={o.status}
+                statusConfidence={o.statusConfidence}
+                tmuxTarget={o.tmuxTarget}
+                currentWorkSummary={o.currentWorkSummary}
+                summarySource={o.summarySource}
+                summaryIsEstimated={o.summaryIsEstimated}
+                target={t?.target ?? { x: 0, y: 0 }}
+                controller={controller}
+                mapSpriteScale={MAP_SPRITE_SCALE}
+                scrollRootRef={containerRef}
+                selected={o.id === selectedOrcId}
+                tabIndex={tabIndex}
+                onSelect={onSelect}
+                onFocusOrc={onFocusOrc}
+                onKeyNav={onKeyNav}
+                registerButton={registerButton}
+              />
+            );
+          })}
         </div>
       </div>
     </div>

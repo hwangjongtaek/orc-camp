@@ -11,7 +11,7 @@
  * Always-on (A7/AC-06): status label + overlay icon + raw tmuxTarget. On-demand: the
  * ActivityBubble (hover/focus/select). reduced-motion: controller snaps, resolver freezes.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useAssets } from '../../assets/AssetContext';
 import { resolveSprite, type OrcRenderInput } from '../../assets/spriteResolver';
 import { useStore } from '../../store/store';
@@ -39,6 +39,9 @@ export interface OrcSpriteProps {
   target: Vec2; // layout target (initial / fallback position)
   controller: RoamingController;
   mapSpriteScale: number;
+  /** §3.3-3 — the scroll viewport element used as the IntersectionObserver root (optional;
+   *  falls back to the browser viewport when absent, e.g. standalone tests). */
+  scrollRootRef?: RefObject<HTMLElement | null>;
   selected: boolean;
   tabIndex: number;
   onSelect: (orcId: string) => void;
@@ -60,6 +63,7 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
     target,
     controller,
     mapSpriteScale,
+    scrollRootRef,
     selected,
     tabIndex,
     onSelect,
@@ -170,13 +174,18 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
   useEffect(() => {
     const btn = buttonRef.current;
     if (!btn || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        const becameVisible = e.isIntersecting && !onScreenRef.current;
-        onScreenRef.current = e.isIntersecting;
-        if (becameVisible) applyTickRef.current(getTime());
-      }
-    });
+    // Root = the scroll viewport (§2.7) so sprites scrolled out of the WORLD (not just the
+    // browser window) are gated; null root falls back to the browser viewport.
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const becameVisible = e.isIntersecting && !onScreenRef.current;
+          onScreenRef.current = e.isIntersecting;
+          if (becameVisible) applyTickRef.current(getTime());
+        }
+      },
+      { root: scrollRootRef?.current ?? null },
+    );
     io.observe(btn);
     return () => io.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps

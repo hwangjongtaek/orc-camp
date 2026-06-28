@@ -13,6 +13,7 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { act, render } from '@testing-library/react';
+import type { RefObject } from 'react';
 import { AssetProvider } from '../src/assets/AssetContext';
 import { OrcSprite } from '../src/components/sprite/OrcSprite';
 import { RoamingController } from '../src/scene/roaming';
@@ -33,7 +34,12 @@ function setupClock(): void {
 class MockIO {
   static last: MockIO | null = null;
   el: Element | null = null;
-  constructor(private cb: IntersectionObserverCallback) {
+  options: IntersectionObserverInit | undefined;
+  constructor(
+    private cb: IntersectionObserverCallback,
+    options?: IntersectionObserverInit,
+  ) {
+    this.options = options;
     MockIO.last = this;
   }
   observe(el: Element): void {
@@ -58,7 +64,10 @@ afterEach(() => {
   (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver = ORIG_IO;
 });
 
-function renderSprite(controller: RoamingController) {
+function renderSprite(
+  controller: RoamingController,
+  scrollRootRef?: RefObject<HTMLElement | null>,
+) {
   return render(
     <AssetProvider assetBase="/pack">
       <OrcSprite
@@ -72,7 +81,8 @@ function renderSprite(controller: RoamingController) {
         summaryIsEstimated={false}
         target={{ x: 100, y: 100 }}
         controller={controller}
-        mapSpriteScale={0.2}
+        mapSpriteScale={0.9}
+        scrollRootRef={scrollRootRef}
         selected={false}
         tabIndex={0}
         onSelect={() => {}}
@@ -123,6 +133,25 @@ describe('SPEC-301 §3.3-3 off-screen static mitigation', () => {
     // Catch-up equals a normal on-screen tick at the same t (correctness / phase resume).
     act(() => pump!(4000));
     expect(btn.style.transform).toBe(tf4);
+  });
+
+  it('§2.7 wires the IntersectionObserver root to the scroll viewport when provided', () => {
+    (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver =
+      MockIO as unknown as typeof IntersectionObserver;
+    const controller = new RoamingController({ ambientWander: true });
+    controller.sync(
+      [{ id: 'pane:%1', paneId: '%1', status: 'idle', target: { x: 100, y: 100 } }],
+      0,
+      { reducedMotion: false },
+    );
+    setupClock();
+    // The scroll viewport (the .oc-map panel) is the IO root so sprites scrolled out of the
+    // WORLD (not just the browser window) are gated (§3.3-3).
+    const rootEl = document.createElement('div');
+    const scrollRootRef: RefObject<HTMLElement | null> = { current: rootEl };
+    renderSprite(controller, scrollRootRef);
+    expect(MockIO.last).not.toBeNull();
+    expect(MockIO.last!.options?.root).toBe(rootEl);
   });
 
   it('falls back to always-on-screen when IntersectionObserver is unavailable (jsdom)', () => {
