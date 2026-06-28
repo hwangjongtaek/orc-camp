@@ -266,3 +266,12 @@
 - **결정일**: 2026-06-27
 - **결정**: (a) Host-header 검증으로 DNS-rebinding을 방어한다. (b) 명시적 `--port`가 점유 중이면 silent fallback하지 않고 exit 1(비명시 기본 port만 가용 port로 fallback). (c) MVP는 single-instance lock을 두지 않는다(독립 실행 허용). (d) URL token 잔존(scrollback/history)은 `history.replaceState`로 완화한다.
 - **근거 spec**: [[SPEC-100-server-lifecycle]], [[SPEC-200-frontend-architecture]].
+
+## D-035: camp 공간 맵·movement는 client-derived이며 서버 좌표를 추가하지 않는다
+
+- **상태**: Accepted
+- **결정일**: 2026-06-28
+- **결정**: camp detail을 zone(window)=공간, station(status)=위치, slot(paneId)=fan-out으로 구성하는 공간 맵으로 한다. orc 위치는 client에서 기존 Orc 필드의 결정적 함수로 계산하고, Orc/Camp/ScanResult/snapshot/WS에 좌표(x/y/position) 필드를 추가하지 않는다([[SPEC-005-data-contract]] 데이터 계약 불변, [[08-Decisions|D-018]]). roaming은 status enum이 아니라 target 위치 변화 시 진입하는 시각 전이다.
+- **근거**: read-only·privacy·data-contract SSOT 보존, web-only 변경으로 backend 영향 0.
+- **영향**: R-UI-008/R-P1-013 신설, [[SPEC-301-camp-map-movement]] 소유(scene 배치), [[SPEC-300-asset-rendering]] §3.7 Q4 해소·[[SPEC-201-dashboard-screens]] AC-03 scene 배치 supersede.
+- **근거 spec**: [[SPEC-301-camp-map-movement]], [[SPEC-300-asset-rendering]], [[SPEC-201-dashboard-screens]], [[SPEC-005-data-contract]].

@@ -1,10 +1,10 @@
 ---
 spec: SPEC-301
 title: camp 맵·이동·roaming (orc 공간 배치·movement)
-status: draft
+status: approved
 updated: 2026-06-28
-requirements: [R-UI-003, R-UI-006, R-ORC-005, R-P1-004]
-decisions: [D-007, D-013, D-017]
+requirements: [R-UI-003, R-UI-006, R-UI-008, R-ORC-005, R-P1-004, R-P1-013]
+decisions: [D-007, D-013, D-017, D-035]
 tags:
   - specs
   - frontend
@@ -56,7 +56,7 @@ tags:
 | **Out** | 서버 좌표 필드 추가·snapshot/WS 좌표 전송 | INV-1로 **금지** |
 | **Out** | idle ambient micro-wander **활성화**(기본 off, P1/선택) | §3.1-8, 비-load-bearing |
 
-> **MVP vs P1 분리(확정)**: 정적 **맵 layout**(zone/station/slot 위치로 활동을 공간 표현)은 R-UI-003 "camp scene이 orc 위치를 드러낸다"의 공간적 실현이며, movement가 꺼져도(또는 reduced-motion에서) orc는 자신의 target position으로 **snap**해 맵이 완전히 동작한다. **`roaming` 보간·8방향 walk-cycle**은 그 위의 **P1 progressive enhancement**(R-P1-004 + 제안 R-P1-013, §6)다. 즉 reduced-motion 경로 == movement-off 경로 == snap이다.
+> **MVP vs P1 분리(확정)**: 정적 **맵 layout**(zone/station/slot 위치로 활동을 공간 표현)은 R-UI-003 "camp scene이 orc 위치를 드러낸다"의 공간적 실현이며, movement가 꺼져도(또는 reduced-motion에서) orc는 자신의 target position으로 **snap**해 맵이 완전히 동작한다. **`roaming` 보간·8방향 walk-cycle**은 그 위의 **P1 progressive enhancement**(R-P1-004 + R-P1-013, §6)다. 즉 reduced-motion 경로 == movement-off 경로 == snap이다.
 
 ## 2. Contract
 
@@ -265,7 +265,7 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
 
 > 각 AC는 고정 `OrcMapInput[]` + `MapDims` + (필요 시) `prefers-reduced-motion` fixture(Given) → 맵 layout/movement 모델 산출(When) → 좌표/전이/표시/접근성(Then)으로 검증한다. 좌표는 §2.2~2.5 규칙대로 계산한 값과 일치해야 한다. movement 보간/성능 임계는 가설이며 구조 규칙은 확정이다.
 
-- **SPEC-301-AC-01** (R-UI-003, 제안 R-UI-008) — zone partition 결정성
+- **SPEC-301-AC-01** (R-UI-003, R-UI-008) — zone partition 결정성
   - Given distinct `windowIndex` 집합과 `MapDims`가 주어진 camp fixture에서
   - When 맵이 zone을 산출하면
   - Then zone 수 = distinct `windowIndex` 수이고, 각 zone은 `windowIndex` 오름차순 row-major로 `cols×rows` grid에 배치되며, 모든 `zoneRect`가 `playField` 안에 있고, 같은 window 집합·치수에 대해 동일 `zoneRect`가 재현된다(§2.2).
@@ -280,12 +280,12 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
   - When 맵이 slot offset을 산출하면
   - Then 각 orc의 slot offset은 `paneId` 오름차순 slotRank의 결정적 함수이고, **`tmuxTarget` reindex만으로는 어떤 orc의 위치도 바뀌지 않으며**(INV-2), 같은 `paneId`는 같은 offset을 갖는다(§2.4).
 
-- **SPEC-301-AC-04** (R-P1-004, 제안 R-P1-013) — roaming 진입(status 변화)·도착 전이 (**SPEC-300 Q4**)
+- **SPEC-301-AC-04** (R-P1-004, R-P1-013) — roaming 진입(status 변화)·도착 전이 (**SPEC-300 Q4**)
   - Given 한 orc(`id`)가 `status=idle`로 도착해 있다가 `status=active`로 바뀐 fixture에서(reduced-motion 아님)
   - When 맵이 frame을 진행하면
   - Then target station이 idle(bedroll)→active(workbench)로 바뀌어 `renderedPos≠targetPos`가 되고 `animationState='roaming'`(walk-cycle)으로 `renderedPos`를 `targetPos`로 보간하며, 도착(`|Δ|≤ε`) 시 `targetPos`로 snap하고 status 애니메이션(`active`)·facing `south`로 전환한다. roaming은 status enum이 아니라 target 변화로만 진입한다(별도 신호 불요, INV-1).
 
-- **SPEC-301-AC-05** (R-P1-004, 제안 R-P1-013, [[SPEC-300-asset-rendering]] §3.2 정합) — 8방향 quantize·경계 결정성·south fallback
+- **SPEC-301-AC-05** (R-P1-004, R-P1-013, [[SPEC-300-asset-rendering]] §3.2 정합) — 8방향 quantize·경계 결정성·south fallback
   - Given roaming 중 이동 벡터(`target − rendered`)가 8방향 각 버킷의 중심값 **및 경계값(±22.5°의 배수, 예: 22.5°, 67.5°)**에 해당하는 fixture에서
   - When 맵이 direction을 산출하면
   - Then `atan2(dy,dx)`가 §3.1-2의 **half-open 구간 `[center−22.5°, center+22.5°)`**로 양자화되어 manifest `roaming.folders` 방향 이름(`east`/`south-east`/`south`/`south-west`/`west`/`north-west`/`north`/`north-east`)에 매핑되고, **경계 각도는 항상 상위 버킷으로 결정적으로 귀속**되며(동률 없음), 해당 방향 폴더가 없으면 `south`로 강등된다.
@@ -320,7 +320,7 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
   - When 맵 렌더 루프를 측정·검사하면
   - Then **(a) 비-게이트 M-layer 측정(가설)**: frame time p95 ≤ 16.7ms(degrade 허용 ≥ 50fps), long task > 50ms 없음은 **success hypothesis**이며 CI 게이트가 아니라 측정으로 보정한다([[SPEC-900-traceability-rollup]] §0 M-layer, [[SPEC-007-test-validation]] §2.1). **(b) 게이트 가능한 결정적 sub-assertion(확정)**: CLS=0(§3.2, AC-08), 단일 공유 clock·per-sprite 타이머 0건(AC-13), off-screen sprite의 static 전환 토글(§3.3-3)이 동작한다. 측정 미달 시 §3.3-3 완화(가시 영역 한정·canvas P2)로 보정하되 (b)는 항상 성립한다.
 
-- **SPEC-301-AC-12** (R-UI-003, 제안 R-UI-008, INV-1) — target position 순수성·서버 데이터 불변
+- **SPEC-301-AC-12** (R-UI-003, R-UI-008, INV-1) — target position 순수성·서버 데이터 불변
   - Given 동일 `(orc, CampLayoutContext, MapDims)` 입력을 반복 적용하고, 동일 입력의 `OrcMapInput`/snapshot/WS payload를 검사할 때
   - When `targetPosition`을 산출하면
   - Then 매 호출이 동일 좌표를 산출하고(순수·결정적), 함수가 읽는 orc 필드는 `windowIndex`/`status`/`paneId`뿐이며, `Orc`/`Camp`/`ScanResult`/snapshot/WS 어디에도 좌표(x/y/position) 필드가 **존재하지 않는다**([[SPEC-005-data-contract]] 불변).
@@ -330,7 +330,7 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
   - When 렌더 루프를 검사하면
   - Then (a) 모든 sprite의 frame 진행·보간이 **하나의 공유 시간원**(단일 `requestAnimationFrame` 루프)에서 파생되고 per-sprite 타이머/RAF(`setInterval` 등)가 **0건**이며, (b) frame index = `floor((t − tEnter)*fps) mod frames`([[SPEC-300-asset-rendering]] `fps`/`frames`)로 **state-entry `tEnter`에 anchor**되어, `idle→active` 전이에서 `active`가 **frame 0부터** 시작하고(`tEnter` 갱신) 이어지는 동일 `active` snapshot에서는 frame 0으로 강제 리셋하지 않는다(위상 보존). 즉 단일 clock이 [[SPEC-300-asset-rendering]] §3.3-2를 **위반하지 않는다**.
 
-- **SPEC-301-AC-14** (R-UI-003, 제안 R-UI-008, R-UI-006) — geometry feasibility·uniform map scale parity
+- **SPEC-301-AC-14** (R-UI-003, R-UI-008, R-UI-006) — geometry feasibility·uniform map scale parity
   - Given native `frame_size`(232/228) sprite와 play-field(890×330 logical), 그리고 한 zone에 동일 status orc 다수 + 다-window(`rows≥4`) camp fixture에서
   - When 맵이 §2.1 `mapSpriteScale`·§2.2 zone·§2.4 ring을 산출하면
   - Then (a) scaled sprite box(`frame_size × mapSpriteScale`)가 자신의 zone inner rect 안에 들어가고 ring 간격 `RING_STEP`이 scaled footprint 기준이라 인접 ring sprite가 비-중첩이며(890×330에 cramped되지 않음), (b) inner rect는 `MIN_ZONE` 하한을 만족하거나(다-window는 §2.2 스크롤 전환) degenerate하지 않고, (c) `mapSpriteScale`이 **asset과 placeholder 박스에 동일하게 적용**되어 toggle 시 box 크기·layout이 변하지 않으며(AC-08·[[SPEC-202-design-accessibility]] AC-17 동치), frame_size 종횡비가 보존된다.
@@ -343,26 +343,26 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
 | R-UI-006 | background/props/tiles/sprite 누락 시 placeholder parity(위치·status·interaction·a11y 불변, uniform `mapSpriteScale` 토글 parity, no layout shift) | SPEC-301-AC-08, AC-10, AC-14 |
 | R-ORC-005 | activity bubble에 `summarySource`/estimated 마커 + 상시 status label/confidence 동반(단정 금지) | SPEC-301-AC-06 |
 | R-P1-004 | status별 sprite animation을 공간 맵으로 확장: `roaming` walk-cycle 진입·8방향·reduced-motion·공유 clock(state-entry anchored) | SPEC-301-AC-04, AC-05, AC-07, AC-13 |
-| **R-UI-008** *(제안, §6)* | orc 위치+애니메이션으로 활동을 공간 표현, 위치는 기존 필드의 결정적 함수(서버 좌표 불추가) | SPEC-301-AC-01, AC-02, AC-03, AC-12, AC-14 |
-| **R-P1-013** *(제안, §6)* | status 변화 시 roaming으로 이동·8방향 direction(P1 movement) | SPEC-301-AC-04, AC-05 |
+| **R-UI-008** | orc 위치+애니메이션으로 활동을 공간 표현, 위치는 기존 필드의 결정적 함수(서버 좌표 불추가) | SPEC-301-AC-01, AC-02, AC-03, AC-12, AC-14 |
+| **R-P1-013** | status 변화 시 roaming으로 이동·8방향 direction(P1 movement) | SPEC-301-AC-04, AC-05 |
 | 비기능: 성능 (20/100) | 단일 공유 clock·fixed-aspect·완화 전략(가설 임계) | SPEC-301-AC-11, AC-13 |
 | 비기능: 접근성 (keyboard/reduced-motion) | zone roving-tabindex·snap (값은 [[SPEC-202-design-accessibility]]) | SPEC-301-AC-07, AC-09 |
 
-> **소유/부수 분담**: 본 spec은 R-UI-003(공간 배치)·R-P1-004(movement animation)의 **맵/이동 측면**을 소유하고, sprite 메커니즘(SPEC-300)·화면 콘텐츠/selection(SPEC-201)·접근성 수치값(SPEC-202)은 **참조**한다(이중 ownership 아님). 제안 R-UI-008/R-P1-013은 §6에서 [[02-Requirements]] 채택을 권고하는 **PROPOSED**이며 확정 전까지 R-UI-003/R-P1-004로 부수 충족된다. 전체 매트릭스 롤업은 [[SPEC-900-traceability-rollup]].
+> **소유/부수 분담**: 본 spec은 R-UI-003(공간 배치)·R-P1-004(movement animation)의 **맵/이동 측면**을 소유하고, sprite 메커니즘(SPEC-300)·화면 콘텐츠/selection(SPEC-201)·접근성 수치값(SPEC-202)은 **참조**한다(이중 ownership 아님). R-UI-008/R-P1-013은 [[08-Decisions|D-035]]로 [[02-Requirements]]에 **채택 완료**됐다(R-UI-008 = P0 spatial-activity, R-P1-013 = P1 roaming). 전체 매트릭스 롤업은 [[SPEC-900-traceability-rollup]].
 
 ## 6. Open Questions / Conflicts
 
 ### Conflicts / Upstream (조정 필요 — 본 spec은 직접 수정하지 않고 기록)
 
-- **C1 — 제안 신규 요구사항 채택(F4, 검토 필요·blueprint 편집 보류)**: [[02-Requirements]]에는 "orc 위치/이동으로 활동을 공간 표현"·"status 변화 시 roaming 이동"을 **명시한 R-\*가 없다**(R-UI-003은 "camp scene + orc character"까지, R-P1-004는 "agent별 sprite variant·상태별 animation"까지). spec-reviewer(F4)는 이를 정식 요구사항으로 승격할 것을 요청했다. **단 본 spec-author의 write scope는 `docs/specs/`로 한정**되며 청사진(`docs/product/`) 직접 편집은 권한 밖이다(coordinator 전달 승인은 user 권위가 아님). 따라서 아래 **drop-in 텍스트를 확정 제안**하고, [[02-Requirements]]·[[08-Decisions]] 반영은 orchestrator/user가 적용(또는 user가 본 agent에 명시 위임)하도록 남긴다. 채택 전까지 R-UI-003/R-P1-004로 부수 충족하며, **채택 즉시** SPEC-301 frontmatter `requirements`에 `R-UI-008, R-P1-013`을 추가하고 [[SPEC-900-traceability-rollup]] §2.4·§3.2를 갱신한다.
+- **C1 — 신규 요구사항 채택(F4) — ✅ 해소(2026-06-28)**: R-UI-008은 [[02-Requirements]] R-UI 그룹에, R-P1-013은 P1 그룹에, D-035는 [[08-Decisions]]에 **채택 완료**됐고 SPEC-301 frontmatter `requirements`/`decisions`와 [[SPEC-900-traceability-rollup]]에도 반영됐다(아래 drop-in 텍스트가 그대로 적용됨). 이하 원 제안 맥락은 기록으로 보존한다. 채택 전 맥락: [[02-Requirements]]에는 "orc 위치/이동으로 활동을 공간 표현"·"status 변화 시 roaming 이동"을 **명시한 R-\*가 없다**(R-UI-003은 "camp scene + orc character"까지, R-P1-004는 "agent별 sprite variant·상태별 animation"까지). spec-reviewer(F4)는 이를 정식 요구사항으로 승격할 것을 요청했다. **단 본 spec-author의 write scope는 `docs/specs/`로 한정**되며 청사진(`docs/product/`) 직접 편집은 권한 밖이다(coordinator 전달 승인은 user 권위가 아님). 따라서 아래 **drop-in 텍스트를 확정 제안**하고, [[02-Requirements]]·[[08-Decisions]] 반영은 orchestrator/user가 적용(또는 user가 본 agent에 명시 위임)하도록 남긴다. 채택 전까지 R-UI-003/R-P1-004로 부수 충족하며, **채택 즉시** SPEC-301 frontmatter `requirements`에 `R-UI-008, R-P1-013`을 추가하고 [[SPEC-900-traceability-rollup]] §2.4·§3.2를 갱신한다.
 
   적용 대상 파일: `docs/product/02-Requirements.md`(P0 `### P0` R-UI 그룹 끝 / P1 `### P1` 그룹 끝), `docs/product/08-Decisions.md`(말미, 현재 최신 `D-034` 다음).
 
-  - **R-UI-008 (PROPOSED, P0)** — `02-Requirements.md` R-UI 그룹에 추가:
+  - **R-UI-008 (ADOPTED, P0)** — `02-Requirements.md` R-UI 그룹에 추가:
     > `- **R-UI-008**: camp detail은 orc의 위치와 애니메이션으로 현재 활동(status)을 공간적으로 표현해야 하며, 각 orc의 위치는 기존 Orc 필드(windowIndex/status/paneId)의 결정적 함수여야 하고 새로운 server 좌표 데이터(x/y 등)를 도입하지 않는다.`
-  - **R-P1-013 (PROPOSED, P1)** — `02-Requirements.md` `### P1` 그룹에 추가:
+  - **R-P1-013 (ADOPTED, P1)** — `02-Requirements.md` `### P1` 그룹에 추가:
     > `- **R-P1-013**: status 변화 시 orc가 roaming walk-cycle 애니메이션으로 새 위치로 이동하고, 이동 방향을 8방향으로 표현한다.`
-  - **D-035 (PROPOSED)** — `08-Decisions.md` 말미에 추가:
+  - **D-035 (ADOPTED)** — `08-Decisions.md` 말미에 추가:
     > `## D-035: camp 공간 맵·movement는 client-derived이며 서버 좌표를 추가하지 않는다`
     > `- 결정: camp detail을 zone(window)=공간, station(status)=위치, slot(paneId)=fan-out으로 구성하는 공간 맵으로 한다. orc 위치는 client에서 기존 Orc 필드의 결정적 함수로 계산하고, Orc/Camp/ScanResult/snapshot/WS에 좌표 필드를 추가하지 않는다([[SPEC-005-data-contract]] 불변). roaming은 status enum이 아니라 target 위치 변화 시 진입하는 시각 전이다.`
     > `- 근거: read-only·privacy·data-contract SSOT([[08-Decisions|D-018]]) 보존, web-only 변경으로 backend 영향 0.`

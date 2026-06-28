@@ -77,6 +77,7 @@
 - **R-UI-005**: loading, empty tmux, no session, no agent detected, tmux error, disconnected, stale snapshot 상태를 구분해 표시해야 한다.
 - **R-UI-006**: PixelLab.ai asset이 없어도 placeholder pixel asset으로 동일한 layout과 interaction이 동작해야 한다.
 - **R-UI-007**: camp/orc metaphor와 별개로 raw tmux target을 항상 확인할 수 있어야 한다.
+- **R-UI-008**: camp detail은 orc의 위치와 애니메이션으로 현재 활동(status)을 공간적으로 표현해야 하며, 각 orc의 위치는 기존 Orc 필드(windowIndex/status/paneId)의 결정적 함수여야 하고 새로운 server 좌표 데이터(x/y 등)를 도입하지 않는다.
 
 #### Terminal Preview와 Privacy
 
@@ -141,6 +142,7 @@
 - **R-P1-010**: Linux + tmux compatibility를 검증하고 문서화한다.
 - **R-P1-011**: agent detector rule을 config 또는 plugin 형태로 확장할 수 있다.
 - **R-P1-012**: terminal preview를 live tail mode로 볼 수 있다.
+- **R-P1-013**: status 변화 시 orc가 roaming walk-cycle 애니메이션으로 새 위치로 이동하고, 이동 방향을 8방향으로 표현한다.
 
 ### P2: 장기 확장
 
