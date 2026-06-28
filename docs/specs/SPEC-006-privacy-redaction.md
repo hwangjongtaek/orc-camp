@@ -2,7 +2,7 @@
 spec: SPEC-006
 title: Privacy·redaction·read-only
 status: approved
-updated: 2026-06-26
+updated: 2026-06-28
 requirements: [R-PRIV-001, R-PRIV-002, R-PRIV-003, R-PRIV-004, R-PRIV-005, R-TMUX-001, R-TMUX-004, R-OBS-003]
 decisions: [D-003, D-008, D-016, D-019, D-020]
 tags:
@@ -120,12 +120,13 @@ function sanitizeCapture(raw: string): SanitizedCapture {
 | --- | --- | --- |
 | capture 콘텐츠(`recentOutput`) | **적용** | agent가 임의 텍스트 출력 → secret 가능 |
 | `paneTitle` | **적용** | 사용자/agent가 임의 설정 가능([[SPEC-003-agent-detection]] §2.1 "redacted") |
-| `cmdline`(argv) | **적용** | argv에 `--token=…` 형태 노출 가능 |
+| `cmdline`(argv, foreground) | **적용** | argv에 `--token=…` 형태 노출 가능 |
+| `processTree[].command`(subtree **각 노드** argv) | **적용(노드별 전수)** | [[SPEC-002-tmux-discovery]] §2.9 process subtree의 **모든** 노드 argv가 대상이다. foreground 한 줄만이 아니라 non-foreground 노드(wrapper/자식)의 argv에도 `--token=…`/`--password=…`이 박힐 수 있으므로 **노드마다** 같은 `redact()`를 통과시킨다(§2.7). 한 노드라도 누락하면 누출 구멍 |
 | `diagnostics.tmuxErrors[].message` | **방어적 적용** | tmux stderr만 담되, 만약 콘텐츠 단편이 섞이면 차단(아래 §2.5) |
 | `paneId`/`tmuxTarget`/`sessionName`/`windowIndex`/`paneIndex`/`command`(basename)/`lastActivityAt` | 미적용(통과) | tmux token 기반 구조 식별자. 마스킹 시 식별·표시 불능 |
 | `cwd`(절대 경로) | **적용(방어적)** | 경로는 사용자 환경의 자유 텍스트라 secret이 박힐 수 있음(예: 경로 내 token). 단일 chokepoint([[08-Decisions|D-016]]) `redact()`를 거쳐 노출하되 비-secret 경로 구성요소는 보존. Q3 해소 → AC-17 |
 
-> **단일 문자열 필드의 chokepoint**: `paneTitle`/`cmdline`/`cwd`는 multiline capture가 아니므로 line/byte cap을 포함한 `sanitizeCapture` 대신 같은 redaction 함수 `redact()`를 직접 통과한다 — **chokepoint 함수는 동일**하다([[08-Decisions|D-016]]). 즉 §2.1의 `redact()`가 capture·argv·title·path 모두의 단일 redaction 경계이며, raw 값은 이 경계 밖으로 나가지 않는다. cwd는 종전 "통과(미적용)"였으나 방어적으로 이 경계에 포함시켜 경로 내 secret 구멍을 닫는다.
+> **단일 문자열 필드의 chokepoint**: `paneTitle`/`cmdline`/`cwd` **및 `processTree`의 각 노드 `command`(argv)**는 multiline capture가 아니므로 line/byte cap을 포함한 `sanitizeCapture` 대신 같은 redaction 함수 `redact()`를 직접 통과한다 — **chokepoint 함수는 동일**하다([[08-Decisions|D-016]]). 즉 §2.1의 `redact()`가 capture·argv(foreground + subtree 전 노드)·title·path 모두의 단일 redaction 경계이며, raw 값은 이 경계 밖으로 나가지 않는다. subtree argv는 노드 수만큼 `redact()`를 **노드별로** 반복 적용한다(§2.7). cwd는 종전 "통과(미적용)"였으나 방어적으로 이 경계에 포함시켜 경로 내 secret 구멍을 닫는다.
 
 ### 2.4 preview = redacted tail 제약 (R-PRIV-001)
 
@@ -142,7 +143,9 @@ function sanitizeCapture(raw: string): SanitizedCapture {
 | 데이터 | 보유/도달 위치 | redaction | 파일 저장 | 비고 |
 | --- | --- | --- | --- | --- |
 | raw capture 버퍼(redaction 이전) | memory only, 휘발 | — | **금지** | `sanitizeCapture` 내부에만 존재, 반환 후 폐기. 어떤 출력에도 미도달 |
+| raw `ps` snapshot/argv 버퍼(redaction 이전) | memory only, 휘발 | — | **금지** | process subtree 수집 직후 버퍼([[SPEC-002-tmux-discovery]] §2.9). 각 노드 argv를 `redact()` 통과시키고 raw는 폐기. 어떤 출력에도 미도달 |
 | redacted capture 버퍼 | memory(runtime) | 적용됨 | **금지** | detection·status·preview의 단일 소스 |
+| `processTree[].command`(redacted argv, 전 노드) | memory(runtime), detection 입력 | 노드별 적용됨 | **금지(원문)** | [[SPEC-003-agent-detection]] G-PROC 입력. wire `Orc`로 직렬화하지 않음(detection-input-only, provenance는 `agentSignals.ruleId`만). raw argv 미도달 |
 | `preview`(count/flag, 선택적 redacted tail) | memory → stdout(table/`--json`) | 적용됨 | 금지(원문) | §2.4 |
 | `currentWorkSummary` | memory → stdout | redacted 기준 추출 | 금지 | [[SPEC-004-status-inference]], §3.1 |
 | `diagnostics.tmuxErrors[].message` | memory → stdout(`--json`) + debug log | tmux stderr/메타만 | 메타데이터로만 | capture 콘텐츠 **불포함**([[SPEC-002-tmux-discovery]] AC-07) |
@@ -186,13 +189,13 @@ function tmuxExec(subcommand: string | null, args: string[]): SpawnResult {
 
 ### 2.7 non-tmux process-introspection subprocess 안전 계약 ([[08-Decisions|D-019]] 정신, [[08-Decisions|D-020]])
 
-[[SPEC-002-tmux-discovery]] §2.8은 agent type 판정 Tier B와 process-alive 신호를 위해 pane foreground argv(`cmdline`)와 생존 여부를 **tmux가 아닌 별도 subprocess**(`pane_pid → ps` 또는 OS별 introspection)로 수집한다. §2.6 `tmuxExec` allowlist는 **tmux 바이너리에만** 적용되므로 이 `ps`(또는 OS 동등) subprocess는 그 allowlist **밖**이다. 그러나 read-only 보장([[08-Decisions|D-019]])이 tmux 경계에서 끝나면 안 되므로, 본 spec은 이 subprocess에 **allowlist와 동등한 fail-safe 계약**을 부과한다(수집은 SPEC-002 §2.8, 안전·redaction 강화는 본 spec 소유 — co-ownership).
+[[SPEC-002-tmux-discovery]] §2.8/§2.9는 agent type 판정(Tier B `cmdline` + **Tier A G-PROC process subtree**)과 process-alive 신호를 위해 pane foreground argv(`cmdline`)·**subtree 전 노드 argv(`processTree[].command`)**·생존 여부를 **tmux가 아닌 별도 subprocess**(§2.9 단일 `ps` process-table snapshot, 또는 OS별 introspection)로 수집한다. §2.6 `tmuxExec` allowlist는 **tmux 바이너리에만** 적용되므로 이 `ps`(또는 OS 동등) subprocess는 그 allowlist **밖**이다. 그러나 read-only 보장([[08-Decisions|D-019]])이 tmux 경계에서 끝나면 안 되므로, 본 spec은 이 subprocess에 **allowlist와 동등한 fail-safe 계약**을 부과한다(수집은 SPEC-002 §2.8/§2.9, 안전·redaction 강화는 본 spec 소유 — co-ownership).
 
 - **read-only**: `ps`(또는 동등 OS 명령)는 프로세스 메타데이터를 **조회만** 한다. 상태를 바꾸는 어떤 명령도 이 경로로 spawn하지 않는다([[08-Decisions|D-019]] read-only 불변식을 non-tmux 경계로 확장).
-- **고정 argv + shell 미사용**: `spawn('ps', ['-o', 'command=', '-p', String(pid)], { shell: false })`처럼 **고정 인자 배열**만 쓴다. `pid`는 tmux `#{pane_pid}`에서 온 값으로 **정수 검증 후** 인자로 전달하며, 셸 보간·문자열 결합으로 명령을 구성하지 않는다(§2.6 `shell:false` 정신과 동일, command/argument injection 차단).
+- **고정 argv + shell 미사용**: subtree 수집은 pane마다 `ps`를 반복하지 않고 scan당 **단일 process-table snapshot**(`spawn('ps', ['-axo', 'pid=,ppid=,command='], { shell: false })`, BSD/macOS; Linux는 `['-eo','pid=,ppid=,args=']`)을 **고정 인자 배열**로 spawn한다([[SPEC-002-tmux-discovery]] §2.9, O(1) spawn). 사용자 텍스트를 인자로 보간하지 않으며(셸 보간·문자열 결합 없음, §2.6 `shell:false` 정신과 동일), subtree는 snapshot 결과를 메모리에서 `pane_pid` 기준 ppid walk로 구성한다(추가 spawn 없음). (종전 단일 pid `ps -o command= -p <pid>`는 §2.9가 supersede한다.)
 - **per-call timeout**: tmux 호출과 동일한 per-call timeout `T`(§2.6 / [[SPEC-002-tmux-discovery]] §2.6)와 SIGTERM→SIGKILL 종료를 적용한다. read-only이므로 종료가 시스템 상태를 바꾸지 않는다.
-- **fail-closed / degradable**: pid 부재·non-zero·미지원 플랫폼·timeout이면 `cmdline`/process-alive를 `null`로 두고 그 pane에 격리한다([[SPEC-002-tmux-discovery]] §2.8). allowlist 밖 명령을 임의로 대체 실행하지 않는다.
-- **동일 redaction chokepoint**: `ps`가 돌려준 `cmdline` 원문은 capture 텍스트와 **완전히 같은 `redact()` 경계**(§2.1·§2.3, [[08-Decisions|D-016]])를 통과한 뒤에만 소비된다. 즉 [[SPEC-003-agent-detection]]의 `cmdline` 신호·preview·debug log 어디에도 **redaction 이전 argv**가 도달하지 않으며, argv의 `--token=…`/`--password=…`은 §2.2 카탈로그(RP-06/RP-08/RP-09/RP-10 등)로 마스킹된다.
+- **fail-closed / degradable**: pid 부재·non-zero·미지원 플랫폼·timeout이면 `cmdline`/process-alive를 `null`로, snapshot 자체가 실패하면 모든 pane `processTree`를 `null`로 둔다(전체 fail-closed, [[SPEC-002-tmux-discovery]] §2.9). allowlist 밖 명령을 임의로 대체 실행하지 않는다.
+- **동일 redaction chokepoint(전 노드 전수)**: `ps`가 돌려준 `cmdline`(foreground) **및 `processTree`의 모든 노드 argv**는 capture 텍스트와 **완전히 같은 `redact()` 경계**(§2.1·§2.3, [[08-Decisions|D-016]])를 통과한 뒤에만 소비된다. 단일 `cmdline` 한 줄이 아니라 **subtree 노드 N개 argv 각각**을 redaction한다. 즉 [[SPEC-003-agent-detection]]의 `cmdline`/`processTree` 신호·preview·debug log 어디에도 **redaction 이전 argv**(foreground든 non-foreground 노드든)가 도달하지 않으며, 어느 노드 argv의 `--token=…`/`--password=…`이라도 §2.2 카탈로그(RP-06/RP-08/RP-09/RP-10 등)로 마스킹된다.
 
 > tmux 경계(§2.6, [[08-Decisions|D-019]])와 process-introspection 경계(§2.7, [[08-Decisions|D-020]])는 **두 개의 read-only subprocess 진입점**이며, 둘 다 (a) 고정 argv·`shell:false`, (b) per-call timeout·강제 종료, (c) 출력 자유 텍스트의 redaction-before-use를 공유한다. allowlist 권위(tmux)와 동등 계약(non-tmux)을 분리해 명시하되, 어느 쪽도 raw 자유 텍스트를 chokepoint 밖으로 흘리지 않는다.
 
@@ -202,7 +205,7 @@ function tmuxExec(subcommand: string | null, args: string[]): SpawnResult {
 
 ### 3.1 ordering rule — redaction-before-consumption (확정, [[08-Decisions|D-016]])
 
-1. pane 콘텐츠·환경 자유 텍스트 소비자(detection `recentOutput`/`paneTitle`/`cmdline`, status `currentWorkSummary`, `cwd`, preview, table, `--json`, log)는 **오직 `sanitizeCapture`/`redact` 산출**만 본다. raw 버퍼는 sanitize 경계 밖으로 나가지 않는다.
+1. pane 콘텐츠·환경 자유 텍스트 소비자(detection `recentOutput`/`paneTitle`/`cmdline`/`processTree[].command`, status `currentWorkSummary`, `cwd`, preview, table, `--json`, log)는 **오직 `sanitizeCapture`/`redact` 산출**만 본다. raw 버퍼(capture · `ps` snapshot/argv)는 sanitize 경계 밖으로 나가지 않는다.
 2. 따라서 [[SPEC-003-agent-detection]]의 `PaneSignal`과 [[SPEC-004-status-inference]]의 summary 추출은 **redaction 적용 후** 입력을 받는다. ([[02-Requirements]] Open Question "summary를 redaction 전/후 어느 데이터로 추출하나?"를 **후(after)**로 확정 — [[14-MVP-PoC-Scope]] Current work summary 규칙과 일치.)
 3. 이 순서는 검증 가능하다(§4 AC-06/AC-07): summary/preview/detection 어디에도 알려진 secret 샘플이 평문으로 나타나지 않는다.
 
@@ -406,6 +409,17 @@ SPEC-006-AC-16 (R-TMUX-001, R-PRIV-002, [[08-Decisions|D-019]], [[08-Decisions|D
 ```
 
 ```text
+SPEC-006-AC-18 (R-PRIV-002, R-PRIV-005, [[08-Decisions|D-020]])  [subtree 전 노드 argv redaction — non-foreground 누출 차단]
+  Given process subtree([[SPEC-002-tmux-discovery]] §2.9)에서 secret이 pane의 foreground 노드가 아니라
+        **non-foreground subtree 노드** argv에 있을 때
+        (예: depth≥1 wrapper 노드 `node /run.js --api-key=sk-<token>`; [[SPEC-007-test-validation]] planted-subtree 케이스)
+  When scan이 실행되어 processTree(G-PROC) 신호를 소비/출력/log하면
+  Then processTree의 **모든** 노드 argv가 노드별 `redact()` 경계([[08-Decisions|D-016]])를 통과하여
+       `sk-<token>` literal이 any output path(table/`--json`/preview/debug log) 어디에도 나타나지 않으며,
+       foreground 노드만 마스킹하고 non-foreground 노드를 누락하지 않는다.
+```
+
+```text
 SPEC-006-AC-17 (R-PRIV-002, R-PRIV-003)  [cwd 경로 내 secret 마스킹]
   Given 어떤 pane의 cwd(`#{pane_current_path}`)가 secret을 내포한 경로일 때
         (예: `/home/u/work/ghp_<token>/repo`; [[SPEC-007-test-validation]] 코퍼스의 planted-cwd 케이스)
@@ -420,14 +434,14 @@ SPEC-006-AC-17 (R-PRIV-002, R-PRIV-003)  [cwd 경로 내 secret 마스킹]
 | 요구사항 | 다루는 방식 | 검증 AC |
 | --- | --- | --- |
 | R-PRIV-001 | capture line cap N(수집)·byte cap B(sanitizer)·preview redacted tail 제한 | SPEC-006-AC-08, SPEC-006-AC-09 |
-| R-PRIV-002 | redaction-before-consumption 단일 chokepoint([[08-Decisions\|D-016]]; 출력·detection·summary·cmdline·cwd 전 적용) | SPEC-006-AC-01, SPEC-006-AC-06, SPEC-006-AC-07, SPEC-006-AC-16, SPEC-006-AC-17 |
+| R-PRIV-002 | redaction-before-consumption 단일 chokepoint([[08-Decisions\|D-016]]; 출력·detection·summary·cmdline·**subtree 전 노드 argv**·cwd 전 적용) | SPEC-006-AC-01, SPEC-006-AC-06, SPEC-006-AC-07, SPEC-006-AC-16, SPEC-006-AC-17, SPEC-006-AC-18 |
 | R-PRIV-003 | redaction 패턴 카탈로그(private key/AWS/GitHub/Slack/JWT/bearer/URL cred/env secret/api key/generic)와 cwd 경로 내 secret 마스킹·false-redaction 측정 | SPEC-006-AC-01~05, SPEC-006-AC-15, SPEC-006-AC-17 |
 | R-PRIV-004 | full output 비저장, capture memory-only, 파일 미생성(D-008) | SPEC-006-AC-10 |
-| R-PRIV-005 | debug log에 capture 원문 미기록 | SPEC-006-AC-11 |
+| R-PRIV-005 | debug log에 capture 원문·subtree argv 원문 미기록 | SPEC-006-AC-11, SPEC-006-AC-18 |
 | R-OBS-003 | debug log redaction + metadata-only, error message 격리 | SPEC-006-AC-11, SPEC-006-AC-13 |
 | R-TMUX-001 (enforcement, co-own) | read-only command set의 강제 wrapper(`tmuxExec` fail-closed allowlist). command set 정의는 [[SPEC-002-tmux-discovery]] | SPEC-006-AC-12 |
 | R-TMUX-004 (safety) | error message 격리(privacy)·timeout bounded exposure | SPEC-006-AC-13, SPEC-006-AC-14 |
-| [[08-Decisions\|D-019]] / [[08-Decisions\|D-020]] (co-own) | non-tmux process-introspection subprocess(`ps`)의 read-only 동등 안전 계약(고정 argv·`shell:false`·per-call timeout)과 cmdline redaction-before-use(§2.7). 수집은 [[SPEC-002-tmux-discovery]] §2.8 | SPEC-006-AC-16 |
+| [[08-Decisions\|D-019]] / [[08-Decisions\|D-020]] (co-own) | non-tmux process-introspection subprocess(`ps`)의 read-only 동등 안전 계약(고정 argv·`shell:false`·per-call timeout)과 cmdline **+ subtree 전 노드 argv** redaction-before-use(§2.7, 단일 snapshot). 수집은 [[SPEC-002-tmux-discovery]] §2.8/§2.9 | SPEC-006-AC-16, SPEC-006-AC-18 |
 | [[08-Decisions\|D-016]] (방어 확장) | cwd 자유 텍스트의 단일 chokepoint redaction(경로 내 secret 구멍 차단, §2.3) | SPEC-006-AC-17 |
 
 > R-TMUX-001은 [[SPEC-002-tmux-discovery]]가 **command set·capture 호출**을 1차 소유하고, 본 spec이 **강제 메커니즘(allowlist wrapper)**을 co-own한다. 전체 추적 매트릭스 통합은 [[SPEC-007-test-validation]].

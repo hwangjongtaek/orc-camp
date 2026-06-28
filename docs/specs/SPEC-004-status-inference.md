@@ -2,9 +2,9 @@
 spec: SPEC-004
 title: Status·confidence 추론
 status: approved
-updated: 2026-06-26
+updated: 2026-06-28
 requirements: [R-ORC-003, R-ORC-004, R-ORC-005, R-ORC-006]
-decisions: [D-012]
+decisions: [D-012, D-020]
 tags:
   - specs
   - detection
@@ -69,6 +69,14 @@ interface StatusInput {
     paneId: string;            // 권위 식별자 "%12" — orc identity (tmuxTarget은 표시 전용)
     paneDead: boolean;         // #{pane_dead}
     panePid: number | null;    // #{pane_pid} (process-alive 보조; null=미가용)
+    processAlive: boolean | null; // #{pane_pid}(=pane top, 보통 shell) 생존. SPEC-002 §2.8. null=미가용
+    agentProcessAlive: boolean | null;
+                               // 탐지된 agent 프로세스가 pane subtree에 '살아있는가'(liveness-gate 핵심 입력)
+                               //   파생식(확정): processTree == null  → null   (subtree 미가용, 생존 입증 불가)
+                               //               else (candidate.processCorroborated ? true : false)
+                               //   true  = SPEC-003 OrcCandidate.processCorroborated (G-CMD foreground=agent OR G-PROC subtree에 agent)
+                               //   false = processTree 가용한데 process-corroborated 아님 (탐지가 stale title/banner 잔여뿐)
+                               //   null  = subtree introspection 미가용(SPEC-002 §2.9 fail-closed)
     lastActivityAt: string;    // ISO 8601, #{pane_activity} 변환값
   };
 
@@ -135,15 +143,18 @@ band 경계 자체는 고정하되 구간 수치와 status별 base는 [[SPEC-007
 
 1. **`stale`** — `snapshotStale == true`(이번 데이터가 last-good fallback). 데이터 자체가 fresh가 아니므로 per-pane live 상태를 단정하지 않는다. → `stale`.
 2. **`terminated`** — `lifecycle.paneDead == true`, **또는** `prior`에 있던 `paneId`가 이번 fresh inventory에서 사라짐, **또는** `panePid`가 더 이상 살아있지 않음(보조). → `terminated`(retention 규칙 §3.7).
-3. **tail 상태** — `recentOutput`이 있을 때, tail(말단 의미 영역)을 검사한다:
+2b. **`terminated` (agent gone — liveness-gate, NEW)** — `lifecycle.agentProcessAlive == false`(subtree는 가용한데 **탐지된 agent 프로세스가 subtree에 없음**: 탐지가 stale pane title/scrollback banner 잔여뿐). pane/shell은 살아있어도 **그 agent의 lifecycle은 끝났다**. → `terminated`(S-AGONE, retention §3.7). 이 gate가 §3에서 **tail 상태(3)보다 먼저**여서, 이미 죽은 세션의 scrollback에 남은 error/prompt/변화로 `error`/`waiting`/`active`를 **잘못 단정하지 않는다**(precision/active FP 근본 수정).
+3. **tail 상태** — `recentOutput`이 있을 때, tail(말단 의미 영역)을 검사한다. **단, `agentProcessAlive == false`면 이 단계 전체를 건너뛴다(2b에서 이미 `terminated`)**:
    - tail이 error/traceback/exception pattern이거나 비정상 exit → **`error`**.
    - tail이 입력 대기 prompt pattern이고(차분 모드면) 내용 변화 없음 → **`waiting`**.
-   - 직전 대비 "의미 있는 내용 변화"가 있고 최근 활동 ≤ `T_active` → **`active`**.
+   - 직전 대비 "의미 있는 내용 변화"가 있고 최근 활동 ≤ `T_active` → **`active`**. **`active` liveness-gate(확정)**: `active`는 `agentProcessAlive == true`일 때만 HIGH/일반 confidence로 확정한다. `agentProcessAlive == null`(subtree 미가용, 생존 입증 불가)이면 `active`를 **HIGH로 단정하지 않고** 약신호로만(≤ MEDIUM, §3.8 degrade) 둔다. `agentProcessAlive == false`는 2b에서 이미 걸러진다.
 4. **시간 기반** — 위에서 미확정이면:
    - 비활동(`scannedAt − lastActivityAt`)이 `T_idle` 초과, 변화·prompt·error 없음 → **`idle`**.
 5. **`unknown`** — 위 어느 것도 확정 불가(capture 미가용, 신호 충돌, 단발 scan에서 active를 입증 불가 등). → **`unknown`**.
 
 > `error`를 `active`보다 먼저 보되, error pattern은 **tail(가장 최근 영역)**에서만 발화한다. error 줄 이후에 더 새로운 비-error 출력이 있으면 그 pane은 error로 보지 않는다(스트림 중간의 일시적 error 줄 오탐 방지, §3.4).
+
+> **liveness-gate 요지(R-ORC-005 단정 금지)**: `active`(및 tail의 `error`/`waiting` live 해석)는 **살아있는 agent 프로세스 없이는 단정하지 않는다.** 종전 `processAlive`(=`pane_pid`, 보통 shell)는 shell이 살아있는 한 항상 `true`라 agent 생존을 대변하지 못한다 — 그래서 `agentProcessAlive`(subtree의 agent 노드 생존, [[SPEC-002-tmux-discovery]] §2.9 + [[SPEC-003-agent-detection]] process-corroboration 파생)를 1차 gate로 쓴다.
 
 ### 3.2 `active` 내용 변화 — line-hash + region compare (노이즈 억제)
 
@@ -219,30 +230,35 @@ confidence(가설):
 | S-STALE | `snapshotStale == true` | [[SPEC-002-tmux-discovery]] §2.7 | `stale` | A | O |
 | S-DEAD | `pane_dead == true` | `#{pane_dead}` | `terminated` | A | O |
 | S-GONE | `prior` paneId가 fresh inventory에서 사라짐 | prior snapshot diff | `terminated` | A | **X (prior 필요)** |
-| S-PID | `panePid` 미생존 | `#{pane_pid}`+OS 확인 | `terminated` | B | O(부분) |
-| S-ERR | tail error/traceback/exit pattern | `recentOutput` tail | `error` | A/C | O |
-| S-PROMPT-A | adapter-specific 대기 prompt | `recentOutput` tail | `waiting` | A | O |
-| S-PROMPT-G | generic 대기 prompt | `recentOutput` tail | `waiting` | B/C | O |
-| S-CHG | 의미 있는 region 변화 + 최근 활동 | fingerprint diff(§3.2) | `active` | A | **X (prior 필요)** |
+| S-PID | `panePid`(=pane top, 보통 shell) 미생존 | `#{pane_pid}`+OS 확인 | `terminated` | B | O(부분) |
+| **S-AGONE** | **`agentProcessAlive == false`**: subtree 가용한데 탐지된 agent 프로세스 없음(shell은 살아있음) | [[SPEC-002-tmux-discovery]] §2.9 subtree + [[SPEC-003-agent-detection]] process-corroboration 파생 | `terminated` | **B** | **O** |
+| S-ERR | tail error/traceback/exit pattern (**agent-alive gated**) | `recentOutput` tail | `error` | A/C | O |
+| S-PROMPT-A | adapter-specific 대기 prompt (**agent-alive gated**) | `recentOutput` tail | `waiting` | A | O |
+| S-PROMPT-G | generic 대기 prompt (**agent-alive gated**) | `recentOutput` tail | `waiting` | B/C | O |
+| S-CHG | 의미 있는 region 변화 + 최근 활동 (**agent-alive gated**) | fingerprint diff(§3.2) | `active` | A | **X (prior 필요)** |
 | S-CHG-V | 휘발성 전용 변화 | fingerprint diff(§3.2) | `active`(약) | C | **X (prior 필요)** |
 | S-IDLE | 비활동 > `T_idle` | `scannedAt − lastActivityAt` | `idle` | B | O |
-| S-RECENT | 최근 활동 ≤ `T_active`(변화 미입증) | `lastActivityAt` | `active`(약, 단발) | C | O |
+| S-RECENT | 최근 활동 ≤ `T_active`(변화 미입증, **agent-alive/null gated**) | `lastActivityAt` | `active`(약, 단발) | C | O |
+
+- **"agent-alive gated"**: 해당 신호는 `agentProcessAlive == false`면 발화하지 않는다(2b에서 `terminated`로 선점). `agentProcessAlive == null`(subtree 미가용)이면 발화하되 `active`는 HIGH로 승급하지 않는다(§3.8 degrade). `agentProcessAlive == true`면 종전대로 평가한다.
 
 ### 3.7 `terminated` vs `stale` lifecycle (R-ORC-006, 확정 규칙)
 
 - **즉시 제거 금지(확정)**: pane/process가 사라지거나 죽어도 orc를 snapshot에서 즉시 빼지 않는다. `terminated`로 **짧게 남겨** 사용자가 변화를 인지하게 한다([[02-Requirements]] R-ORC-006, "상태 모델" 표 fade-out).
 - **두 상태의 의미 구분(확정)**:
-  - `terminated` = **그 pane/process가 끝남**(해당 orc의 lifecycle 종료). 출처: `pane_dead`/사라짐/process 미생존.
+  - `terminated` = **그 pane/process가 끝남**(해당 orc의 lifecycle 종료). 출처: `pane_dead`/사라짐/process 미생존/**agent 프로세스 부재(S-AGONE)**.
   - `stale` = **snapshot 전체가 오래됨**(scanner가 refresh 실패해 last-good 재사용). 출처: [[SPEC-002-tmux-discovery]] §2.7. pane은 살아있을 수 있고, 단지 fresh 데이터가 없는 것이다.
   - 그래서 precedence는 `stale`(§3.1-1)이 먼저다: inventory를 refresh하지 못하면 현재 `pane_dead`를 알 수 없으므로 `terminated`를 단정할 수 없다.
-- **retention 윈도우(가설)**: `terminated` orc는 사라진 뒤 grace TTL `T_term`(가설: 약 10s 또는 2 scan cycle) 동안 snapshot에 `terminated`로 유지되고, 이후 scan부터 생략될 수 있다. 단발 scan에서는 scan 시점 `pane_dead==true`인 pane만 1회 `terminated`로 표시된다("사라짐" 차분은 prior가 필요 — Q1).
-- confidence(가설): `pane_dead==true` → HIGH(0.95). prior 대비 사라짐 → HIGH(0.90). `panePid` 미생존만 → MEDIUM(0.65, 다른 child로 인한 오판 여지).
+- **agent-gone vs pane-dead 구분(확정, NEW)**: `pane_dead`(S-DEAD)는 **pane 자체**가 죽은 것이고, S-AGONE은 **pane/shell은 살아있으나 그 안에서 돌던 agent가 종료**된 것이다(예: claude를 끝내고 shell 프롬프트로 돌아온 `-zsh` pane, 그러나 pane title/scrollback에 claude 잔여). 둘 다 "해당 orc의 agent lifecycle 종료"이므로 `terminated`로 수렴하되, S-AGONE은 agent 동일성 추정을 포함하므로 confidence가 낮다(아래).
+- **retention 윈도우(가설)**: `terminated` orc는 사라진 뒤 grace TTL `T_term`(가설: 약 10s 또는 2 scan cycle) 동안 snapshot에 `terminated`로 유지되고, 이후 scan부터 생략될 수 있다. 단발 scan에서는 scan 시점 `pane_dead==true`인 pane 또는 `agentProcessAlive==false`인 pane만 1회 `terminated`로 표시된다("사라짐" 차분은 prior가 필요 — Q1). S-AGONE의 retention 정리(잔여 후보를 몇 cycle 뒤 생략) 역시 [[SPEC-003-agent-detection]] §3.2-3 residual cap과 함께 §6 Q7에서 보정한다.
+- confidence(가설): `pane_dead==true` → HIGH(0.95). prior 대비 사라짐 → HIGH(0.90). `panePid` 미생존만 → MEDIUM(0.65, 다른 child로 인한 오판 여지). **S-AGONE(agent 프로세스 부재)** → MEDIUM(가설 0.65): subtree로 agent 부재는 객관적이나, 탐지가 stale title/banner 잔여라는 추정이 섞여 HIGH로 단정하지 않는다(R-ORC-005).
 
 ### 3.8 confidence 결합·calibration (단조성)
 
 - **단일 신호 = 낮음, 다중 일치 = 높음(확정 원칙)**: 같은 status를 가리키는 신호가 N개면 base에서 corroboration으로 가산한다 — `confidence = min(cap, maxBase + 0.05 × (N−1))`(가설). 보강은 더하기만 하고 빼지 않는다.
 - **충돌 처리(확정)**: 서로 다른 status를 강하게 가리키는 신호가 충돌하면 precedence(§3.1)로 status를 정하되 confidence를 MEDIUM 이하로 cap하고 충돌을 `statusSignals`에 남긴다. 충돌이 본질적으로 해소 불가면 `unknown` + LOW.
 - **단발 scan cap(확정)**: `prior`가 없으면 차분 의존 status(`active`)는 입증 불가다. 이때 `active`는 S-RECENT(약신호)로만 LOW(≤0.49) 후보가 되거나 `unknown`으로 둔다. `waiting`은 정적 제약 미검증으로 MEDIUM cap.
+- **liveness-gate degrade(확정, NEW)**: `agentProcessAlive == false`면 `active`/live-`error`/live-`waiting`을 단정하지 않고 `terminated`(S-AGONE, §3.7)로 수렴한다. `agentProcessAlive == null`(subtree 미가용)이면 agent 생존을 입증할 수 없으므로 `active`를 **HIGH로 승급하지 않는다**(≤ MEDIUM, fail-closed toward 비-active). `agentProcessAlive == true`면 종전 ladder를 그대로 따른다. 이 gate는 종전 `processAlive`(=`pane_pid`/shell, 항상 alive)로는 막지 못한 "죽은 세션의 scrollback을 live active로 오판"을 차단한다(precision 근본 수정).
 - **단조성 요구(확정, 측정은 SPEC-007)**: confidence band와 실제 정답률은 단조 증가해야 한다(HIGH 정답률 ≥ MEDIUM ≥ LOW). band별 precision은 [[SPEC-007-test-validation]]의 수동 라벨로 측정·보정한다([[14-MVP-PoC-Scope]] confidence calibration 지표).
 
 ### 3.9 임계값 — PoC 검증 가설 표
@@ -254,6 +270,7 @@ confidence(가설):
 | `T_active` | `active` 최근 활동 상한 | 5s | [[14-MVP-PoC-Scope]] |
 | `T_idle` | `idle` 비활동 하한 | 30s | [[14-MVP-PoC-Scope]] |
 | `T_term` | `terminated` retention grace | ~10s / 2 cycle | R-ORC-006 |
+| S-AGONE conf | agent 프로세스 부재(subtree)→`terminated` | 0.65(MEDIUM) | §3.7, liveness-gate |
 | `K` | region compare 말단 줄 수 | 40 | §3.2 |
 | `L` | summary 최대 길이 | 80자 | §3.5 |
 | 휘발성 토큰 집합 | spinner/clock/counter 마스킹 | §3.2 목록 | 노이즈 억제 |
@@ -341,14 +358,39 @@ confidence(가설):
   - When `inferStatus`를 2회 실행하면
   - Then `status`/`statusConfidence`/`currentWorkSummary`/`summarySource`/`summaryIsEstimated`가 모두 동일하다.
 
+- **SPEC-004-AC-16** (R-ORC-003, R-ORC-005) — `active` liveness-gate(FP-active 근본 수정)
+  - Given `lifecycle.agentProcessAlive == false`(subtree 가용·agent 프로세스 없음)이고 `recentOutput`에 직전 대비 변화/최근 활동이 있는(stale scrollback) fixture에서
+  - When `inferStatus`를 실행하면
+  - Then `status ≠ "active"`이다(살아있는 agent 프로세스 없이 `active`를 단정하지 않는다).
+
+- **SPEC-004-AC-17** (R-ORC-006) — agent-gone → terminated(retention)
+  - Given `lifecycle.paneDead == false`이지만 `agentProcessAlive == false`이고 candidate가 stale pane title/banner 잔여로 탐지된 fixture에서
+  - When `inferStatus`를 실행하면
+  - Then `status = "terminated"`(S-AGONE), `statusConfidence`는 MEDIUM(가설 ~0.65)이며 그 orc는 즉시 제거되지 않고 retention(§3.7)으로 유지되고, `stale`과 구분된다.
+
+- **SPEC-004-AC-18** (R-ORC-005) — subtree 미가용 degrade
+  - Given `agentProcessAlive == null`(subtree introspection 미가용)이고 그 외에는 `active`로 볼 만한 최근 활동만 있는 fixture에서
+  - When `inferStatus`를 실행하면
+  - Then `active`로 보더라도 `statusConfidence`가 HIGH(≥0.80)에 도달하지 않는다(생존 입증 불가 → 단정 금지, ≤ MEDIUM degrade).
+
+- **SPEC-004-AC-19** (R-ORC-003) — agent alive → 정상 ladder
+  - Given `agentProcessAlive == true`(G-CMD foreground 또는 G-PROC subtree로 살아있는 agent)이고 `prior` 대비 비휘발성 변화 + 최근 활동이 있는 fixture에서
+  - When `inferStatus`를 실행하면
+  - Then `status = "active"`, `statusConfidence ≥ 0.80`(HIGH)이다(liveness-gate가 정상 `active`를 막지 않는다).
+
+- **SPEC-004-AC-20** (R-ORC-005, R-ORC-006) — 죽은 세션 scrollback의 error/waiting 오탐 차단
+  - Given `agentProcessAlive == false`이고 `recentOutput` tail이 (a) error/traceback이거나 (b) `(y/n)` 대기 prompt인 fixture에서
+  - When `inferStatus`를 실행하면
+  - Then `status`는 `error`/`waiting`이 아니라 `terminated`다(liveness-gate가 tail 상태보다 먼저 선점, §3.1-2b).
+
 ## 5. Traceability
 
 | 요구사항 | 다루는 방식 | 검증 AC |
 | --- | --- | --- |
-| R-ORC-003 | orc별 `status`(7종)+`statusConfidence`+요약 필드 산출, precedence·신호 규칙·결정성 | SPEC-004-AC-01, AC-03, AC-05, AC-07, AC-08, AC-15 |
+| R-ORC-003 | orc별 `status`(7종)+`statusConfidence`+요약 필드 산출, precedence·신호 규칙·결정성. **`active` liveness-gate(agentProcessAlive)** | SPEC-004-AC-01, AC-03, AC-05, AC-07, AC-08, AC-15, AC-16, AC-19 |
 | R-ORC-004 | `currentWorkSummary` 추출과 `summarySource`(pane_title/recent_output/recent_prompt/user_label/unknown) 선택, redaction 후 데이터 기준 | SPEC-004-AC-11, AC-13 |
-| R-ORC-005 | 추정값·status를 단정하지 않음: 항상 statusConfidence, estimated 표시, 노이즈/오탐 억제, calibration 단조성 | SPEC-004-AC-02, AC-04, AC-06, AC-12, AC-14 |
-| R-ORC-006 | `terminated` vs `stale` 구분과 즉시 제거 금지(짧은 retention) lifecycle | SPEC-004-AC-09, AC-10 |
+| R-ORC-005 | 추정값·status를 단정하지 않음: 항상 statusConfidence, estimated 표시, 노이즈/오탐 억제, calibration 단조성. **subtree 미가용 degrade·죽은 세션 scrollback 오탐 차단** | SPEC-004-AC-02, AC-04, AC-06, AC-12, AC-14, AC-16, AC-18, AC-20 |
+| R-ORC-006 | `terminated` vs `stale` 구분과 즉시 제거 금지(짧은 retention) lifecycle. **agent-gone(S-AGONE, 살아있는 shell·죽은 agent) → terminated retention** | SPEC-004-AC-09, AC-10, AC-17, AC-20 |
 
 > 본 spec은 1차 슬라이스 `R-ORC` 중 status 축(003/004/005/006)을 다룬다. type 축(R-ORC-001/002/007)은 [[SPEC-003-agent-detection]]. R-TMUX-005(stale)는 [[SPEC-002-tmux-discovery]] 소유이며 본 spec은 그 stale 신호를 소비(AC-10 공동). privacy(R-PRIV-004/005)는 [[SPEC-006-privacy-redaction]] 소유이며 본 spec은 경계(AC-13)에서 정합한다. 전체 매트릭스 통합은 [[SPEC-007-test-validation]].
 
@@ -367,4 +409,6 @@ confidence(가설):
 - **Q3 — `waiting` prompt pattern 특화도(문제 b)**: generic vs adapter-specific prompt 집합을 Claude Code/Codex별로 얼마나 특화해야 false negative가 [[14-MVP-PoC-Scope]] 목표(`waiting` recall ≥ 0.7)를 만족하는가. tail/정적 제약(§3.3)의 오탐/미탐 trade-off와 redaction의 prompt 토큰 마스킹 영향(C와 별개로 §3.3-5)을 함께 측정한다. **검토 필요.**
 - **Q4 — `terminated` retention TTL과 cleanup**: `T_term` grace와 "몇 cycle 뒤 생략"은 반복 scan에서만 의미가 있다(Q1 의존). 단발 scan에선 `pane_dead` 시점 1회 표시로 충분한지, [[10-System-Architecture]]의 "terminated pane retention/cleanup"과 정합화 필요.
 - **Q5 — `panePid` 기반 process-alive(S-PID)**: `#{pane_pid}`로 얻은 pid의 생존/agent 동일성 확인은 cross-platform 안정성이 미검증이다([[05-Backend]] Open Questions). 미가용/불안정 시 S-PID를 보조(MEDIUM)로만 쓰고 `pane_dead`를 1차 신호로 둔다. **검토 필요.**
+- **Q7 — agent-gone(S-AGONE) retention·confidence(NEW, 검토 필요)**: `agentProcessAlive == false`로 `terminated`가 된 잔여 후보를 (a) 몇 cycle/`T_term` 동안 보였다가 생략할지, (b) prior가 없는 단발 scan에서 "방금 종료" vs "오래된 stale title"을 구분할 수 없을 때 confidence(가설 0.65)를 어떻게 둘지([[SPEC-003-agent-detection]] §3.2-3 residual cap과 공동). [[SPEC-007-test-validation]] live-process-tree oracle로 over-terminated/over-active를 함께 측정·보정. **검토 필요.**
+- **Q8 — `agentProcessAlive` 파생 위치 (해소)**: [[SPEC-003-agent-detection]] §2.2 `OrcCandidate.processCorroborated`(detector 소유, `matchedSignals`에 `command`/`process` 있으면 true)를 추가해 해소했다. `agentProcessAlive` 파생식(§2.1): `processTree == null → null; else processCorroborated ? true : false`. 조립 단계([[SPEC-005-data-contract]] StatusInput 구성)가 `StatusInput.lifecycle.agentProcessAlive`로 채워 전달하며, 본 추론기는 재-탐지하지 않는다(C2와 동류, ownership dangling 제거).
 - **Q6 — `pane_title` descriptive 판정**: §3.5의 "generic title 제외" 규칙(호스트명/cwd basename/shell 기본 타이틀)이 실제 환경에서 유용 요약을 과도하게 버리지 않는지(false skip) PoC 검토 필요.

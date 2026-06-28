@@ -73,10 +73,10 @@ tags:
 
 | R-* | 1차 소유 | 대표 AC | layer | 비고 |
 | --- | --- | --- | --- | --- |
-| R-TMUX-001 | SPEC-002 (강제 SPEC-006) | SPEC-002-AC-01/13/14; SPEC-006-AC-12 | U·I·E | read-only inventory + fail-closed allowlist `tmuxExec`. `TC-I-READONLY` |
-| R-TMUX-002 | SPEC-002 | SPEC-002-AC-02, AC-03 | U | pane 9필드·타입·출처 token. `TC-U-INV-PARSE` |
+| R-TMUX-001 | SPEC-002 (강제 SPEC-006) | SPEC-002-AC-01/13/14/20; SPEC-006-AC-12 | U·I·E | read-only inventory + fail-closed allowlist `tmuxExec` + subtree ps read-only(§2.9). `TC-I-READONLY` |
+| R-TMUX-002 | SPEC-002 | SPEC-002-AC-02/03/18 | U | pane 9필드·타입·출처 token + **process subtree(§2.9, wrapper recall)**. `TC-U-INV-PARSE` |
 | R-TMUX-003 | **serve-slice** (SPEC-101 diff + SPEC-102) | SPEC-102-AC-11; SPEC-101-AC-03/04/12 | I | **의도적 후속(serve)**: 구조 변화→diff→event 반영. scan은 `--watch`로 부분 충족([[08-Decisions|D-014]]). §5 truncation ledger |
-| R-TMUX-004 | SPEC-002 (SPEC-006) | SPEC-002-AC-04/05/06/07; SPEC-006-AC-13/14 | I | timeout·target error isolation·diagnostics privacy. `TC-I-CAPFAIL`/`TC-I-TIMEOUT`/`TC-I-DIAG-PRIVACY` |
+| R-TMUX-004 | SPEC-002 (SPEC-006) | SPEC-002-AC-04/05/06/07/19/21; SPEC-006-AC-13/14 | I | timeout·target error isolation·diagnostics privacy + subtree fail-closed·O(1) spawn(§2.9). `TC-I-CAPFAIL`/`TC-I-TIMEOUT`/`TC-I-DIAG-PRIVACY` |
 | R-TMUX-005 | SPEC-002 (직렬화 SPEC-005, serve SPEC-101) | SPEC-002-AC-11/12; SPEC-005-AC-07; SPEC-101-AC-11 | U·I | last-good vs stale, 위조 금지. `TC-U-INV-STALE`/`TC-I-INVFAIL` |
 | R-TMUX-006 | SPEC-002 (직렬화 SPEC-005, 렌더 SPEC-001/201) | SPEC-002-AC-08/09/10; SPEC-005-AC-05/06; SPEC-001-AC-03/13 | U·I·C | 빈 상태 3종 + no-agent 구분. `TC-U-INV-EMPTY`/`TC-I-EMPTY` |
 
@@ -84,12 +84,12 @@ tags:
 
 | R-* | 1차 소유 | 대표 AC | layer | 비고 |
 | --- | --- | --- | --- | --- |
-| R-ORC-001 | SPEC-003 | SPEC-003-AC-01/02/03/06/09 (지표 SPEC-007-AC-01) | U·M | Claude/Codex Tier A→B→C. precision ≥0.9 가설 `TC-M-PRECISION` |
-| R-ORC-002 | SPEC-003 | SPEC-003-AC-04/05/06/08 | U | `unknown`≠non-candidate, 충돌 시 단정 금지 |
-| R-ORC-003 | SPEC-004 (직렬화 SPEC-005) | SPEC-004-AC-01/03/05/07/08/15; SPEC-005-AC-03/04/12 | U | status 7종·confidence·요약 필드·집계 |
+| R-ORC-001 | SPEC-003 (수집 SPEC-002 §2.9) | SPEC-003-AC-01/02/03/06/09/10/12/14; SPEC-002-AC-18 (지표 SPEC-007-AC-01/14) | U·M | Claude/Codex Tier A(**G-PROC live subtree**)→B→C. **wrapper recall 근본 수정**. precision/recall ≥0.9 가설 `TC-M-PRECISION`/`TC-M-PROCTREE` |
+| R-ORC-002 | SPEC-003 | SPEC-003-AC-04/05/06/08/11/13 | U | `unknown`≠non-candidate, 충돌 시 단정 금지. **process-uncorroborated 잔여 → residual cap LOW**(precision) |
+| R-ORC-003 | SPEC-004 (직렬화 SPEC-005) | SPEC-004-AC-01/03/05/07/08/15/16/19; SPEC-005-AC-03/04/12 | U | status 7종·confidence·요약 필드·집계 + **`active` liveness-gate(agentProcessAlive)** |
 | R-ORC-004 | SPEC-004 (직렬화 SPEC-005) | SPEC-004-AC-11/13; SPEC-005-AC-09 | U | `currentWorkSummary`·`summarySource` 5종 |
-| R-ORC-005 | SPEC-004 (직렬화 SPEC-005, 렌더 SPEC-001/201/202/301) | SPEC-004-AC-02/04/06/12/14; SPEC-005-AC-08/14; SPEC-201-AC-04; SPEC-301-AC-06 (지표 SPEC-007-AC-03) | U·C·M | estimated/confidence 단정 금지·calibration 단조성 `TC-M-CALIB-*`·맵 activity bubble |
-| R-ORC-006 | SPEC-004 (렌더 SPEC-202) | SPEC-004-AC-09, AC-10; SPEC-202-AC-03 | U·C | `terminated` vs `stale` 짧은 retention. `TC-U-STAT-TERM/STALE` |
+| R-ORC-005 | SPEC-004 (직렬화 SPEC-005, 렌더 SPEC-001/201/202/301) | SPEC-004-AC-02/04/06/12/14/18/20; SPEC-005-AC-08/14; SPEC-201-AC-04; SPEC-301-AC-06 (지표 SPEC-007-AC-03/14) | U·C·M | estimated/confidence 단정 금지·calibration 단조성 `TC-M-CALIB-*`·**죽은 세션 scrollback active FP 차단** |
+| R-ORC-006 | SPEC-004 (렌더 SPEC-202) | SPEC-004-AC-09/10/17/20; SPEC-202-AC-03 | U·C | `terminated` vs `stale` 짧은 retention + **agent-gone(S-AGONE) → terminated**. `TC-U-STAT-TERM/STALE/AGONE` |
 | R-ORC-007 | SPEC-003 / [[SPEC-800-extensibility]] | SPEC-003-AC-07/08; SPEC-800-AC-01/02/07/08 | U | `AgentDetector` adapter boundary·open/closed 확장 |
 
 ### 2.4 R-UI — Dashboard·UX (1차 [[SPEC-201-dashboard-screens]], 아키텍처 [[SPEC-200-frontend-architecture]], 접근성 [[SPEC-202-design-accessibility]], asset [[SPEC-300-asset-rendering]])

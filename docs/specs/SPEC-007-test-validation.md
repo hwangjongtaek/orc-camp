@@ -2,7 +2,7 @@
 spec: SPEC-007
 title: 테스트 전략·PoC 측정·수용 매트릭스
 status: approved
-updated: 2026-06-27
+updated: 2026-06-28
 requirements: [R-CLI-004, R-TMUX-001, R-TMUX-002, R-TMUX-004, R-TMUX-005, R-TMUX-006, R-ORC-001, R-ORC-002, R-ORC-003, R-ORC-004, R-ORC-005, R-ORC-006, R-ORC-007, R-PRIV-001, R-PRIV-002, R-PRIV-003, R-PRIV-004, R-PRIV-005, R-PRIV-006, R-OBS-003, R-UI-007]
 decisions: [D-012, D-014, D-020, D-021]
 tags:
@@ -89,6 +89,11 @@ tags:
 | `PROC-CMDLINE` | process | `pane_pid → ps`가 wrapper argv(`node`/`python` + signature)와 process-alive를 반환(Tier B 입력) — [[08-Decisions\|D-020]] | SPEC-002-AC-15, SPEC-003-AC-03 |
 | `PROC-FAIL` | process | `ps` non-zero/미지원 플랫폼/pid 없음/timeout → `cmdline=null` (격리, Tier B는 `paneTitle` fallback) | SPEC-002-AC-16 |
 | `PROC-SECRET` | process | `cmdline` argv에 `--token=<value>` placeholder + `cwd` 경로 민감 구간(home/username) — cmdline/cwd redaction 경계 | SPEC-002-AC-17 동반, SPEC-006 cmdline/cwd-redaction AC(SPEC-006 소유) |
+| `PROC-SUBTREE-WRAP` | process | wrapper-체인 `processTree`(예: `zsh → claude → npm → node`)에서 agent argv가 **foreground 아닌 후손 노드**에 존재(노드별 {pid,ppid,depth,command}) — G-PROC recall 입력. exec/module token(`@anthropic-ai/claude-code`) 포함 | SPEC-002-AC-18, SPEC-003-AC-10/16, SPEC-007-AC-14 |
+| `PROC-STALE-TITLE` | process | `processTree` 가용한데 **subtree에 agent 프로세스 없음**(`-zsh`만) + stale pane title에 `claude` 잔여 — residual cap·liveness-gate 입력 | SPEC-003-AC-11, SPEC-004-AC-16/17 |
+| `PROC-SUBTREE-NEG` | process | generic runtime이 agent 무관 스크립트 실행(경로에만 substring; 예 `node ~/claude-notes/build.js`) — G-PROC exec-token negative(§3.1.1) | SPEC-003-AC-15 |
+| `PROC-SECRET-SUBTREE` | process | secret이 **non-foreground subtree 노드** argv에 있음(예 depth≥1 `node /run.js --api-key=sk-<token>`) — subtree 전 노드 redaction 경계 | SPEC-006-AC-18 |
+| `STAT-AGENT-GONE` | process+capture | live shell(`pane_dead=0`) + `agentProcessAlive=false`(subtree에 agent 없음) + scrollback에 직전 agent 잔여(error/`(y/n)`/변화) — agent-gone terminated·active FP 차단 | SPEC-004-AC-17/20 |
 | `CAP-CLAUDE` | capture | claude-code pane(command/banner/prompt) | SPEC-003-AC-01/03 |
 | `CAP-CODEX` | capture | codex pane | SPEC-003-AC-02 |
 | `CAP-UNKNOWN` | capture | generic agent marker, concrete signature 없음 | SPEC-003-AC-04 |
@@ -179,6 +184,10 @@ interface LabeledPaneSample {
 | `TC-U-STAT-EST` | `summaryIsEstimated`(user_label만 false) | SPEC-004-AC-12 |
 | `TC-U-STAT-REDSUM` | 전부 redacted 요약 후보 → skip, rule id만 | SPEC-004-AC-13 |
 | `TC-U-STAT-DET` | 동일 입력 2회 동일 산출 | SPEC-004-AC-15 |
+| `TC-U-DET-PROC` | G-PROC: wrapper-체인 subtree에 agent exec/module token → claude-code Tier A HIGH(`PROC-SUBTREE-WRAP`); exec-token negative(`PROC-SUBTREE-NEG`)는 non-match | SPEC-003-AC-10, AC-15, AC-16 |
+| `TC-U-DET-RESIDUAL` | subtree 가용·agent 없음 + title 잔여 → residual cap LOW(≤0.49), process-corroborated 신호 없음(`PROC-STALE-TITLE`) | SPEC-003-AC-11, AC-12, AC-14 |
+| `TC-U-STAT-LIVEGATE` | `agentProcessAlive`=false→active 아님 / =null→active HIGH 아님 / =true→정상 active HIGH | SPEC-004-AC-16, AC-18, AC-19 |
+| `TC-U-STAT-AGONE` | agent-gone(live shell·subtree에 agent 없음) → `terminated`(S-AGONE) retention; scrollback error/prompt 잔여 오탐 차단(`STAT-AGENT-GONE`) | SPEC-004-AC-17, AC-20 |
 | `TC-U-RED-PATTERNS` | ghp/PEM/URL-cred/env-secret/AWS/slack/JWT/bearer 마스킹 | SPEC-006-AC-01~05 |
 | `TC-U-RED-LIMITS` | line cap N · byte cap B(tail 보존) · preview tail P | SPEC-006-AC-08, AC-09 |
 | `TC-U-RED-EXEC` | `tmuxExec` 비-allowlist → throw, spawn 안 함 | SPEC-006-AC-12(a) |
@@ -213,6 +222,8 @@ interface LabeledPaneSample {
 | `TC-I-PROC-CMDLINE` | `pane_pid → ps`로 `cmdline`/process-alive 수집 → Tier B 입력 제공 | SPEC-002-AC-15 |
 | `TC-I-PROC-ISOLATE` | `ps` 실패/미지원/timeout → `cmdline=null` 격리, 전체 scan 미중단, Tier B `paneTitle` fallback | SPEC-002-AC-16 |
 | `TC-I-PROC-READONLY` | process-introspection subprocess(`ps`) argv: 읽기 전용·고정 argv·`shell:false`·per-call timeout, 상태변경 명령 0 | SPEC-002-AC-17, SPEC-006 subprocess-safety AC(SPEC-006 §2.6 소유) |
+| `TC-I-PROC-SUBTREE` | 단일 `ps` snapshot→subtree walk: wrapper-체인 agent 노드 노출(`processTree`), snapshot 실패 시 전체 `processTree=null` fail-closed, ps spawn O(1)(pane 수 무관) | SPEC-002-AC-18, AC-19, AC-21 |
+| `TC-I-PROC-SUBTREE-SECRET` | non-foreground subtree 노드 argv의 planted secret(`PROC-SECRET-SUBTREE`)이 every output/log path에서 마스킹(노드별 redact) | SPEC-006-AC-18 |
 | `TC-I-SECRET-ALLPATHS` | planted secret이 table/`--json`/preview/log 어디에도 없음 | SPEC-006-AC-01~05/07/11, SPEC-001-AC-12, SPEC-005-AC-10/14 |
 | `TC-I-NONPERSIST` | fs-write spy: capture 텍스트 담은 파일 미생성 | SPEC-006-AC-10 |
 | `TC-I-DIAG-PRIVACY` | `tmuxErrors[].message`에 capture 원문 없음 | SPEC-002-AC-07, SPEC-006-AC-13, SPEC-005-AC-11 |
@@ -235,6 +246,7 @@ interface LabeledPaneSample {
 | TC | 검증 내용 | 소비 |
 | --- | --- | --- |
 | `TC-M-PRECISION` | agent precision/recall(§3.3 M1) | SPEC-007-AC-01 |
+| `TC-M-PROCTREE` | live-process-tree oracle(비-circular) 대비 detection precision/recall + no-process pane never active(§3.3 M1). 결정적 fixture(`PROC-SUBTREE-WRAP`/`PROC-STALE-TITLE`/`STAT-AGENT-GONE`)로 백킹 | SPEC-007-AC-14, SPEC-003-AC-10/11, SPEC-004-AC-16/17 |
 | `TC-M-STATUS` | status accuracy·`waiting` recall(M2). prior 의존 신호(`active`/transition/사라짐-`terminated`)는 합성 prior fixture(결정성) + `TC-E-WATCH` live cycle(실측) 양쪽으로 평가 | SPEC-007-AC-02, SPEC-004-AC-14 |
 | `TC-M-CALIB-TYPE` | agentTypeConfidence band 단조성(M3) | SPEC-007-AC-03 |
 | `TC-M-CALIB-STATUS` | statusConfidence band 단조성(M3) | SPEC-007-AC-03, SPEC-004-AC-14 |
@@ -297,6 +309,7 @@ interface LabeledPaneSample {
   - `FN_T` = gold T ∧ 예측 ≠ T (`unknown`/null/타 type)
 - **Formula**: `precision_T = TP_T/(TP_T+FP_T)`, `recall_T = TP_T/(TP_T+FN_T)`. 집계는 micro-average: `precision = ΣTP_T/Σ(TP_T+FP_T)`, `recall = ΣTP_T/Σ(TP_T+FN_T)`. per-type과 집계를 모두 보고.
 - **Pass**: 집계 `precision ≥ 0.9`(가설). recall은 보고·검토(14-MVP는 precision 가설만 고정). `unknown`을 concrete로 단정한 over-detection이 precision을 낮추도록 설계됨(R-ORC-002 정신).
+- **M1 live-process-tree oracle(NEW, 2026-06-28, 비-circular)**: command-only objective truth(§6, 직접 `claude`/`codex` command)는 실측상 wrapper가 압도적(101 pane 중 직접 command 0개)이라 **wrapped agent의 recall을 측정하지 못한다**. 따라서 detection의 비-circular ground truth를 **live process-tree oracle**로 둔다: 엔진과 **독립적으로** `pane_pid` subtree를 ps로 walk해 "subtree에 살아있는 claude/codex 프로세스가 있는가"를 truth로 정한다(`scripts/measure-detection-live.mts` 확장; data gitignored, 0 flapping, ≥100 real pane). gold = (a) subtree에 살아있는 agent → 그 type, (b) subtree에 agent 없음(`-zsh` 등) → non-agent. 이 oracle 대비 production detector의 baseline은 **precision ≈ 0.19 / recall ≈ 0.27**(2026-06-28, 가설 ≥0.9 미달)이었고, 두 패턴(wrapper recall 누락 / stale-title active FP)을 [[SPEC-003-agent-detection]] G-PROC + residual cap, [[SPEC-004-status-inference]] liveness-gate로 수정한다. fix 후 동일 oracle로 re-measure(measure→fix→re-measure)한다. fixture 측정(CI 게이트)은 `LABELED-DETECT`에 wrapper-체인 `processTree`·stale-title 잔여 샘플을 추가해 결정적으로 백킹한다.
 
 **M2 — status accuracy / `waiting` recall** (지표: status 정확도, [[14-MVP-PoC-Scope]] `waiting` recall ≥ 0.7)
 - **Input**: `LABELED-STATUS`(가능하면 `prior` 포함). gold `status`/`waiting`.
@@ -310,7 +323,7 @@ interface LabeledPaneSample {
 
 **M3 — confidence calibration 단조성** (지표: confidence calibration, [[14-MVP-PoC-Scope]] 단조 증가). **agentTypeConfidence·statusConfidence 둘 다** 측정.
 - **Input**: M1/M2와 동일 데이터셋의 예측 + confidence.
-- **"monotonic" 운영 정의**: confidence를 소유 spec의 band로 버킷한다 — agentType은 [[SPEC-003-agent-detection]] §3.2 band(LOW ≤0.50 / MEDIUM 0.55–0.85 / HIGH 0.90–0.99), status는 [[SPEC-004-status-inference]] §2.3 band(LOW 0.00–0.49 / MEDIUM 0.50–0.79 / HIGH 0.80–1.00). 각 band의 **경험적 정답률** `acc(band) = #(band 내 정답)/#(band 내 표본)`.
+- **"monotonic" 운영 정의**: confidence를 소유 spec의 band로 버킷한다 — agentType은 [[SPEC-003-agent-detection]] §3.2 **contiguous** band(`AGENT_BAND`: LOW `[0, 0.50)` / MEDIUM `[0.50, 0.85)` / HIGH `[0.85, 1.0]`), status는 [[SPEC-004-status-inference]] §2.3 band(LOW `[0.00, 0.50)` / MEDIUM `[0.50, 0.80)` / HIGH `[0.80, 1.00]`). 두 축 모두 `[0,1]`을 **무공백·무중첩**으로 덮어 in-gap 표본이 조용히 누락되지 않는다(SPEC-003 §3.2 / SPEC-004 §2.3 contiguity 불변식과 일치). 각 band의 **경험적 정답률** `acc(band) = #(band 내 정답)/#(band 내 표본)`.
   - 정답 정의: agentType은 `예측 agentType == gold.agentType`, status는 `예측 status == gold.status`.
   - 최소 버킷 크기 `n_min`(가설 10) 미만 band는 "표본 부족"으로 표시하고 단조 판정에서 제외.
 - **Formula/Pass**: 표본 충분한 band를 confidence 오름차순으로 정렬했을 때 `acc`가 **비감소(non-decreasing)** = `acc(HIGH) ≥ acc(MEDIUM) ≥ acc(LOW)`. 두 confidence 모두 만족해야 통과(가설). calibration 표(band·n·acc)를 산출물로 남긴다. 위반 band는 해당 spec의 base/cap/bonus 보정 신호다([[SPEC-003-agent-detection]] §6, [[SPEC-004-status-inference]] §3.8).
@@ -331,7 +344,7 @@ interface LabeledPaneSample {
 
 ### 3.4 privacy 검증 접근(모든 출력 경로)
 
-- **planted secret 마스킹(모든 경로·모든 콘텐츠 소스)**: `CAP-SECRETS`(capture)와 `PROC-SECRET`(`cmdline` argv token·`cwd` 민감 구간)로 구동한 scan에서 placeholder secret literal이 **table stdout · `--json` stdout · preview(text 노출 모드) · debug log** 어디에도 부분문자열로 등장하지 않아야 한다(`TC-I-SECRET-ALLPATHS`). preview는 redacted tail 모드까지 포함해 검사한다([[SPEC-006-privacy-redaction]] §2.4). `cmdline`은 capture와 동일하게 redaction 경계를 통과하며([[SPEC-002-tmux-discovery]] §2.8, [[08-Decisions|D-020]]), `cwd` 마스킹 정책·AC는 [[SPEC-006-privacy-redaction]]가 소유한다(§6 Q3) — SPEC-007은 `TC-U-RED-CMDLINE`/`CORPUS-CWD`로 백킹한다.
+- **planted secret 마스킹(모든 경로·모든 콘텐츠 소스)**: `CAP-SECRETS`(capture)와 `PROC-SECRET`(`cmdline` argv token·`cwd` 민감 구간) **및 `PROC-SECRET-SUBTREE`(non-foreground subtree 노드 argv)**로 구동한 scan에서 placeholder secret literal이 **table stdout · `--json` stdout · preview(text 노출 모드) · debug log** 어디에도 부분문자열로 등장하지 않아야 한다(`TC-I-SECRET-ALLPATHS`, `TC-I-PROC-SUBTREE-SECRET`). subtree는 foreground 한 노드가 아니라 **모든 노드 argv**가 redaction 대상이다([[SPEC-006-privacy-redaction]] §2.3/§2.7, AC-18). preview는 redacted tail 모드까지 포함해 검사한다([[SPEC-006-privacy-redaction]] §2.4). `cmdline`은 capture와 동일하게 redaction 경계를 통과하며([[SPEC-002-tmux-discovery]] §2.8, [[08-Decisions|D-020]]), `cwd` 마스킹 정책·AC는 [[SPEC-006-privacy-redaction]]가 소유한다(§6 Q3) — SPEC-007은 `TC-U-RED-CMDLINE`/`CORPUS-CWD`로 백킹한다.
 - **summary 우회 차단(T-03)**: 유일 secret이 summary 후보 줄에 있어도 `currentWorkSummary`에 literal이 없어야 한다(redaction-before-consumption, [[SPEC-006-privacy-redaction]] AC-07). measurement harness가 sanitize→infer 순서를 강제하므로 동일 경로로 검증된다.
 - **비저장(T-08)**: 전체 scan 1회 동안 fs write를 spy해 capture 텍스트(raw/redacted)를 담은 파일이 생성되지 않음을 확인(`TC-I-NONPERSIST`, [[SPEC-006-privacy-redaction]] AC-10). debug log는 metadata-only임을 함께 검사([[SPEC-006-privacy-redaction]] AC-11).
 - **error message 격리(T-04)**: capture 실패 pane의 secret이 `diagnostics.tmuxErrors[].message`로 새지 않음(`TC-I-DIAG-PRIVACY`).
@@ -414,7 +427,12 @@ interface LabeledPaneSample {
 - **SPEC-007-AC-13** (메타 / fixture 완결성)
   - Given §2.3 fixture 카탈로그에서
   - When sibling spec의 detection/status/redaction/schema/inventory AC를 검사하면
-  - Then 각 AC가 최소 1개 fixture로 백킹되고, 카탈로그의 필수 상태(빈 상태 4종·capture 실패·planted secret·noise/static prompt·traceback·dead pane·stale 등)가 모두 존재한다.
+  - Then 각 AC가 최소 1개 fixture로 백킹되고, 카탈로그의 필수 상태(빈 상태 4종·capture 실패·planted secret·noise/static prompt·traceback·dead pane·stale·**wrapper-체인 processTree·stale-title 잔여·agent-gone** 등)가 모두 존재한다.
+
+- **SPEC-007-AC-14** (R-ORC-001, R-ORC-003, R-ORC-005 / process-tree 근본 수정 측정)
+  - Given live-process-tree oracle(독립 ps subtree ground truth)과, 그에 대응하는 결정적 fixture(wrapper-체인 claude `processTree` 샘플 / subtree에 agent 없는 stale-title `-zsh` 샘플)에서
+  - When detection·status에 M1(process-tree oracle)·M3 절차를 적용하면
+  - Then (a) wrapper-체인 샘플은 `claude-code`로 검출되고(recall — `signal="process"`/Tier A), (b) subtree에 agent가 없는 샘플은 `active`로 보고되지 않으며(precision/active FP 차단 — `terminated`/비-active), oracle 대비 precision/recall이 산출돼 ≥0.9(가설) 진척이 판정된다.
 
 ## 5. Traceability
 
@@ -430,18 +448,18 @@ interface LabeledPaneSample {
 | **R-TMUX-004** | [[SPEC-002-tmux-discovery]], [[SPEC-006-privacy-redaction]], [[SPEC-001-scan-cli]] | SPEC-002-AC-04,05,06,07,16; SPEC-006-AC-13,14; SPEC-001-AC-05 | `TC-I-TIMEOUT`, `TC-I-CAPFAIL`, `TC-I-INVFAIL`, `TC-I-PROC-ISOLATE`, `TC-I-DIAG-PRIVACY` (I) |
 | **R-TMUX-005** | [[SPEC-002-tmux-discovery]], [[SPEC-005-data-contract]], [[SPEC-004-status-inference]] | SPEC-002-AC-11,12; SPEC-005-AC-07; SPEC-004-AC-10 | `TC-U-INV-STALE`, `TC-U-SCHEMA-STALE`, `TC-U-STAT-STALE`, `TC-I-INVFAIL` (U,I) |
 | **R-TMUX-006** | [[SPEC-002-tmux-discovery]], [[SPEC-005-data-contract]], [[SPEC-001-scan-cli]] | SPEC-002-AC-08,09,10; SPEC-005-AC-05,06; SPEC-001-AC-03,13 | `TC-U-INV-EMPTY`, `TC-U-SCHEMA-EMPTY`, `TC-I-EMPTY` (U,I) |
-| **R-ORC-001** | [[SPEC-003-agent-detection]], [[SPEC-002-tmux-discovery]] (Tier B `cmdline` 수집 [[08-Decisions\|D-020]]) | SPEC-003-AC-01,02,03,06,09; SPEC-002-AC-15 | `TC-U-DET-CMD/WRAP/OUTCAP/CORROB`, `TC-I-PROC-CMDLINE`, `TC-M-PRECISION`, `TC-E-AGENT` (U,I,M,E) |
-| **R-ORC-002** | [[SPEC-003-agent-detection]] | SPEC-003-AC-04,05,06,08 | `TC-U-DET-UNKNOWN/NONCAND/OUTCAP/CONFLICT`, `TC-M-PRECISION` (U,M) |
-| **R-ORC-003** | [[SPEC-004-status-inference]], [[SPEC-005-data-contract]], [[SPEC-001-scan-cli]] | SPEC-004-AC-01,03,05,07,08,15; SPEC-005-AC-03,04,12; SPEC-001-AC-08,11 | `TC-U-STAT-*`, `TC-U-SCHEMA-VALID/ID/AGG`, `TC-M-STATUS` (U,M) |
+| **R-ORC-001** | [[SPEC-003-agent-detection]], [[SPEC-002-tmux-discovery]] (Tier B `cmdline`·**Tier A subtree** 수집 [[08-Decisions\|D-020]]) | SPEC-003-AC-01,02,03,06,09,10,12,14; SPEC-002-AC-15,18 | `TC-U-DET-CMD/WRAP/OUTCAP/CORROB/PROC`, `TC-I-PROC-CMDLINE/SUBTREE`, `TC-M-PRECISION`, `TC-M-PROCTREE`, `TC-E-AGENT` (U,I,M,E) |
+| **R-ORC-002** | [[SPEC-003-agent-detection]] | SPEC-003-AC-04,05,06,08,11,13 | `TC-U-DET-UNKNOWN/NONCAND/OUTCAP/CONFLICT/RESIDUAL`, `TC-M-PRECISION` (U,M) |
+| **R-ORC-003** | [[SPEC-004-status-inference]], [[SPEC-005-data-contract]], [[SPEC-001-scan-cli]] | SPEC-004-AC-01,03,05,07,08,15,16,19; SPEC-005-AC-03,04,12; SPEC-001-AC-08,11 | `TC-U-STAT-*/LIVEGATE`, `TC-U-SCHEMA-VALID/ID/AGG`, `TC-M-STATUS`, `TC-M-PROCTREE` (U,M) |
 | **R-ORC-004** | [[SPEC-004-status-inference]], [[SPEC-005-data-contract]] | SPEC-004-AC-11,13; SPEC-005-AC-09 | `TC-U-STAT-SRC/REDSUM`, `TC-U-SCHEMA-EST` (U) |
-| **R-ORC-005** | [[SPEC-004-status-inference]], [[SPEC-005-data-contract]], [[SPEC-001-scan-cli]] | SPEC-004-AC-02,04,06,12,14; SPEC-005-AC-08,14; SPEC-001-AC-09,10,11 | `TC-U-STAT-UNKNOWN/NOISE/WAIT-NEG/EST`, `TC-U-SCHEMA-EST/SIG`, `TC-U-CLI-TABLE`, `TC-M-CALIB-TYPE/STATUS` (U,M) |
-| **R-ORC-006** | [[SPEC-004-status-inference]] | SPEC-004-AC-09,10 | `TC-U-STAT-TERM/STALE` (U) |
+| **R-ORC-005** | [[SPEC-004-status-inference]], [[SPEC-005-data-contract]], [[SPEC-001-scan-cli]] | SPEC-004-AC-02,04,06,12,14,18,20; SPEC-005-AC-08,14; SPEC-001-AC-09,10,11 | `TC-U-STAT-UNKNOWN/NOISE/WAIT-NEG/EST/LIVEGATE`, `TC-U-SCHEMA-EST/SIG`, `TC-U-CLI-TABLE`, `TC-M-CALIB-TYPE/STATUS` (U,M) |
+| **R-ORC-006** | [[SPEC-004-status-inference]] | SPEC-004-AC-09,10,17,20 | `TC-U-STAT-TERM/STALE/AGONE` (U) |
 | **R-ORC-007** | [[SPEC-003-agent-detection]] | SPEC-003-AC-07,08 | `TC-U-DET-EXT/CONFLICT` (U) |
 | **R-PRIV-001** | [[SPEC-006-privacy-redaction]] | SPEC-006-AC-08,09 | `TC-U-RED-LIMITS` (U) |
-| **R-PRIV-002** | [[SPEC-006-privacy-redaction]], [[SPEC-001-scan-cli]] | SPEC-006-AC-01,06,07 + cmdline/cwd-redaction AC(SPEC-006 소유); SPEC-001-AC-12 | `TC-U-RED-PATTERNS`, `TC-U-RED-CMDLINE`, `TC-I-SECRET-ALLPATHS` (U,I) |
+| **R-PRIV-002** | [[SPEC-006-privacy-redaction]], [[SPEC-001-scan-cli]] | SPEC-006-AC-01,06,07,18 + cmdline/cwd-redaction AC(SPEC-006 소유); SPEC-001-AC-12 | `TC-U-RED-PATTERNS`, `TC-U-RED-CMDLINE`, `TC-I-SECRET-ALLPATHS`, `TC-I-PROC-SUBTREE-SECRET` (U,I) |
 | **R-PRIV-003** | [[SPEC-006-privacy-redaction]], [[SPEC-001-scan-cli]] | SPEC-006-AC-01~05,15 + cmdline/cwd-redaction AC(SPEC-006 소유); SPEC-001-AC-12 | `TC-U-RED-PATTERNS`, `TC-U-RED-CMDLINE`, `TC-M-FALSERED`, `TC-I-SECRET-ALLPATHS` (U,I,M) |
 | **R-PRIV-004** | [[SPEC-006-privacy-redaction]] | SPEC-006-AC-10 | `TC-I-NONPERSIST` (I) |
-| **R-PRIV-005** | [[SPEC-006-privacy-redaction]] | SPEC-006-AC-11 | `TC-I-SECRET-ALLPATHS`(log 경로) (I) |
+| **R-PRIV-005** | [[SPEC-006-privacy-redaction]] | SPEC-006-AC-11,18 | `TC-I-SECRET-ALLPATHS`(log 경로), `TC-I-PROC-SUBTREE-SECRET` (I) |
 | R-PRIV-006 | [[SPEC-001-scan-cli]] (preview-toggle 부재 negative) | SPEC-001-AC-15 (parse-only/negative) | `TC-U-CLI-PREVIEWFLAG` (U) — **DEFERRED-BY-DECISION ([[08-Decisions\|D-021]]), §5.4** |
 | **R-OBS-003** | [[SPEC-006-privacy-redaction]] | SPEC-006-AC-11,13 | `TC-I-SECRET-ALLPATHS`, `TC-I-DIAG-PRIVACY` (I) |
 | **R-UI-007** | [[SPEC-005-data-contract]] (table TARGET) | SPEC-005-AC-02,03 | `TC-I-SCAN-NORMAL`, `TC-U-SCHEMA-VALID` (U,I) — table 표면 한정 |
@@ -465,7 +483,7 @@ interface LabeledPaneSample {
 
 | [[14-MVP-PoC-Scope]] 지표 | 1차 기준(가설) | 절차 | 테스트 |
 | --- | --- | --- | --- |
-| agent detection precision | ≥ 0.9 | §3.3 M1 | `TC-M-PRECISION` (SPEC-007-AC-01) |
+| agent detection precision/recall | ≥ 0.9 | §3.3 M1 (+ live-process-tree oracle, 비-circular) | `TC-M-PRECISION`, `TC-M-PROCTREE` (SPEC-007-AC-01, AC-14) |
 | status 정확도(`waiting` recall) | ≥ 0.7 | §3.3 M2 | `TC-M-STATUS` (SPEC-007-AC-02, SPEC-004-AC-14) |
 | confidence calibration(type+status) | 단조 증가 | §3.3 M3 | `TC-M-CALIB-TYPE`, `TC-M-CALIB-STATUS` (SPEC-007-AC-03) |
 | scan latency | 20 pane p95 < 1s | §3.3 M4 | `TC-M-LATENCY` (SPEC-007-AC-05) |
@@ -473,7 +491,7 @@ interface LabeledPaneSample {
 
 ### 5.4 커버리지 결과와 P0 GAP
 
-**완전 커버(in-scope P0 R-*)**: R-CLI-004, R-TMUX-001/002/004/005/006, R-ORC-001/002/003/004/005/006/007, R-PRIV-001/002/003/004/005, R-OBS-003 — 모두 ≥1 sibling AC + ≥1 테스트 케이스로 매핑됨. **무커버(zero-coverage) P0 GAP 없음(재확인, post-gate).** 신규 [[SPEC-002-tmux-discovery]] process-introspection AC(SPEC-002-AC-15/16/17, [[08-Decisions|D-020]])는 각각 R-ORC-001(cmdline→Tier B), R-TMUX-004(ps 실패 격리), R-TMUX-001(non-tmux subprocess read-only 안전) 행에 흡수돼 추가 커버를 보강한다.
+**완전 커버(in-scope P0 R-*)**: R-CLI-004, R-TMUX-001/002/004/005/006, R-ORC-001/002/003/004/005/006/007, R-PRIV-001/002/003/004/005, R-OBS-003 — 모두 ≥1 sibling AC + ≥1 테스트 케이스로 매핑됨. **무커버(zero-coverage) P0 GAP 없음(재확인, post-gate).** 신규 [[SPEC-002-tmux-discovery]] process-introspection AC(SPEC-002-AC-15/16/17, [[08-Decisions|D-020]])는 각각 R-ORC-001(cmdline→Tier B), R-TMUX-004(ps 실패 격리), R-TMUX-001(non-tmux subprocess read-only 안전) 행에 흡수돼 추가 커버를 보강한다. **process-subtree 근본 수정 AC(2026-06-28)**: SPEC-002-AC-18~21(subtree 수집·fail-closed·read-only·O(1) spawn), SPEC-003-AC-10~14(G-PROC recall·residual cap·degrade·multi-agent·단조성), SPEC-004-AC-16~20(`active` liveness-gate·agent-gone terminated·degrade)는 각각 R-TMUX-001/002/004, R-ORC-001/002, R-ORC-003/005/006 행에 흡수된다(신규 GAP 없음).
 
 다만 아래는 명시적으로 surface한다(silent 금지):
 
