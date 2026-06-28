@@ -2,7 +2,7 @@
 spec: SPEC-202
 title: 디자인 시스템 적용·접근성 계약
 status: approved
-updated: 2026-06-27
+updated: 2026-06-28
 requirements: [R-UI-006, R-UI-005, R-UI-007, R-ORC-005, R-ORC-006]
 decisions: []
 tags:
@@ -120,6 +120,7 @@ tags:
 
 - **K1 (focus order)**: DOM/탭 순서는 시각 순서와 일치한다. 권장 순서: (전역) skip-to-content → primary nav/refresh → (Camp List) camp grid → (선택 시) Camp Detail region → orc layer → Orc Inspector(메타데이터 → terminal preview → command dock input → send → interrupt).
 - **K2 (roving tabindex)**: camp grid와 orc sprite layer 같은 동질 항목 집합은 single tab stop + Arrow key 이동(roving tabindex). `Enter`/`Space`로 활성화(camp 열기 / orc 선택).
+  - **NOTE (scene/map granularity, [[SPEC-301-camp-map-movement]])**: camp scene/map의 orc layer는 **zone(window)당 하나의 roving-tabindex 그룹**으로 구성한다(zone당 single tab stop; `Tab`/`Shift+Tab`=zone 간, Arrow=zone 내 orc 간, `Enter`/`Space`=선택). 이는 K2의 granularity 구체화이며, 전 orc 도달성(SPEC-202-AC-07)·focus order(K1)는 그대로 보존된다.
 - **K3 (focus-visible)**: 모든 interactive 요소는 키보드 포커스 시 가시 focus ring을 렌더한다(`:focus-visible`). focus outline을 제거(`outline:none` 단독)하면 안 된다. focus ring은 색뿐 아니라 형태(2px ring/offset)로도 구분되어야 한다(대비 §2.6).
 - **K4 (Escape/close 의미)**: modal/bottom-sheet/overlay는 `Escape`로 닫히고, **포커스를 트리거 요소로 반환**한다. Camp Detail에서 `Escape`는 orc 선택 해제 → (재차) camp list 복귀의 단계적 의미를 가진다(구체 단계는 [[SPEC-201-dashboard-screens]]와 정합).
 - **K5 (modal focus trap)**: interrupt confirm modal([[SPEC-400-control-actions]])은 열릴 때 포커스를 modal 내부로 가두고, 초기 포커스는 **안전한 기본값(Cancel)**에 둔다. destructive 확정 버튼이 자동 포커스 받지 않는다.

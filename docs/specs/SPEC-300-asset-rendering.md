@@ -2,7 +2,7 @@
 spec: SPEC-300
 title: 런타임 asset 소비·sprite 상태머신·fallback
 status: approved
-updated: 2026-06-27
+updated: 2026-06-28
 requirements: [R-UI-003, R-UI-006, R-P1-004]
 decisions: [D-007, D-009, D-013]
 tags:
@@ -270,6 +270,8 @@ placeholder 규칙(확정):
 3. `prefers-reduced-motion`에서 1번 정적 frame으로 고정(§3.5).
 4. **8방향·`roaming`은 P1 movement 도입 시 확장**한다. MVP에서 `roaming`은 status로부터 진입하지 않으며 direction은 `south` 고정이다.
 
+> **NOTE (cross-ref, P1 movement)**: P1 movement의 `roaming` 진입·8방향 direction은 이제 [[SPEC-301-camp-map-movement]]가 **진입(enter)·소유**한다. 본 spec은 `roaming` walk-cycle frame 시퀀스(9f@8)·direction 폴더·`south` fallback(§3.2-4)·reduced-motion freeze(§3.5) 등 **sprite 메커니즘만** 제공하고, "언제 roaming에 들어가고 어느 방향으로 가는가"는 SPEC-301 §3.1이 결정한다(요약: 렌더된 위치가 `f(windowIndex,status,paneId)` target과 달라지면 진입, direction = 이동 벡터의 8방향 quantize). 아래 Q4는 SPEC-301에서 **해소**됐다.
+
 ### 3.8 license 게이트 / 비-재배포 (미해소, [[08-Decisions|D-009]])
 
 - manifest `license`의 `commercial_use`/`redistribution`/`attribution_required`는 현재 **`"unknown"`**이다. 조건이 명시 확인되기 전에는 asset pack을 npm package 등 외부로 **재배포하지 않는다**([[14-MVP-PoC-Scope]] 패키징 게이트, [[09-Reviews]] Issue Register).
@@ -367,5 +369,5 @@ placeholder 규칙(확정):
 - **Q1 — overlay anchor/offset 위치 규약**: status overlay(64×64)를 sprite frame(232/228/236) 위 어디에 합성할지(머리 위/우상단 badge 등)는 디자인 결정이며 [[SPEC-202-design-accessibility]]·[[SPEC-201-dashboard-screens]]와 좌표 규약을 정해야 한다. 현재는 "별도 layer"까지만 고정. **검토 필요.**
 - **Q2 — frame preload·메모리 budget**: orc 다수(비기능: 20 session/100 pane)일 때 state별 7-frame × 다방향 PNG preload 전략·texture 상한([[11-PixelLab-Asset-Setup]] Runtime Config `preload list`/`max texture size`)이 미정. MVP는 south/idle 정적부터이므로 부담이 낮으나, 애니메이션·8방향 확장 시 lazy load/캐시 정책을 [[SPEC-200-frontend-architecture]]와 정해야 한다.
 - **Q3 — animation 위상 동기화 모델**: §3.3-2의 "전이 시 frame 0 리셋 / 유지 시 위상 보존"을 RAF 기반 시계로 구현할지, snapshot 주기(1~5s, [[08-Decisions|D-014]])와 독립된 렌더 루프로 둘지 [[SPEC-200-frontend-architecture]]와 정합 필요(snapshot 주기보다 frame 재생이 빠르므로 렌더 루프는 snapshot과 분리되어야 한다).
-- **Q4 — `roaming`/8방향 진입 조건(P1)**: `roaming`은 status가 아닌 이동 표현이므로, P1 movement에서 어떤 신호(예: cwd 변경, 사용자 배치)로 진입·direction을 정할지 미정. MVP 비범위(§3.7).
+- **Q4 — `roaming`/8방향 진입 조건(P1) — 해소됨**: ~~`roaming`은 status가 아닌 이동 표현이므로, P1 movement에서 어떤 신호로 진입·direction을 정할지 미정.~~ [[SPEC-301-camp-map-movement]] §3.1이 해소: `roaming`은 별도 신호(cwd 변경 등) 없이 **렌더된 위치가 target position `f(windowIndex,status,paneId,mapDims)`와 달라질 때**(주로 `status` 변화로 station이 옮겨질 때) 진입하고, **direction = 이동 벡터(target−rendered)를 8방향으로 quantize**(폴더 부재 시 `south` fallback, §3.2-4)한다. 새 서버 데이터/신호를 도입하지 않는 기존 `Orc` 필드의 순수 함수다. MVP는 여전히 정적 south(§3.7)이며 movement는 P1.
 - **Q5 — license 확정 의존**: §3.8 비-재배포는 manifest `license="unknown"` 동안 유효하다. license 확정(commercial/redistribution 허용) 시 [[SPEC-700-packaging-release]]가 asset 번들 포함을 결정하면 본 spec의 L2 placeholder 경로는 배포본에서 비활성(정상 asset 경로)로 전환된다. **SPEC-700과 공동 검토 필요.**

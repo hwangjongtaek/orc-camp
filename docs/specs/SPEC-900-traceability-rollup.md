@@ -88,7 +88,7 @@ tags:
 | R-ORC-002 | SPEC-003 | SPEC-003-AC-04/05/06/08 | U | `unknown`≠non-candidate, 충돌 시 단정 금지 |
 | R-ORC-003 | SPEC-004 (직렬화 SPEC-005) | SPEC-004-AC-01/03/05/07/08/15; SPEC-005-AC-03/04/12 | U | status 7종·confidence·요약 필드·집계 |
 | R-ORC-004 | SPEC-004 (직렬화 SPEC-005) | SPEC-004-AC-11/13; SPEC-005-AC-09 | U | `currentWorkSummary`·`summarySource` 5종 |
-| R-ORC-005 | SPEC-004 (직렬화 SPEC-005, 렌더 SPEC-001/201/202) | SPEC-004-AC-02/04/06/12/14; SPEC-005-AC-08/14; SPEC-201-AC-04 (지표 SPEC-007-AC-03) | U·C·M | estimated/confidence 단정 금지·calibration 단조성 `TC-M-CALIB-*` |
+| R-ORC-005 | SPEC-004 (직렬화 SPEC-005, 렌더 SPEC-001/201/202/301) | SPEC-004-AC-02/04/06/12/14; SPEC-005-AC-08/14; SPEC-201-AC-04; SPEC-301-AC-06 (지표 SPEC-007-AC-03) | U·C·M | estimated/confidence 단정 금지·calibration 단조성 `TC-M-CALIB-*`·맵 activity bubble |
 | R-ORC-006 | SPEC-004 (렌더 SPEC-202) | SPEC-004-AC-09, AC-10; SPEC-202-AC-03 | U·C | `terminated` vs `stale` 짧은 retention. `TC-U-STAT-TERM/STALE` |
 | R-ORC-007 | SPEC-003 / [[SPEC-800-extensibility]] | SPEC-003-AC-07/08; SPEC-800-AC-01/02/07/08 | U | `AgentDetector` adapter boundary·open/closed 확장 |
 
@@ -98,10 +98,10 @@ tags:
 | --- | --- | --- | --- | --- |
 | R-UI-001 | SPEC-201 (route SPEC-200) | SPEC-201-AC-01/02; SPEC-200-AC-01/15; SPEC-202-AC-18 | C | 첫 화면 = camp list |
 | R-UI-002 | SPEC-201 | SPEC-201-AC-01, AC-02 | C | CampCard 콘텐츠 매핑 |
-| R-UI-003 | SPEC-201 (sprite SPEC-300) | SPEC-201-AC-03/14; SPEC-300-AC-05/06/09/12 | C | camp scene·orc sprite |
+| R-UI-003 | SPEC-201 (sprite SPEC-300, 공간 맵 SPEC-301) | SPEC-201-AC-03/14; SPEC-300-AC-05/06/09/12; SPEC-301-AC-01/02/03/08/09/12/14 | C | camp scene·orc sprite·공간 배치 맵(zone/station/slot, SPEC-301이 scene 배치 supersede) |
 | R-UI-004 | SPEC-201 (control SPEC-400, preview text SPEC-101) | SPEC-201-AC-04/11/13; SPEC-400-AC-14; SPEC-202-AC-07; SPEC-101-AC-17/18 | C·I | inspector 4영역. preview text 경로 = `GET /api/orcs/:orcId/preview`([[08-Decisions|D-026]]) |
 | R-UI-005 | SPEC-201 (신호 SPEC-102, store SPEC-200) | SPEC-201-AC-05/06/07/12; SPEC-200-AC-11/14; SPEC-102-AC-07/08 | C | 7+상태 구분(no-agent≠no-session, disconnected≠stale) |
-| R-UI-006 | SPEC-300 / SPEC-202 (배포 SPEC-700) | SPEC-202-AC-16/17; SPEC-300-AC-08/09/10/13; SPEC-700-AC-06 | C·I | placeholder parity·동일 layout/interaction |
+| R-UI-006 | SPEC-300 / SPEC-202 (배포 SPEC-700, 맵 SPEC-301) | SPEC-202-AC-16/17; SPEC-300-AC-08/09/10/13; SPEC-301-AC-08/10/14; SPEC-700-AC-06 | C·I | placeholder parity·동일 layout/interaction·맵 uniform scale parity |
 | R-UI-007 | SPEC-201 (deep-link SPEC-200, 데이터 SPEC-005) | SPEC-201-AC-08; SPEC-200-AC-02; SPEC-202-AC-21; SPEC-005-AC-02/03 | C·U | raw tmux target 상시 노출 |
 
 ### 2.5 R-PRIV — Terminal preview·Privacy (1차 [[SPEC-006-privacy-redaction]], R-PRIV-006은 [[SPEC-201-dashboard-screens]]/[[SPEC-500-settings-persistence]]/[[SPEC-101-snapshot-api]])
@@ -193,7 +193,7 @@ tags:
 | --- | --- | --- | --- |
 | R-P1-001 (camp/orc alias·note) | SPEC-500 | SPEC-500-AC-P1-01 | SQLite `alias` table(stable id 키) |
 | R-P1-002 (수동 mark/unmark) | SPEC-500 | SPEC-500-AC-P1-02 | SQLite `manual_mark`(paneId 키) |
-| R-P1-004 (sprite variant·animation) | SPEC-300 (정합 SPEC-202) | SPEC-300-AC-01~07/11; SPEC-202-AC-06/11 | agentType별 variant·status animation·reduced-motion |
+| R-P1-004 (sprite variant·animation) | SPEC-300 (정합 SPEC-202, movement SPEC-301) | SPEC-300-AC-01~07/11; SPEC-202-AC-06/11; SPEC-301-AC-04/05/07/13 | agentType별 variant·status animation·reduced-motion·roaming movement(8방향) |
 | R-P1-006 (SQLite history) | SPEC-500 | SPEC-500-AC-P1-03/04/05 | session/event history·redacted·retention·output opt-in |
 | R-P1-010 (Linux 검증·문서화) | SPEC-700 | SPEC-700-AC-14 | `smoke:linux` job(P1 advisory) |
 | R-P1-011 (detector config/plugin 확장) | SPEC-800 | SPEC-800-AC-03/04/05/06/08 | config-rule-first([[08-Decisions|D-031]])·calibration 우회 불가 |
@@ -259,7 +259,7 @@ tags:
 | 1 Scan | SPEC-001~007 | **approved** | 1차 게이트 통과(2026-06-26), P0 gap 0 |
 | 2 Server·API | SPEC-100/101/102 | draft | full-product 게이트(2026-06-27) 통과, 미승격 |
 | 3 Dashboard | SPEC-200/201/202 | draft | 동일 |
-| 4 Camp Visual | SPEC-300 | draft | 동일 |
+| 4 Camp Visual | SPEC-300 / SPEC-301 | SPEC-300 draft · SPEC-301 draft | SPEC-301(camp 맵·movement·roaming) 신규, spec-reviewer 게이트 대기 |
 | 5 Control | SPEC-400 | draft | 동일 |
 | 6 Settings | SPEC-500 | draft | 동일 |
 | 7 Observability | SPEC-600 | draft | 동일 |
