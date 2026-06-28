@@ -65,10 +65,10 @@ describe('SPEC-301-AC-01 zone partition determinism', () => {
     expect(a.zones.map((z) => z.zoneIndex)).toEqual([0, 1, 2]);
     // every zone lies inside the derived world (= zone-grid extent, §2.2)
     for (const z of a.zones) expect(within(z.rect, a.dims.world)).toBe(true);
-    // world is the grid extent: 3 windows → cols=3, rows=1
-    expect(a.dims.cols).toBe(3);
-    expect(a.dims.world.w).toBe(3 * ZONE_W + 2 * ZONE_GUTTER);
-    expect(a.dims.world.h).toBe(ZONE_H);
+    // world is the grid extent: 3 windows → cols=2 (#41 vertical-first), rows=2
+    expect(a.dims.cols).toBe(2);
+    expect(a.dims.world.w).toBe(2 * ZONE_W + ZONE_GUTTER);
+    expect(a.dims.world.h).toBe(2 * ZONE_H + ZONE_GUTTER);
     // determinism: identical re-run
     const b = computeLayout(orcs);
     expect([...b.targets.entries()]).toEqual([...a.targets.entries()]);
@@ -193,14 +193,14 @@ describe('SPEC-301-AC-14 geometry feasibility + uniform scale (full-size sprites
   it('AC-14b: zones are ALWAYS fixed ZONE_W×ZONE_H (=MIN_ZONE); many windows grow the world', () => {
     expect(MIN_ZONE).toEqual({ w: ZONE_W, h: ZONE_H });
     const one = mapDims(1);
-    const many = mapDims(16); // 4 cols × 4 rows
+    const many = mapDims(16); // #41: 2 cols × 8 rows (vertical-first)
     expect(many.cols).toBe(ZONE_COLS_MAX);
     expect(many.zone).toEqual({ w: ZONE_W, h: ZONE_H }); // fixed regardless of count
     // a many-window camp produces a strictly larger world → the viewport scrolls (§2.7)
     expect(many.world.w).toBeGreaterThan(one.world.w);
     expect(many.world.h).toBeGreaterThan(one.world.h);
-    expect(many.world.w).toBe(4 * ZONE_W + 3 * ZONE_GUTTER);
-    expect(many.world.h).toBe(4 * ZONE_H + 3 * ZONE_GUTTER);
+    expect(many.world.w).toBe(2 * ZONE_W + ZONE_GUTTER);
+    expect(many.world.h).toBe(8 * ZONE_H + 7 * ZONE_GUTTER);
     // every zone inner rect stays non-degenerate (never shrinks below MIN_ZONE)
     const windows = Array.from({ length: 16 }, (_, i) => i);
     for (const w of windows) {
@@ -213,11 +213,33 @@ describe('SPEC-301-AC-14 geometry feasibility + uniform scale (full-size sprites
     }
   });
 
-  it('AC-14b: cols cap at ZONE_COLS_MAX; few-window camp stays a single row', () => {
-    expect(mapDims(3).cols).toBe(3);
-    expect(mapDims(3).world.h).toBe(ZONE_H); // single row
-    expect(mapDims(7).cols).toBe(ZONE_COLS_MAX); // 7 → 4 cols, 2 rows
-    expect(mapDims(7).world.h).toBe(2 * ZONE_H + ZONE_GUTTER);
+  it('AC-14b: cols cap at ZONE_COLS_MAX (#41); single-window camp stays one zone wide', () => {
+    expect(ZONE_COLS_MAX).toBe(2); // #41 vertical-first growth
+    // single window: cols=1, exactly one zone wide → fits the 1760px panel beside the inspector
+    expect(mapDims(1).cols).toBe(1);
+    expect(mapDims(1).world.w).toBe(ZONE_W);
+    expect(mapDims(1).world.h).toBe(ZONE_H);
+    // 3 windows → 2 cols, 2 rows (grows DOWN, not into a wide strip)
+    expect(mapDims(3).cols).toBe(2);
+    expect(mapDims(3).world.h).toBe(2 * ZONE_H + ZONE_GUTTER);
+    // 7 windows → 2 cols, 4 rows
+    expect(mapDims(7).cols).toBe(ZONE_COLS_MAX);
+    expect(mapDims(7).world.h).toBe(4 * ZONE_H + 3 * ZONE_GUTTER);
+  });
+
+  it('#41: world width is capped while height grows with windows (mostly vertical scroll)', () => {
+    const wCap = 2 * ZONE_W + ZONE_GUTTER; // never exceeds two zones wide
+    let prevH = 0;
+    for (const z of [2, 4, 8, 16, 30]) {
+      const d = mapDims(z);
+      expect(d.cols).toBeLessThanOrEqual(ZONE_COLS_MAX);
+      expect(d.world.w).toBeLessThanOrEqual(wCap); // horizontal scroll is bounded
+      expect(d.world.h).toBeGreaterThan(prevH); // vertical extent keeps growing
+      prevH = d.world.h;
+    }
+    // a large camp is far taller than wide → scrolling is dominantly vertical
+    const big = mapDims(16);
+    expect(big.world.h).toBeGreaterThan(big.world.w);
   });
 });
 

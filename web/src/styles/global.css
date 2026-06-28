@@ -700,21 +700,53 @@ img {
 }
 
 /* --- Camp MAP scene (SPEC-301) --- */
-/* The .oc-map panel is the FIXED on-screen viewport; it scrolls/pans over the large world
-   (§2.7). The world div is rendered at BASE_SCALE (1:1) so sprites show near original size. */
+/* The .oc-map FRAME is the fixed on-screen panel; the .oc-map__scroll child is the viewport
+   that scrolls/pans over the large world (§2.7). The world div is rendered at BASE_SCALE (1:1)
+   and zoomed via transform: scale() (#42). zoom controls sit in the frame, outside the
+   scroller, so they stay pinned. */
 .oc-map {
   position: relative;
   width: 100%;
   height: var(--oc-map-viewport-h);
   min-height: var(--oc-map-viewport-min-h);
-  overflow: auto;
+  overflow: hidden;
   background: var(--oc-color-surface-base);
   border: 1px solid var(--oc-color-border);
   border-radius: var(--oc-radius-card);
 }
+/* §2.7/#42 — the scrolling viewport + drag-to-pan surface. z-index:0 makes it a stacking
+   context so the world's z-layered children never paint over the zoom controls. */
+.oc-map__scroll {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  z-index: 0;
+  cursor: grab;
+  touch-action: pan-x pan-y; /* touch = native momentum scroll (drag-to-pan on mobile, #45) */
+}
+.oc-map__scroll--panning {
+  cursor: grabbing;
+  user-select: none;
+}
 .oc-map__world {
   position: relative;
   transform-origin: top left;
+}
+/* §2.7/#42 — zoom/fit control cluster, pinned to the viewport corner. */
+.oc-map__controls {
+  position: absolute;
+  top: var(--oc-space-2);
+  right: var(--oc-space-2);
+  display: flex;
+  gap: var(--oc-space-1);
+  z-index: 1;
+}
+.oc-map__ctrl {
+  min-width: 32px;
+  min-height: 32px;
+  justify-content: center;
+  font-weight: 600;
+  box-shadow: var(--oc-shadow-pixel);
 }
 /* ① backdrop/horizon (SPEC-300 §2.6b / §2.8a) — backmost; cover-width, anchored top.
    Parallax transform is set by CampMap on scroll (transform-only). pointer-events:none. */
@@ -964,6 +996,71 @@ img {
   margin-top: 2px;
   color: var(--oc-color-text-muted);
   font-size: 10px;
+}
+
+/* --- Mobile inspector bottom sheet (SPEC-201 §3.8, #45) --- */
+.oc-sheet__backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--oc-color-overlay);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 55; /* above the map, below toasts (60) */
+}
+.oc-sheet {
+  width: 100%;
+  max-width: 720px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-border);
+  border-top-left-radius: var(--oc-radius-card);
+  border-top-right-radius: var(--oc-radius-card);
+  box-shadow: var(--oc-shadow-pixel);
+  animation: oc-sheet-up 0.18s ease-out; /* reduced-motion rule makes this instant (AC-11) */
+}
+@keyframes oc-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.oc-sheet__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--oc-color-border);
+  margin: var(--oc-space-2) auto var(--oc-space-1);
+}
+.oc-sheet__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-2);
+  padding: 0 var(--oc-space-3) var(--oc-space-2);
+  border-bottom: 1px solid var(--oc-color-border);
+}
+.oc-sheet__title {
+  flex: 1;
+  font-size: 16px;
+}
+.oc-sheet__close {
+  min-width: 32px;
+  justify-content: center;
+}
+.oc-sheet__body {
+  overflow: auto;
+  padding: var(--oc-space-3);
+}
+/* The inspector renders un-pinned inside the sheet (the sheet body is the scroll surface). */
+.oc-sheet__body .oc-inspector {
+  position: static;
+  border: none;
+  padding: 0;
+  background: transparent;
 }
 
 /* --- Reduced motion (SPEC-202 §2.5 M2/M4) --- */

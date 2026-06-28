@@ -277,6 +277,7 @@ camp/orc metaphor와 **무관하게** raw tmux 식별이 항상 확인 가능해
 
 1. desktop: 3-pane(camp scene · inspector · activity rail)을 허용한다([[DESIGN]] Layout).
 2. mobile: camp scene 위주로 보이고 inspector는 bottom sheet로 전환한다([[DESIGN]] Layout). raw target·status·preview 컨트롤은 bottom sheet에서도 접근 가능해야 한다(R-UI-007/R-PRIV-006 보존).
+   > **NOTE (bottom-sheet implemented, #45)**: ≤880px에서 orc 선택 시 inspector가 화면 하단 **slide-up bottom-sheet**(`role="dialog"`, focus-trap, Escape/close/backdrop dismiss)로 뜬다. sheet는 동일 `OrcInspector`를 렌더하므로 raw `tmuxTarget`+`paneId`·status+confidence·terminal preview(노출 게이트)·control dock이 모두 도달 가능하다(R-UI-007/R-PRIV-006/[[SPEC-400-control-actions]] 보존). 닫으면 `?orc` selection이 해제된다. 맵 drag-to-pan은 touch(native momentum scroll)로 동작한다([[SPEC-301-camp-map-movement]] §2.7 #42). tokens-only·reduced-motion-safe.
 3. (가설, 검토 필요) mobile dashboard를 MVP 범위에 포함할지 desktop-first로 제한할지는 [[03-UX-UI]] Open Question이며 미확정이다. 본 spec은 desktop 3-pane을 1차로, mobile bottom-sheet를 degrade 경로로 둔다.
 
 ## 4. Acceptance criteria

@@ -12,7 +12,7 @@
  * (→ ?orc=). Placeholder parity (AC-10): a missing background/terrain degrades to a CSS
  * ground; missing props degrade to CSS station markers at identical coordinates.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useAssets } from '../../assets/AssetContext';
 import { useStore } from '../../store/store';
 import { computeLayout, type OrcMapInput } from '../../scene/layout';
@@ -20,6 +20,13 @@ import { getTime } from '../../scene/clock';
 import { RoamingController } from '../../scene/roaming';
 import { parallaxTransform } from '../../scene/terrain';
 import { BASE_SCALE, MAP_SPRITE_SCALE } from '../../scene/stations';
+import {
+  DRAG_THRESHOLD,
+  fitScale,
+  scrollForZoom,
+  zoomIn,
+  zoomOut,
+} from '../../scene/panzoom';
 import type { Orc } from '../../types/domain';
 import { OrcSprite } from '../sprite/OrcSprite';
 import { StationLayer } from './StationLayer';
@@ -50,8 +57,12 @@ export function CampMap({
   const reducedMotion = useStore((s) => s.reducedMotion);
   const { manifest, assetBase } = useAssets();
 
+  // §3.1-9 (#43) — ambient micro-wander is ON by default so an idle camp gently "breathes"
+  // (subtle, deterministic, reduced-motion-disabled inside the controller; jitter affects
+  // renderedPos only — target/slot/layout are untouched, so no AC outcome changes).
   const controllerRef = useRef<RoamingController | null>(null);
-  if (controllerRef.current === null) controllerRef.current = new RoamingController();
+  if (controllerRef.current === null)
+    controllerRef.current = new RoamingController({ ambientWander: true });
   const controller = controllerRef.current;
 
   // Read the live orcs for this camp (re-derived per applied version).
@@ -166,6 +177,106 @@ export function CampMap({
     return () => vp.removeEventListener('scroll', apply);
   }, [parallax, reducedMotion, orcs.length, hasBackdrop]);
 
+  // §2.7 (#42) — viewport zoom. scale() is applied to .oc-map__world AND the world box size is
+  // multiplied by `scale`, so the scroller's scrollWidth/Height track the visual size (scroll
+  // math stays exact). The scale is a pure visual transform — logical coords / §2.5 targets are
+  // unchanged → zero layout shift (AC-08). reduced-motion is automatically instant: we never
+  // animate the transform.
+  const [scale, setScale] = useState(1);
+  const scaleRef = useRef(1);
+  const pendingScrollRef = useRef<{ left: number; top: number } | null>(null);
+
+  const applyScale = useCallback((next: number) => {
+    const sc = containerRef.current;
+    if (sc) {
+      const anchor = { x: sc.clientWidth / 2, y: sc.clientHeight / 2 };
+      pendingScrollRef.current = scrollForZoom(
+        { left: sc.scrollLeft, top: sc.scrollTop },
+        scaleRef.current,
+        next,
+        anchor,
+      );
+    }
+    setScale(next);
+  }, []);
+
+  // After the scaled world box is in the DOM, restore the scroll so the viewport CENTER stays
+  // put across the zoom (the browser clamps negative/overflowing offsets into the valid range).
+  useLayoutEffect(() => {
+    scaleRef.current = scale;
+    const sc = containerRef.current;
+    const p = pendingScrollRef.current;
+    if (sc && p) {
+      sc.scrollLeft = Math.max(0, p.left);
+      sc.scrollTop = Math.max(0, p.top);
+      pendingScrollRef.current = null;
+    }
+  }, [scale]);
+
+  const onZoomIn = useCallback(() => applyScale(zoomIn(scaleRef.current)), [applyScale]);
+  const onZoomOut = useCallback(() => applyScale(zoomOut(scaleRef.current)), [applyScale]);
+  const onFit = useCallback(() => {
+    const sc = containerRef.current;
+    if (!sc) return;
+    applyScale(
+      fitScale(
+        { w: world.w * BASE_SCALE, h: world.h * BASE_SCALE },
+        { w: sc.clientWidth, h: sc.clientHeight },
+      ),
+    );
+  }, [applyScale, world.w, world.h]);
+
+  // §2.7 (#42) — drag-to-pan. Mouse/pen drag on the map BACKGROUND pans scrollLeft/Top; a small
+  // threshold means a stationary press is still a click (so orc selection survives). We never
+  // start a pan on an interactive element (orcs/controls), so clicks are never hijacked. Touch
+  // uses the scroller's native momentum scrolling (#45) — we don't engage there to avoid
+  // double-scrolling.
+  const panRef = useRef<
+    { x: number; y: number; left: number; top: number; id: number; active: boolean } | null
+  >(null);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>): void => {
+    if (e.pointerType === 'touch' || e.button !== 0) return;
+    if ((e.target as HTMLElement).closest('button, a, input, [role="dialog"]')) return;
+    const sc = containerRef.current;
+    if (!sc) return;
+    panRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      left: sc.scrollLeft,
+      top: sc.scrollTop,
+      id: e.pointerId,
+      active: false,
+    };
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>): void => {
+    const p = panRef.current;
+    const sc = containerRef.current;
+    if (!p || !sc) return;
+    const dx = e.clientX - p.x;
+    const dy = e.clientY - p.y;
+    if (!p.active) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return; // below threshold → keep it a click
+      p.active = true;
+      sc.setPointerCapture?.(p.id);
+      sc.classList.add('oc-map__scroll--panning');
+    }
+    sc.scrollLeft = p.left - dx;
+    sc.scrollTop = p.top - dy;
+    e.preventDefault();
+  };
+
+  const endPan = (): void => {
+    const p = panRef.current;
+    const sc = containerRef.current;
+    if (p && sc) {
+      sc.releasePointerCapture?.(p.id);
+      sc.classList.remove('oc-map__scroll--panning');
+    }
+    panRef.current = null;
+  };
+
   if (orcs.length === 0) {
     return (
       <div className="oc-scene">
@@ -178,16 +289,31 @@ export function CampMap({
   }
 
   return (
-    <div className="oc-map" ref={containerRef}>
+    <div className="oc-map">
+      {/* §2.7 — the .oc-map__scroll element IS the fixed on-screen viewport; it scrolls/pans
+          over the large world. It is also the IntersectionObserver root (§3.3-3) and the
+          drag-to-pan surface (#42). The zoom controls live OUTSIDE it so they stay pinned. */}
       <div
-        className="oc-map__world"
-        role="group"
-        aria-label="Camp map"
-        style={{ width: `${world.w * BASE_SCALE}px`, height: `${world.h * BASE_SCALE}px` }}
+        className="oc-map__scroll"
+        ref={containerRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endPan}
+        onPointerCancel={endPan}
       >
-        {/* z-stack (§2.7 ①→⑫): backdrop → ground/terrain → decor → stations → sprites →
-            dusk lighting. Depth layers stay below status overlay/label/raw target. */}
-        <BackdropLayer ref={backdropRef} manifest={manifest} assetBase={assetBase} />
+        <div
+          className="oc-map__world"
+          role="group"
+          aria-label="Camp map"
+          style={{
+            width: `${world.w * BASE_SCALE * scale}px`,
+            height: `${world.h * BASE_SCALE * scale}px`,
+            transform: `scale(${scale})`,
+          }}
+        >
+          {/* z-stack (§2.7 ①→⑫): backdrop → ground/terrain → decor → stations → sprites →
+              dusk lighting. Depth layers stay below status overlay/label/raw target. */}
+          <BackdropLayer ref={backdropRef} manifest={manifest} assetBase={assetBase} />
         <div
           className={`oc-map__ground${hasBackdrop ? ' oc-map__ground--glaze' : ''}`}
           aria-hidden="true"
@@ -236,10 +362,35 @@ export function CampMap({
           })}
         </div>
 
-        {/* §2.8d — single static dusk lighting/vignette overlay. Tokens-only, pointer-events
-            none, above sprites but BELOW status overlay/label/raw target (§2.7 ⑧). No
-            pulsing animation → reduced-motion safe (AC-19). */}
-        <div className="oc-map__lighting" aria-hidden="true" data-testid="map-lighting" />
+          {/* §2.8d — single static dusk lighting/vignette overlay. Tokens-only, pointer-events
+              none, above sprites but BELOW status overlay/label/raw target (§2.7 ⑧). No
+              pulsing animation → reduced-motion safe (AC-19). */}
+          <div className="oc-map__lighting" aria-hidden="true" data-testid="map-lighting" />
+        </div>
+      </div>
+
+      {/* §2.7 (#42) — keyboard-accessible zoom/fit control, pinned to the viewport corner
+          (outside the scroller so it never scrolls away). Reduced-motion: instant. */}
+      <div
+        className="oc-map__controls"
+        role="group"
+        aria-label="Map zoom controls"
+        data-testid="map-controls"
+      >
+        <button type="button" className="oc-btn oc-map__ctrl" aria-label="Zoom out" onClick={onZoomOut}>
+          −
+        </button>
+        <button type="button" className="oc-btn oc-map__ctrl" aria-label="Zoom in" onClick={onZoomIn}>
+          +
+        </button>
+        <button
+          type="button"
+          className="oc-btn oc-map__ctrl"
+          aria-label="Fit camp to view"
+          onClick={onFit}
+        >
+          Fit
+        </button>
       </div>
     </div>
   );

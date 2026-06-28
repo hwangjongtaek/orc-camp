@@ -56,7 +56,11 @@ export const ZONE_H = 900;
 export const ZONE_GUTTER = 48;
 export const ZONE_PAD = 48;
 export const ZONE_HEADER_H = 64;
-export const ZONE_COLS_MAX = 4;
+// §2.2 (#41) — VERTICAL-FIRST growth: cap the zone grid at 2 columns so many-window camps
+// grow DOWN (mostly vertical scroll) instead of tiling into a wide horizontal strip. A
+// single-window camp stays cols=1 (1200px zone fits the 1760px panel beside the inspector);
+// horizontal scroll is bounded to two zones wide (2·ZONE_W + ZONE_GUTTER).
+export const ZONE_COLS_MAX = 2;
 /** Zones are always exactly this size (fixed floor AND ceiling, §2.2 F10). */
 export const MIN_ZONE = { w: ZONE_W, h: ZONE_H } as const;
 
@@ -74,12 +78,14 @@ export const ROAM_MIN_MS = 250;
 export const ROAM_MAX_MS = 1500;
 export const ARRIVE_EPSILON = 1; // px
 
-// §3.1-9 — idle ambient micro-wander (DEFAULT OFF, non-load-bearing, reduced-motion off).
-// Radius of the station-local jitter applied to renderedPos ONLY (never to the logical
-// target/slot). The motion is a deterministic, paneId-seeded Lissajous path on the shared
-// clock time `t` (no Math.random / Date.now), bounded inside WANDER_R (see wander.ts).
-export const WANDER_R = 6; // logical px (hypothesis, Q3)
-export const WANDER_FREQ = 0.0009; // base angular speed (rad/ms); slow, gentle drift
+// §3.1-9 (#43) — idle ambient micro-wander (DEFAULT ON in CampMap, SUBTLE, non-load-bearing,
+// reduced-motion off). Radius of the station-local jitter applied to renderedPos ONLY (never
+// to the logical target/slot). The motion is a deterministic, paneId-seeded Lissajous path on
+// the shared clock time `t` (no Math.random / Date.now), bounded inside WANDER_R (see
+// wander.ts). Tuned subtle: a small radius + a slow base frequency so orcs "breathe"/drift
+// gently in place rather than skating around (Q3 tuning; reduced-motion bypasses all).
+export const WANDER_R = 10; // logical px (hypothesis range ≈8–14, subtle)
+export const WANDER_FREQ = 0.00055; // base angular speed (rad/ms); slow, gentle drift
 
 export const MVP_DIRECTION = 'south';
 

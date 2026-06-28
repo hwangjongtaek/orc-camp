@@ -11,7 +11,9 @@ import { STATUS_KEYS } from '../types/domain';
 import { relativeTime, clockTime } from '../util/time';
 import { CampMap } from '../components/scene/CampMap';
 import { OrcInspector } from '../components/inspector/OrcInspector';
+import { BottomSheet } from '../components/inspector/BottomSheet';
 import { StatusCountChip } from '../components/status/StatusBadge';
+import { useMediaQuery, MOBILE_QUERY } from '../util/useMediaQuery';
 
 export function CampDetailView(): JSX.Element {
   const params = useParams();
@@ -42,6 +44,18 @@ export function CampDetailView(): JSX.Element {
     },
     [search, setSearch],
   );
+
+  // SPEC-201 §3.8 (#45) — clearing selection (e.g. dismissing the mobile bottom sheet) drops
+  // the ?orc param so the sheet closes and the URL stays the source of truth.
+  const clearSelection = useCallback(() => {
+    const next = new URLSearchParams(search);
+    next.delete('orc');
+    setSearch(next, { replace: false });
+  }, [search, setSearch]);
+
+  // SPEC-201 §3.8 — at the mobile breakpoint the inspector degrades to a bottom sheet that
+  // only mounts when an orc is selected (the desktop 3-pane otherwise shows it inline).
+  const isMobile = useMediaQuery(MOBILE_QUERY);
 
   if (!camp) {
     if (!hasBootstrapped) {
@@ -90,8 +104,15 @@ export function CampDetailView(): JSX.Element {
           <CampMap campId={campId} selectedOrcId={selectedOrcId} onSelect={onSelect} />
           <ActivityRail />
         </div>
-        <OrcInspector orcId={selectedOrcId} />
+        {/* Desktop: inline inspector pane. Mobile: replaced by the bottom sheet below. */}
+        {!isMobile && <OrcInspector orcId={selectedOrcId} />}
       </div>
+
+      {isMobile && selectedOrcId && (
+        <BottomSheet title="Orc inspector" onClose={clearSelection}>
+          <OrcInspector orcId={selectedOrcId} />
+        </BottomSheet>
+      )}
     </div>
   );
 }
