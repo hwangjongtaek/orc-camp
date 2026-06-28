@@ -2,7 +2,7 @@
 spec: SPEC-900
 title: 전체 제품 추적성 롤업
 status: approved
-updated: 2026-06-27
+updated: 2026-06-28
 requirements: []
 decisions: []
 tags:
@@ -98,12 +98,12 @@ tags:
 | --- | --- | --- | --- | --- |
 | R-UI-001 | SPEC-201 (route SPEC-200) | SPEC-201-AC-01/02; SPEC-200-AC-01/15; SPEC-202-AC-18 | C | 첫 화면 = camp list |
 | R-UI-002 | SPEC-201 | SPEC-201-AC-01, AC-02 | C | CampCard 콘텐츠 매핑 |
-| R-UI-003 | SPEC-201 (sprite SPEC-300, 공간 맵 SPEC-301) | SPEC-201-AC-03/14; SPEC-300-AC-05/06/09/12; SPEC-301-AC-01/02/03/08/09/12/14 | C | camp scene·orc sprite·공간 배치 맵(zone/station/slot, SPEC-301이 scene 배치 supersede) |
+| R-UI-003 | SPEC-201 (sprite SPEC-300, 공간 맵 SPEC-301) | SPEC-201-AC-03/14; SPEC-300-AC-05/06/09/12/14/15/16/17/18; SPEC-301-AC-01/02/03/08/09/12/14/15/16/17/18/20/21 | C | camp scene·orc sprite·공간 배치 맵(zone/station/slot, SPEC-301이 scene 배치 supersede) + **입체(깊이) scene**(Wang 자동 타일링·backdrop+parallax·scenery·shadow·lighting, SPEC-300 §2.5/§2.6·SPEC-301 §2.8) |
 | R-UI-004 | SPEC-201 (control SPEC-400, preview text SPEC-101) | SPEC-201-AC-04/11/13; SPEC-400-AC-14; SPEC-202-AC-07; SPEC-101-AC-17/18 | C·I | inspector 4영역. preview text 경로 = `GET /api/orcs/:orcId/preview`([[08-Decisions|D-026]]) |
 | R-UI-005 | SPEC-201 (신호 SPEC-102, store SPEC-200) | SPEC-201-AC-05/06/07/12; SPEC-200-AC-11/14; SPEC-102-AC-07/08 | C | 7+상태 구분(no-agent≠no-session, disconnected≠stale) |
-| R-UI-006 | SPEC-300 / SPEC-202 (배포 SPEC-700, 맵 SPEC-301) | SPEC-202-AC-16/17; SPEC-300-AC-08/09/10/13; SPEC-301-AC-08/10/14; SPEC-700-AC-06 | C·I | placeholder parity·동일 layout/interaction·맵 uniform scale parity |
+| R-UI-006 | SPEC-300 / SPEC-202 (배포 SPEC-700, 맵 SPEC-301) | SPEC-202-AC-16/17; SPEC-300-AC-08/09/10/13/15/17/18; SPEC-301-AC-08/10/14/20; SPEC-700-AC-06 | C·I | placeholder parity·동일 layout/interaction·맵 uniform scale parity + **rich-map depth fallback**(terrain/backdrop/decor/shadow CSS fallback, 단일 평면 tile 회귀 방지) |
 | R-UI-007 | SPEC-201 (deep-link SPEC-200, 데이터 SPEC-005) | SPEC-201-AC-08; SPEC-200-AC-02; SPEC-202-AC-21; SPEC-005-AC-02/03 | C·U | raw tmux target 상시 노출 |
-| R-UI-008 | SPEC-301 (sprite SPEC-300, 데이터 불변 SPEC-005) | SPEC-301-AC-01/02/03/12/14 | C | 활동을 공간 표현(위치=기존 필드 결정적 함수, 서버 좌표 불추가; [[08-Decisions|D-035]]) |
+| R-UI-008 | SPEC-301 (sprite SPEC-300, 데이터 불변 SPEC-005) | SPEC-301-AC-01/02/03/12/14/15/18 | C | 활동을 공간 표현(위치=기존 필드 결정적 함수, 서버 좌표 불추가; [[08-Decisions|D-035]]) + terrain field/scenery도 client-derived 결정적 |
 
 ### 2.5 R-PRIV — Terminal preview·Privacy (1차 [[SPEC-006-privacy-redaction]], R-PRIV-006은 [[SPEC-201-dashboard-screens]]/[[SPEC-500-settings-persistence]]/[[SPEC-101-snapshot-api]])
 
@@ -194,13 +194,13 @@ tags:
 | --- | --- | --- | --- |
 | R-P1-001 (camp/orc alias·note) | SPEC-500 | SPEC-500-AC-P1-01 | SQLite `alias` table(stable id 키) |
 | R-P1-002 (수동 mark/unmark) | SPEC-500 | SPEC-500-AC-P1-02 | SQLite `manual_mark`(paneId 키) |
-| R-P1-004 (sprite variant·animation) | SPEC-300 (정합 SPEC-202, movement SPEC-301) | SPEC-300-AC-01~07/11; SPEC-202-AC-06/11; SPEC-301-AC-04/05/07/13 | agentType별 variant·status animation·reduced-motion·roaming movement(8방향) |
+| R-P1-004 (sprite variant·animation) | SPEC-300 (정합 SPEC-202, movement SPEC-301) | SPEC-300-AC-01~07/11; SPEC-202-AC-06/11; SPEC-301-AC-04/05/07/13/19 | agentType별 variant·status animation·reduced-motion·roaming movement(8방향)·depth 모션 reduced-motion 정지 |
 | R-P1-006 (SQLite history) | SPEC-500 | SPEC-500-AC-P1-03/04/05 | session/event history·redacted·retention·output opt-in |
 | R-P1-010 (Linux 검증·문서화) | SPEC-700 | SPEC-700-AC-14 | `smoke:linux` job(P1 advisory) |
 | R-P1-011 (detector config/plugin 확장) | SPEC-800 | SPEC-800-AC-03/04/05/06/08 | config-rule-first([[08-Decisions|D-031]])·calibration 우회 불가 |
 | R-P1-013 (status 변화 roaming 이동·8방향) | SPEC-301 (sprite SPEC-300) | SPEC-301-AC-04/05 | roaming walk-cycle 진입·8방향 quantize([[08-Decisions|D-035]]) |
 
-> 미채택 P1(R-P1-003/005/007/008/009/012)은 owner spec에서 **forward 제약**으로만 보존된다(예: SPEC-202-AC R-P1-009 forward focus backbone). P0 커버리지 대상 아님.
+> 미채택 P1(R-P1-003/005/007/008/009/012)은 owner spec에서 **forward 제약**으로만 보존된다(예: SPEC-202-AC R-P1-009 forward focus backbone). P0 커버리지 대상 아님. **R-P1-005**(background/asset-pack 교체)는 미채택이나, rich-map 작업으로 backdrop·Wang/flat tileset이 manifest/asset-pack 구동 비-제약 레이어로 분리되어 **교체 substrate가 마련**됐다(SPEC-300-AC-14/16·SPEC-301-AC-16/20). per-camp **전환 UI·설정**은 [[SPEC-500-settings-persistence]] forward(미작성)다.
 
 ### 3.3 P2 pre-flag ledger — forward, NOT a P0 gap
 
@@ -261,7 +261,7 @@ tags:
 | 1 Scan | SPEC-001~007 | **approved** | 1차 게이트 통과(2026-06-26), P0 gap 0 |
 | 2 Server·API | SPEC-100/101/102 | draft | full-product 게이트(2026-06-27) 통과, 미승격 |
 | 3 Dashboard | SPEC-200/201/202 | draft | 동일 |
-| 4 Camp Visual | SPEC-300 / SPEC-301 | SPEC-300 draft · SPEC-301 draft | SPEC-301(camp 맵·movement·roaming) 신규, spec-reviewer 게이트 대기 |
+| 4 Camp Visual | SPEC-300 / SPEC-301 | SPEC-300 draft · SPEC-301 draft | SPEC-301(camp 맵·movement·roaming) + **rich map rendering·depth**(SPEC-300 §2.5/§2.6/§3.9 scene asset 메커니즘·SPEC-301 §2.8/§3.5 depth toolkit) 추가, spec-reviewer 게이트 대기 |
 | 5 Control | SPEC-400 | draft | 동일 |
 | 6 Settings | SPEC-500 | draft | 동일 |
 | 7 Observability | SPEC-600 | draft | 동일 |
@@ -289,6 +289,7 @@ tags:
 
 ### Conflicts / Upstream
 
+- **C2 — 신규 R-UI-009·D-036 채택 제안(rich map depth, 표시만)**: rich/depth map 렌더링(Wang 자동 타일링·backdrop+parallax·scenery·lighting·shadow, [[SPEC-300-asset-rendering]] §2.5/§2.6·[[SPEC-301-camp-map-movement]] §2.8)은 현재 **R-UI-003/R-UI-006로 부수 충족**되어 위 §2.4 매트릭스에 신규 AC가 반영됐다(P0 gap 미발생). [[SPEC-301-camp-map-movement]] §6 C5가 정식 `R-UI-009`(P1)·`D-036` drop-in을 **제안**한다(write scope 밖, orchestrator/user 적용 위임). 채택 시 본 롤업 §2.4 R-UI-009 행 신설·§3.2 P1 목록 갱신이 필요하다. **표시만**(본 spec은 청사진을 수정하지 않음). 또한 manifest에 corner-Wang tileset·`scene` 선언 추가가 선행돼야 한다(SPEC-300 §6 C4, generation_status closed → version bump).
 - **C1 — README index status 요약 ↔ 헤더 status(정보성)**: [[docs/specs/README|README]] Epic 2~9 인덱스 표는 spec을 `planned`로 표기하나, 실제 헤더 status는 `draft`이고 full-product 게이트를 통과했다. README는 "표는 요약, 헤더가 SSOT"라고 명시하므로 충돌은 아니나, orchestrator가 인덱스 표를 `draft`로 갱신하면 정합이 명확해진다. **표시만**(본 spec은 README를 수정하지 않음).
 
 ### Open Questions (검토 필요)
