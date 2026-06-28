@@ -119,34 +119,68 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
     setOverlayError(false);
   }, [sprite]);
 
+  // §3.3-3 — visibility gate: off-screen sprites are excluded from per-tick ref writes.
+  const onScreenRef = useRef(true);
+
+  // Per-frame work (position transform + animation frame src) written DIRECTLY via refs.
+  // Held in a ref so BOTH the shared-clock tick and the IntersectionObserver "re-entered
+  // view" catch-up run the SAME logic. Off-screen → early return (no ref writes / no
+  // animation work, §3.3-3); the sprite freezes on its last (static) frame. The single
+  // shared clock still owns time — there are no per-sprite timers (AC-13a).
+  const applyTick = (t: number): void => {
+    if (!onScreenRef.current) return; // §3.3-3 — off-screen: static frame, skip writes
+    const snap = controller.snapshot(orcId, t);
+    const sp = spriteRef.current;
+    const [ax, ay] = sp.scaledAnchor;
+    const pos = snap ? snap.renderedPos : target;
+    const btn = buttonRef.current;
+    if (btn) btn.style.transform = `translate(${pos.x - ax}px, ${pos.y - ay}px)`;
+    if (!snap) return;
+    const d = displayRef.current;
+    if (snap.movementState !== d.movement || snap.direction !== d.direction) {
+      const next = { movement: snap.movementState, direction: snap.direction };
+      displayRef.current = next;
+      setDisplay(next);
+    }
+    if (sp.mode === 'animated' && sp.framePaths && sp.fps && imgRef.current) {
+      const idx = frameAt(t, snap.tEnter, sp.fps, sp.frames);
+      const src = sp.framePaths[idx] ?? sp.framePaths[0];
+      if (src && imgRef.current.getAttribute('src') !== src) {
+        imgRef.current.setAttribute('src', src);
+      }
+    }
+  };
+  const applyTickRef = useRef(applyTick);
+  applyTickRef.current = applyTick;
+
   // Single shared clock subscription — ref-only writes, no per-frame re-render.
   useEffect(() => {
-    const tick = (t: number): void => {
-      const snap = controller.snapshot(orcId, t);
-      const sp = spriteRef.current;
-      const [ax, ay] = sp.scaledAnchor;
-      const pos = snap ? snap.renderedPos : target;
-      const btn = buttonRef.current;
-      if (btn) btn.style.transform = `translate(${pos.x - ax}px, ${pos.y - ay}px)`;
-      if (!snap) return;
-      const d = displayRef.current;
-      if (snap.movementState !== d.movement || snap.direction !== d.direction) {
-        const next = { movement: snap.movementState, direction: snap.direction };
-        displayRef.current = next;
-        setDisplay(next);
-      }
-      if (sp.mode === 'animated' && sp.framePaths && sp.fps && imgRef.current) {
-        const idx = frameAt(t, snap.tEnter, sp.fps, sp.frames);
-        const src = sp.framePaths[idx] ?? sp.framePaths[0];
-        if (src && imgRef.current.getAttribute('src') !== src) {
-          imgRef.current.setAttribute('src', src);
-        }
-      }
-    };
-    const unsub = subscribe(tick);
+    const unsub = subscribe((t) => applyTickRef.current(t));
     return unsub;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orcId, controller]);
+
+  // §3.3-3 — only animate ON-SCREEN sprites (perf at 100 panes). The IntersectionObserver
+  // feeds the shared-clock loop: off-screen → onScreenRef=false → ticks skip this sprite;
+  // on re-entering view we immediately catch up to the correct position/frame at the current
+  // shared-clock time. Because the frame index is frameAt(t, tEnter, …), the resumed phase is
+  // correct (AC-13b not broken). Selection/keyboard/a11y/layout are untouched (transform-only,
+  // no DOM-structure change). When IntersectionObserver is unavailable (e.g. jsdom) the sprite
+  // stays on-screen, preserving prior behavior.
+  useEffect(() => {
+    const btn = buttonRef.current;
+    if (!btn || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const becameVisible = e.isIntersecting && !onScreenRef.current;
+        onScreenRef.current = e.isIntersecting;
+        if (becameVisible) applyTickRef.current(getTime());
+      }
+    });
+    io.observe(btn);
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orcId]);
 
   const [bw, bh] = sprite.scaledFrameSize;
   const [ax, ay] = sprite.scaledAnchor;

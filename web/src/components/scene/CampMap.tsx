@@ -68,6 +68,7 @@ export function CampMap({
   useEffect(() => {
     const entries = orcs.map((o) => ({
       id: o.id,
+      paneId: o.paneId, // §3.1-9 wander seed (authority paneId, reindex-stable)
       status: o.status,
       target: layout.targets.get(o.id)?.target ?? { x: 0, y: 0 },
     }));

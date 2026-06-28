@@ -56,6 +56,13 @@ export const ROAM_MIN_MS = 250;
 export const ROAM_MAX_MS = 1500;
 export const ARRIVE_EPSILON = 1; // px
 
+// §3.1-9 — idle ambient micro-wander (DEFAULT OFF, non-load-bearing, reduced-motion off).
+// Radius of the station-local jitter applied to renderedPos ONLY (never to the logical
+// target/slot). The motion is a deterministic, paneId-seeded Lissajous path on the shared
+// clock time `t` (no Math.random / Date.now), bounded inside WANDER_R (see wander.ts).
+export const WANDER_R = 6; // logical px (hypothesis, Q3)
+export const WANDER_FREQ = 0.0009; // base angular speed (rad/ms); slow, gentle drift
+
 export const MVP_DIRECTION = 'south';
 
 /** §2.3 — station = status anchor table. anchor is normalized in the zone inner rect. */

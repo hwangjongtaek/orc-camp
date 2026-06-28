@@ -14,8 +14,9 @@
  * and reduced-motion snap instantly with no walk cycle (§3.1-5/7).
  */
 import type { OrcStatus } from '../types/domain';
-import { dist, lerp } from './layout';
+import { add, dist, lerp } from './layout';
 import { quantizeVector } from './direction';
+import { wanderOffset } from './wander';
 import {
   ARRIVE_EPSILON,
   MVP_DIRECTION,
@@ -26,6 +27,11 @@ import {
 } from './stations';
 
 export type MovementState = 'roaming' | 'arrived';
+
+/** Controller options. `ambientWander` defaults OFF (§3.1-9, non-load-bearing). */
+export interface RoamingOptions {
+  ambientWander?: boolean;
+}
 
 export interface MotionSnapshot {
   renderedPos: Vec2;
@@ -42,6 +48,8 @@ export interface OrcSyncEntry {
   id: string;
   status: OrcStatus;
   target: Vec2;
+  /** §3.1-9 wander seed (authority paneId). Falls back to `id` when omitted. */
+  paneId?: string;
 }
 
 interface MotionDescriptor {
@@ -52,6 +60,7 @@ interface MotionDescriptor {
   duration: number; // ms; 0 = instant (snap)
   roamTEnter: number; // when the 'roaming' state was entered (walk-cycle phase)
   roamDir: string;
+  paneId: string; // §3.1-9 wander seed
 }
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi);
@@ -76,14 +85,24 @@ function positionAt(d: MotionDescriptor, t: number): Vec2 {
 
 export class RoamingController {
   private readonly motions = new Map<string, MotionDescriptor>();
+  /** §3.1-9 — idle ambient micro-wander (OFF by default, non-load-bearing). */
+  private readonly ambientWander: boolean;
+  /** Latest reduced-motion flag (set each sync) — wander is disabled when true. */
+  private reducedMotion = false;
+
+  constructor(opts: RoamingOptions = {}) {
+    this.ambientWander = opts.ambientWander ?? false;
+  }
 
   /** Apply new targets/statuses at shared-clock time `t`. */
   sync(entries: OrcSyncEntry[], t: number, opts: { reducedMotion: boolean }): void {
+    this.reducedMotion = opts.reducedMotion;
     const seen = new Set<string>();
     for (const e of entries) {
       seen.add(e.id);
       const snap = opts.reducedMotion || e.status === 'terminated';
       const prev = this.motions.get(e.id);
+      const paneId = e.paneId ?? e.id;
 
       if (!prev) {
         // §3.1-4 — new orc spawns instantly at its target.
@@ -95,6 +114,7 @@ export class RoamingController {
           duration: 0,
           roamTEnter: t,
           roamDir: MVP_DIRECTION,
+          paneId,
         });
         continue;
       }
@@ -118,6 +138,7 @@ export class RoamingController {
           duration: 0,
           roamTEnter: t,
           roamDir: MVP_DIRECTION,
+          paneId,
         });
         continue;
       }
@@ -133,6 +154,7 @@ export class RoamingController {
           duration: 0,
           roamTEnter: t,
           roamDir: MVP_DIRECTION,
+          paneId,
         });
         continue;
       }
@@ -147,6 +169,7 @@ export class RoamingController {
         // §3.1-8 — mid-walk retarget preserves walk-cycle phase; fresh roam resets it.
         roamTEnter: wasRoaming ? prev.roamTEnter : t,
         roamDir: quantizeVector(e.target.x - cur.x, e.target.y - cur.y),
+        paneId,
       });
     }
 
@@ -170,8 +193,15 @@ export class RoamingController {
         status: d.status,
       };
     }
+    // §3.1-9 — idle ambient micro-wander: a PURE visual jitter on renderedPos ONLY (the
+    // logical target/slot is untouched). OFF by default and disabled under reduced-motion;
+    // applied only to an arrived idle orc, so it never affects movement/state or any AC.
+    const renderedPos =
+      this.ambientWander && !this.reducedMotion && d.status === 'idle'
+        ? add(d.target, wanderOffset(d.paneId, t))
+        : d.target;
     return {
-      renderedPos: d.target,
+      renderedPos,
       movementState: 'arrived',
       displayedState: d.status,
       direction: MVP_DIRECTION,
