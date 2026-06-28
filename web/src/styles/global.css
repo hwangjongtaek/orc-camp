@@ -95,7 +95,7 @@ img {
 .oc-main {
   flex: 1;
   padding: var(--oc-space-4);
-  max-width: 1280px;
+  max-width: 1760px; /* fits a full 1200px map zone + 340px inspector w/o horizontal scroll */
   width: 100%;
   margin: 0 auto;
 }
