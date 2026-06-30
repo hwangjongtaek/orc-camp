@@ -1,11 +1,21 @@
-# License
+# Asset Pack License
 
-PixelLab.ai generated asset license status is not yet verified.
+The pixel-art assets in this directory (sprites, rotations, animations, portraits,
+backgrounds, brand art, and `manifest.json`) are generated with **PixelLab.ai** and
+are **NOT** covered by the repository's root MIT `LICENSE` (which applies to the
+runtime code only).
 
-- Source: PixelLab.ai
-- Terms URL: https://www.pixellab.ai/
-- Commercial use: TBD
-- Redistribution in npm/package artifacts: TBD
-- Attribution requirement: TBD
+- **Source**: PixelLab.ai
+- **Terms of Service**: https://pixellab.ai/termsofservice
+- **Commercial use**: TBD (unconfirmed)
+- **Redistribution** (npm / package artifacts / public release): TBD (unconfirmed)
+- **Attribution requirement**: TBD (unconfirmed)
 
-Do not publish this asset pack outside the private product workspace until the PixelLab.ai license and redistribution terms are explicitly confirmed.
+Until PixelLab.ai's license and redistribution terms are explicitly confirmed:
+
+- This asset pack is **excluded from the published npm artifact** (`package.json#files`
+  allowlist; enforced by `npm run smoke`). See decision **D-009** and `SPEC-700 §2.7`.
+- Do **not** publish or redistribute these assets outside the private product
+  workspace.
+
+Copyright of the generated art is governed by the PixelLab.ai Terms of Service.

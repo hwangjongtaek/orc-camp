@@ -1,159 +1,162 @@
----
-status: design-handoff-ready
-created: 2026-06-25
-tags:
-  - product
-  - orc-camp
-  - ai-agent
-  - tmux
----
-
 <p align="center">
   <img src="asset-packs/orc-camp-default/brand/orc-camp-logo-transparent.png" alt="Orc Camp" width="480">
 </p>
 
 <p align="center">
-  <b>command line 기반 AI agent orchestration tool</b><br>
+  <b>command line 기반 AI agent orchestration 도구</b><br>
   실행 중인 tmux session을 <b>camp</b>로, 그 안의 AI agent session(Claude Code · Codex)을 <b>orc</b>로 시각화한다.
 </p>
 
+<p align="center">
+  <a href="#설치">설치</a> ·
+  <a href="#실행">실행</a> ·
+  <a href="#명령어">명령어</a> ·
+  <a href="#라이선스">라이선스</a>
+</p>
+
+---
+
 # Orc Camp
 
-Orc Camp는 command line 기반 AI agent orchestration tool이다. 사용자가 실행 중인 tmux session을 "camp"로 보고, 각 session 안에서 동작하는 Claude Code, Codex 등 AI agent terminal session을 "orc character"로 시각화해 상태 확인, 작업 맥락 파악, 제어를 돕는다.
+**Orc Camp**는 여러 개의 AI 코딩 에이전트를 한눈에 관찰하기 위한 **local-first CLI 대시보드**다.
+사용자가 이미 실행 중인 **tmux session**을 *camp*로, 각 session 안에서 동작하는 **Claude Code · Codex 등 AI agent terminal session**을 *orc 캐릭터*로 시각화해 — 어떤 에이전트가 일하는 중인지, 무엇을 하고 있는지, 멈춰 있는지 — 픽셀 게임풍 화면에서 한 번에 파악하게 해준다.
 
-## 핵심 컨셉
+모든 동작은 **읽기 전용(read-only)** 이고 **로컬에서만** 실행된다. tmux를 절대 변경하지 않으며, 터미널 원문·경로·secret은 표시 전에 한 곳에서 마스킹되고 디스크에 저장되지 않는다.
 
-- **Camp**: 하나의 tmux session. 프로젝트, 작업 묶음, 또는 실험 환경을 나타낸다.
-- **Orc**: tmux pane/window 안에서 실행 중인 AI agent session. Claude Code, Codex, 기타 CLI agent를 포함한다.
-- **Campfire Dashboard**: `orc-camp` 실행 시 열리는 local web dashboard. camp 목록과 agent 상태를 보여준다.
-- **Pixel Camp UI**: 도트 기반 게임 컨셉의 UI. 배경과 캐릭터 스프라이트는 향후 PixelLab.ai 산출물을 사용한다.
+## 소개
 
-## 제품 문서
+### 핵심 개념
 
-문서는 주제별 하위폴더로 구조화되어 있다. 전체 맵은 [[00-Index|docs/00-Index]]를 본다.
-
-- **Product** (`docs/product/`): [[01-Planning|01 Planning]] · [[02-Requirements|02 Requirements]] · [[07-Roadmap|07 Roadmap]] · [[08-Decisions|08 Decisions]] · [[09-Reviews|09 Reviews]] · [[14-MVP-PoC-Scope|14 MVP PoC Scope]]
-- **Design** (`docs/design/`): [[DESIGN|Design System Contract]] · [[03-UX-UI|03 UX/UI]] · [[04-Frontend|04 Frontend]] · [[05-Backend|05 Backend]] · [[06-Infra|06 Infra]] · [[10-System-Architecture|10 System Architecture]]
-- **Assets** (`docs/assets/`): [[11-PixelLab-Asset-Setup|11 PixelLab Asset Setup]] · [[12-PixelLab-Prompts|12 PixelLab Prompts]] · [[13-PixelLab-Asset-Registry|13 PixelLab Asset Registry]] · [[15-Character-State-Model|15 Character State Model & Prestige Tiers]]
-- **Specs (구현 SSOT)** (`docs/specs/`): [docs/specs/README.md](docs/specs/README.md) · `SPEC-*.md`
-
-## 현재 결정 요약
-
-| 항목 | 결정 |
+| 개념 | 의미 |
 | --- | --- |
-| 제품명 | Orc Camp |
-| CLI command | `orc-camp` |
-| 기본 실행 모델 | local-first CLI가 localhost web dashboard를 연다 |
-| 핵심 integration | tmux session/window/pane discovery와 control |
-| UI metaphor | tmux session = Orc camp, AI agent session = Orc character |
-| MVP agent 지원 | Claude Code, Codex를 우선 탐지 대상으로 둔다 |
-| 상태 전달 | polling 기반 tmux snapshot + WebSocket event stream |
-| 외부 의존 | PixelLab.ai asset은 시각 품질 향상용이며 MVP 기능의 blocker로 두지 않는다 |
+| **Camp** | 하나의 tmux session (프로젝트·작업 묶음·실험 환경) |
+| **Orc** | pane/window 안에서 실행 중인 AI agent session (Claude Code · Codex · 기타 CLI agent) |
+| **Campfire Dashboard** | `orc-camp` 실행 시 열리는 localhost 웹 대시보드 |
+| **Prestige Tier** | 누적 LLM 사용량(또는 세션 수명)이 쌓일수록 orc 외형이 T0→T1→T2→T3로 화려해지는 단계 |
 
-## 설계 단계 상태
+### 주요 기능
 
-2026-06-26 기준 초기 제품 설계와 PixelLab asset pack 구성이 완료되어 구현 저장소로 이관 가능한 상태다. 구현 착수 전에는 `orc-camp scan` prototype으로 tmux/agent 탐지 정확도와 상태 추론 threshold를 먼저 검증한다. 첫 구현 슬라이스의 범위·데이터 계약·검증 지표와, 실제 전달본 asset의 런타임 소비 계약은 [[14-MVP-PoC-Scope]]에 정리되어 있다(결정 [[08-Decisions|D-012, D-013]]).
+- 🔎 **읽기 전용 발견 + 상태 추론** — tmux session/window/pane를 훑어 AI agent를 핑거프린팅하고, `active`/`waiting`/`idle`/`stale`/`error`/`terminated` 상태를 confidence와 함께 추론한다 (상태를 단정하지 않는다).
+- 🖥️ **로컬 대시보드** — camp 목록과 orc 상태를 픽셀 맵으로 보여주는 localhost SPA. 127.0.0.1 bind + 1회용 startup token으로 보호된다.
+- 🛡️ **privacy-first** — 모든 캡처/명령줄/경로는 소비 전에 redaction을 거치고, 원문은 파일·로그·JSON 어디에도 남지 않는다.
+- 🏆 **캐릭터 prestige tier** — orc가 더 많이 일할수록(누적 token, 측정 불가 시 프로세스 uptime) 외형이 단계적으로 강화된다.
+- 📦 **런타임 의존성 최소** — CLI/서버는 Node 내장 모듈 + `ws`만 사용한다.
 
-## 구현 — scan 슬라이스 PoC (Epic 1)
+## 요구 사항
 
-read-only `orc-camp scan` CLI(Epic 1, [[14-MVP-PoC-Scope]])가 spec(`docs/specs/SPEC-001~007`)을 SSOT로 구현되어 있다. TypeScript + Vitest, 런타임 의존성 0.
+- **Node.js ≥ 20** (LTS)
+- **tmux** (macOS · Linux) — 관찰 대상. 미설치 시 `orc-camp`는 오류 없이 "tmux 없음"으로 보고한다.
+- **git** (소스 설치용)
 
-```bash
-npm install          # dev 의존성(typescript, vitest, tsx)만
-npm run scan         # tsx로 직접 실행: 사람용 table 출력
-npm run scan -- --json | jq .   # machine-readable JSON
-npm run scan -- --watch 3       # 3초 주기 read-only 재-scan (NDJSON with --json)
-npm test             # 결정적 CI 게이트: unit + integration (live tmux 불필요)
-npm run typecheck    # tsc --noEmit (strict)
-npm run build        # esbuild 번들 → dist/main.js (bin: orc-camp)
-```
+## 설치
 
-- **read-only 불변식**: tmux 호출은 `tmuxExec` allowlist(`list-sessions`/`list-windows`/`list-panes`/`capture-pane` + `-V`)로 제한되며 상태 변경 command를 절대 호출하지 않는다(SPEC-006 §2.6). process introspection(`ps`)도 고정 argv·`shell:false`다.
-- **privacy chokepoint**: capture/`cmdline`/`cwd`/`paneTitle`은 소비 전 단일 `redact()`/`sanitizeCapture()` 경계를 통과한다. 원문은 파일/log/`--json` 어디에도 저장되지 않는다(SPEC-006).
-- **모듈 ↔ spec 매핑**: `src/redaction`+`src/tmux/exec.ts`(SPEC-006) · `src/tmux/inventory.ts`+`introspect.ts`(SPEC-002) · `src/detection`(SPEC-003) · `src/status`(SPEC-004) · `src/assemble.ts`+`src/render`(SPEC-005) · `src/cli.ts`+`src/scan.ts`(SPEC-001). 모듈 간 결합은 의존성 주입으로만 이뤄져 각 모듈이 `src/types.ts`(frozen 계약)에만 의존한다.
-- **검증 현황**: 167 tests 통과(unit + integration + measurement, 결정적), e2e 6종(실 tmux). 실 환경 측정(SPEC-007 M1~M5)으로 detection 보정·status 검증·latency p95 807ms(101 pane) 완료.
-
-## 구현 — local server (Epic 2, SPEC-100~101)
-
-scan 도메인 모델(`ScanResult`)을 재사용해 HTTP로 노출하는 local-first server. `ScanRunner`를 interval로 돌려 in-memory snapshot을 유지하고 token-gated REST로 serve한다(런타임 의존성 여전히 0 — Node 내장 `http`).
+> 아직 npm 레지스트리에 게시 전이다. 현재는 소스에서 설치한다.
 
 ```bash
-npm run serve        # 127.0.0.1 bind, token-bearing URL을 stdout에 출력
-npm run doctor       # 환경 health 5종 점검 (fail→exit 1)
-orc-camp serve --port 4123 --no-open        # default는 browser 자동 open
+git clone https://github.com/hwangjongtaek/orc-camp.git
+cd orc-camp
+npm install                      # CLI/서버 의존성
 ```
 
-- **보안 경계(SPEC-100)**: `127.0.0.1` 기본 bind, CSPRNG startup token(메모리 전용·비영속), 상수시간 `Authorization: Bearer` 검증, CORS allowlist, **Host-header 검증(DNS rebinding 방어)**, 외부 bind는 `--allow-external` + warning 필수.
-- **REST API(SPEC-101)**: `GET /api/health`(token-exempt liveness) · `GET /api/snapshot`(ScanResult + `snapshotVersion`/ETag/304) · `GET /api/camps/:id` · `GET /api/orcs/:id/preview`(token + exposure 이중 gate, redacted tail만) · `POST /api/refresh`(coalesce/rate-limit, tmux는 read-only). 모든 read는 token 요구(D-024).
-- **snapshot runtime**: 변경 tick당 `snapshotVersion +1`(diff engine), last-good/stale fallback 재사용, `runtimeEpoch`로 restart 식별. 보안 경계는 security-privacy-engineer 감사 **PASS(P0 0·P1 0)**.
-- **realtime(SPEC-102)**: `WS /api/events` — handshake auth(token query/subprotocol, close 4401/4403), `welcome` → per-tick `batch` diff event(convergent, version 적재) → `server_stale_changed`/`server_heartbeat`. client reconcile/reconnect는 dashboard(Epic 3) 소유.
-- **후속(미구현)**: dashboard SPA(Epic 3), control actions(SPEC-400), settings/observability/packaging(SPEC-500/600/700).
+대시보드까지 보려면 SPA도 한 번 빌드한다:
 
-## 캐릭터 prestige tier — 누적 usage 기반 외형 단계 (asset pack v0.2.0)
+```bash
+cd web && npm install && npm run build && cd ..
+```
 
-orc가 누적해서 더 많은 LLM token/cost를 소비할수록 그 캐릭터의 갑옷·장비·`active` 연출이 단계적으로 호화로워지는 **prestige tier**(T0 base → T1 → T2 → T3). 설계·생성 SSOT는 [[15-Character-State-Model]], 런타임 resolution 계약은 [[SPEC-302-mascot-prestige-tiers]], 자산 ID/SHA/prompt 추적은 [[13-PixelLab-Asset-Registry]] #10.
+(선택) 시스템 전역 `orc-camp` 명령으로 설치:
 
-delivered 5종 character(`orc-high-warchief-mascot`·`orc-claude-storm-shaman`·`orc-codex-field-engineer`·`orc-unknown`·`orc-iron-commander`)에 PixelLab `create_character_state`로 tier variant(8방향 rotation)와 8-frame v3 animation을 생성한다. 무기 일관성(8방향 grip)·IP 발산(기존 게임 캐릭터 비재현)·text-artifact 금지를 생성 규칙으로 강제한다([[15-Character-State-Model]] §4).
+```bash
+npm run build                    # dist/main.js 번들
+npm install -g .                 # → 어디서나 `orc-camp` 사용 가능
+```
 
-**점진 도입(phased rollout, SPEC-302 §3.6)** — generation budget 제약으로 단계화:
+## 실행
 
-| | Phase 1 (현재·배포) | Phase 2 (다음·budget 복구 후) |
+가장 빠른 방법은 dev 스크립트다 — `tsx`로 TypeScript를 직접 실행하므로 빌드가 필요 없다.
+
+```bash
+# 1) 읽기 전용 발견 (대시보드 없이 터미널에서 바로 확인)
+npm run scan                     # 사람용 table 출력
+npm run scan -- --json | jq .    # machine-readable JSON
+npm run scan -- --watch 3        # 3초 주기 재-scan (--json이면 NDJSON)
+
+# 2) 대시보드 (로컬 서버 + 브라우저 자동 열기)
+npm run serve                    # 127.0.0.1 + token URL을 stdout에 출력
+npm run serve -- --port 4123 --no-open
+
+# 3) 환경 점검
+npm run doctor                   # tmux/Node 등 health 5종 (실패 시 exit 1)
+```
+
+전역 설치(`npm install -g .`)했다면 `orc-camp [subcommand]`로 동일하게 실행한다:
+
+```bash
+orc-camp            # 기본: 서버 시작 + 대시보드 열기
+orc-camp scan       # 읽기 전용 발견
+orc-camp doctor     # 환경 점검
+```
+
+### 대시보드 개발 (Vite)
+
+UI를 개발할 때는 API 서버와 Vite dev 서버를 함께 띄운다:
+
+```bash
+npm run serve                    # 터미널 1: 로컬 API 서버
+cd web && npm run dev            # 터미널 2: Vite dev 서버 (HMR)
+```
+
+## 명령어
+
+```
+orc-camp [serve] [--port <n>] [--host <addr> [--allow-external]] [--no-open] [--json]
+orc-camp scan    [--json] [--watch [interval]]
+orc-camp doctor  [--json] [--report [path]]
+```
+
+| 명령 | 설명 |
+| --- | --- |
+| `orc-camp` (인자 없음) | 로컬 서버를 띄우고 대시보드를 브라우저로 연다 (기본) |
+| `orc-camp serve` | 서버만 실행. 기본 `127.0.0.1` bind, token URL을 stdout에 출력. 외부 bind는 `--allow-external` 필수 |
+| `orc-camp scan` | 서버 없이 읽기 전용 발견. `--json`(JSON), `--watch [초]`(주기 재-scan) |
+| `orc-camp doctor` | 환경 health 점검. `--json`, `--report [경로]` |
+
+종료 코드: `0` 결과 산출(부분 오류는 진단으로 보고) · `1` 치명적 실패 · `2` 사용법 오류.
+
+## 동작 방식 · 보안
+
+- **read-only 불변식** — tmux 호출은 `list-sessions`/`list-windows`/`list-panes`/`capture-pane`(+`-V`) allowlist로만 이뤄지며 상태 변경 명령은 절대 spawn하지 않는다. 프로세스 조회(`ps`)도 고정 argv·`shell:false`.
+- **privacy chokepoint** — 캡처·명령줄·cwd·pane 제목은 소비 전 단일 `redact()` 경계를 통과한다. 원문은 파일/로그/`--json`에 저장되지 않는다.
+- **local-first** — 서버는 기본 `127.0.0.1`에만 bind하고 1회용 CSPRNG startup token으로 인증한다. 외부 bind는 명시적 `--allow-external` + 경고가 있어야만 가능하며, 자동 텔레메트리/원격 전송은 없다.
+
+자세한 구현 계약은 `docs/specs/`(구현 SSOT)를 참고한다.
+
+## 캐릭터 prestige tier
+
+orc가 누적해서 더 많은 LLM token/cost를 소비할수록(측정이 어려우면 agent 프로세스 **uptime**으로 대체) 캐릭터의 갑옷·장비·`active` 연출이 **T0 base → T1 → T2 → T3**로 단계적으로 강화된다.
+
+- 5종 캐릭터(`orc-high-warchief-mascot`·`orc-claude-storm-shaman`·`orc-codex-field-engineer`·`orc-unknown`·`orc-iron-commander`)의 **T1은 현재 `available`**(8방향 rotation + idle/active/roaming 애니메이션), **T2·T3는 `staged`**(다음 단계).
+- 판정 우선순위는 `누적 토큰 → cost → 프로세스 uptime → base`이며, 모호한 경우 절대 추측하지 않는다.
+- 설계 SSOT: `docs/assets/15-Character-State-Model.md` · 런타임 계약: `docs/specs/SPEC-302-mascot-prestige-tiers.md`.
+
+## 문서
+
+- **Specs (구현 SSOT)**: [`docs/specs/`](docs/specs/README.md)
+- **Product**: [`docs/product/`](docs/product/) — 요구사항·로드맵·[결정 로그](docs/product/08-Decisions.md)
+- **Design**: [디자인 시스템 계약](DESIGN.md) · [`docs/design/`](docs/design/)
+- **Assets**: [`docs/assets/`](docs/assets/) — PixelLab prompt·레지스트리·캐릭터 상태 모델
+
+## 라이선스
+
+이 저장소에는 **두 개의 서로 다른 라이선스**가 적용된다.
+
+| 대상 | 라이선스 | 파일 |
 | --- | --- | --- |
-| tier status | 5종 전부 **T1 `available`** | T2·T3 (현재 `staged`) |
-| animation | T1 idle·active·roaming(8방향); mascot T1은 idle/roaming/active/waiting/stale/error 풀세트 | T2·T3 animation(T3 active 극단적 연출) + 전 캐릭터 waiting·stale·error 보강 |
-| gate | T1 IP 무관 | mascot/storm-shaman/iron-commander/unknown 고티어 **blocking IP 리뷰** |
+| **런타임 코드** (`src/`, `web/`, `bin/`, `dist/`) | **MIT** | [`LICENSE`](LICENSE) |
+| **픽셀 아트 에셋 팩** (`asset-packs/`) | PixelLab.ai 약관 (**상업 사용·재배포·표기 조건 미확인 / TBD**) | [`asset-packs/orc-camp-default/LICENSE.md`](asset-packs/orc-camp-default/LICENSE.md) |
 
-- T1에서 미생성 animation 상태(나머지 4종의 waiting·stale·error)는 그 tier의 **정지 rotation으로 표시**(`static_tier`, SPEC-302 §3.4)되고 base로 대체되지 않는다.
-- **런타임 소비는 forward(미구현)**: `Orc.usage`(누적 token/cost) 수집이 [[SPEC-005-data-contract]]에 없어 `web/src/assets/prestige.ts`의 `displayedTierForOrc()`가 **모든 orc에 0(base)을 반환**한다. 즉 자산은 준비됐으나 **현재 모든 orc는 base로 렌더**되며, tier 상승은 (1) `Orc.usage` 수집(transcript usage 읽기 — [[SPEC-006-privacy-redaction]] threat-model 리뷰 선행) + (2) `prestige.ts`의 SPEC-302 §3.2 임계 로직 구현 후 활성화된다. 두 작업 모두 generation budget과 무관하다.
+- MIT 라이선스는 **런타임 코드에만** 적용된다.
+- `asset-packs/`의 PixelLab.ai 생성 픽셀 아트는 [PixelLab 서비스 약관](https://pixellab.ai/termsofservice)을 따르며, 상업 사용·재배포·표기 조건이 확정될 때까지 **npm 배포 산출물에 포함하지 않는다**(결정 D-009). 라이선스 확정 전에는 에셋 팩을 제품 워크스페이스 밖으로 공개하지 않는다.
+- 대시보드는 에셋이 없어도 placeholder로 동일한 레이아웃·인터랙션을 유지한다.
 
-## 패키징 · 배포 · 제거 (SPEC-700)
-
-npm global install을 1차 배포 채널로 가정한다(`npm install -g orc-camp`). published 패키지는 **런타임 코드만** 담는다.
-
-```bash
-npm run build            # esbuild 번들 → dist/main.js
-npm run smoke            # 릴리스 게이트: build + tarball 파일셋 검사 + 설치본 CLI 실행(version/doctor/scan)
-npm pack --dry-run       # 배포 tarball에 들어갈 파일 목록 확인
-```
-
-### published artifact 구성 (files allowlist)
-
-`package.json#files`는 **allowlist**다 — 명시한 것만 패킹된다. tarball에는 `dist/`(번들된 CLI+server) · `bin/orc-camp.mjs` · `README.md` · 루트 `LICENSE`만 들어간다. `src/` · `tests/` · `docs/` · `scripts/` · `.env` · `.mcp.json` · `node_modules/` · **`asset-packs/`** 는 들어가지 않는다. 이 allowlist가 license 게이트의 1차 방어선이며, `npm run smoke`가 packed tarball 실물을 재검사한다.
-
-### asset-pack license 게이트 (D-009 / SPEC-700 §2.7)
-
-`asset-packs/orc-camp-default/`의 PixelLab.ai 픽셀 아트는 commercial-use · redistribution · attribution 조건이 **미확인(TBD)**이다(`asset-packs/orc-camp-default/LICENSE.md`). license 확정 전까지 asset pack(어떤 `*.png` · `manifest.json` · `*.zip`)도 published npm 패키지에 **포함하지 않는다**. 런타임 코드 배포는 license와 무관하게 진행되며, dashboard는 asset 없이 placeholder로 동일 layout/interaction을 유지한다(SPEC-300 §3.8). 루트 `LICENSE`(MIT)는 **런타임 코드 전용**이며 asset license와 별개다.
-
-- `npm run smoke`의 file-set 게이트가 `asset-packs/` 경로 · `.png` · `.zip` 파일이 0개임을 강제한다(위반 시 FAIL → 릴리스 차단).
-- `orc-camp doctor --json`의 `diagnostics.installHealth.assetPackBundled`는 게이트 하에서 `false`다(placeholder 렌더 정상 동작; fail 아님).
-
-### 보안 기본값 보존 (D-003 / SPEC-700 §2.8)
-
-배포본의 기본 launch는 `127.0.0.1` bind + startup-token URL이며, 외부 bind는 `--allow-external` + warning 없이는 불가능하다. build/release 단계는 이 기본값을 변형하지 않고, 자동 텔레메트리/원격 전송을 추가하지 않는다(local-only).
-
-### install / uninstall 잔존 정책 (SPEC-700 §2.6)
-
-| 대상 | `npm uninstall -g orc-camp` 후 | 사유 |
-| --- | --- | --- |
-| 패키지 파일(`dist`/`bin`) | **제거됨** | npm이 패키지 트리 삭제 |
-| configDir(`config.json`) | **남음** | preference 보존(재설치 시 복원) |
-| stateDir(debug log) | **남음** | 진단 이력 보존 |
-| startup token · terminal 원문 | **애초에 디스크에 없음** | token은 메모리 전용, output 비저장(불변식 ③) |
-
-- npm uninstall은 **코드만** 제거하고 user data(config/log)는 의도적으로 보존한다. 잔존물에는 어떤 secret/터미널 원문도 없다 — 남는 것은 preference scalar config와 redacted debug log뿐이다.
-- **완전 제거 절차**: 먼저 설치 상태에서 데이터를 지우고(`orc-camp purge` — 현재 빌드 미구현, SPEC-700 §2.6) 그 다음 `npm uninstall -g orc-camp`. 이미 uninstall 했다면 path를 직접 제거한다(경로는 `orc-camp doctor`가 표기: 기본 `~/.config/orc-camp`, `~/.local/state/orc-camp`; `$ORC_CAMP_CONFIG_DIR`/`$XDG_CONFIG_HOME`로 재정의 가능, SPEC-500).
-
-### Node engine 요구
-
-`engines.node`는 `>=20`(Node 20 LTS floor)이다. floor 미만 환경에서는 install 시 npm `EBADENGINE` warn 또는 `orc-camp doctor`의 `installHealth.nodeFloorSatisfied=false` + stderr 경고로 표면화된다(exit code에는 기여하지 않음 — advisory diagnostics, SPEC-100 §2.3).
-
-## 초기 범위
-
-MVP는 "현재 실행 중인 tmux session을 발견하고, 그 안의 AI agent session을 시각적으로 관찰하며, 제한된 제어를 수행한다"에 집중한다. 원격 orchestration, multi-host cluster, agent 자동 작업 분배, cloud sync는 초기 범위에서 제외한다.
-
-## Open Questions
-
-- AI agent별 "현재 하고 있는 일"을 어느 수준까지 자동 추론할 것인가?
-- Claude Code, Codex 외 agent를 generic adapter로 처리할 수 있는 최소 공통 상태 모델은 무엇인가?
-- dashboard에서 terminal output을 얼마나 노출할 것인가? 민감 정보 보호 기본값이 필요하다.
-- PixelLab.ai asset license와 배포 권한은 어떤 방식으로 관리할 것인가?
+© 2026 Orc Camp contributors. Licensed under the MIT License.
