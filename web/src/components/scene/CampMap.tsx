@@ -19,7 +19,7 @@ import { computeLayout, type OrcMapInput } from '../../scene/layout';
 import { groundFromBackground, clampToRect } from '../../scene/ground';
 import { getTime } from '../../scene/clock';
 import { RoamingController } from '../../scene/roaming';
-import { computeCells, type Cell } from '../../scene/spacing';
+import { computeCells, gatherArea, type Cell } from '../../scene/spacing';
 import { buildSpeechPool } from '../../scene/speech';
 import { characterKeyMap, resolveCharacterKey } from '../../assets/spriteResolver';
 import { thresholdsForCharacter, type OrcTierObservation } from '../../assets/prestige';
@@ -44,6 +44,10 @@ const EMPTY: string[] = [];
 
 const ARROW_NEXT = new Set(['ArrowRight', 'ArrowDown']);
 const ARROW_PREV = new Set(['ArrowLeft', 'ArrowUp']);
+
+// Inset (logical px) the orc-gather area keeps from the viewport edges so a clustered orc near the
+// edge still reads fully on-screen when the map is narrowed (50/50 & 30/70 layout modes).
+const GATHER_PAD = 48;
 
 function toInput(o: Orc): OrcMapInput {
   return { id: o.id, paneId: o.paneId, windowIndex: o.windowIndex, status: o.status };
@@ -77,6 +81,11 @@ export function CampMap({
   if (controllerRef.current === null)
     controllerRef.current = new RoamingController({ ambientWander: true, patrol: true });
   const controller = controllerRef.current;
+
+  // Measured size (logical px == css px at BASE_SCALE) of the on-screen map viewport. Tracked with a
+  // ResizeObserver below; it changes when the user switches layout mode (Full / 50:50 / 30:70) or
+  // resizes the window, and drives the orc-gather area so orcs re-cluster to fit the visible map.
+  const [viewport, setViewport] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
 
   // Read the live orcs for this camp (re-derived per applied version).
   const orcs = useMemo(() => {
@@ -121,14 +130,19 @@ export function CampMap({
   const { world } = layout.dims;
 
   // §2.4b (#51) — personal-space bubble: lay a non-overlapping grid over the walkable area and
-  // give each orc one cell. In image-ground mode one grid spans the whole safe area; in zone-grid
-  // mode each zone gets its own grid over its inner rect. The orc's home = its cell CENTER and its
-  // patrol/rest clamp bound = its cell RECT, so motion is confined to the cell and adjacent orcs
-  // never overlap — while cells distribute orcs across the WHOLE map (#50 spread).
+  // give each orc one cell. In image-ground mode one grid spans the (gathered) safe area; in
+  // zone-grid mode each zone gets its own grid over its inner rect. The orc's home = its cell
+  // CENTER and its patrol/rest clamp bound = its cell RECT, so motion is confined to the cell and
+  // adjacent orcs never overlap — while cells distribute orcs across the visible map (#50 spread).
+  //
+  // The grid spans `gatherArea(safeArea, viewport)`: when the map is narrowed (50/50 / 30/70
+  // layout modes) the cells re-pack into the centered visible band so the orcs GATHER on-screen
+  // instead of being pushed off the right edge. At full width it equals the whole safe area, so
+  // the original spread is preserved.
   const cellByOrc = useMemo(() => {
     const m = new Map<string, Cell>();
     if (ground) {
-      const cells = computeCells(ground.safeArea, orcs.length);
+      const cells = computeCells(gatherArea(ground.safeArea, viewport, GATHER_PAD), orcs.length);
       orcs.forEach((o, i) => {
         const c = cells[i];
         if (c) m.set(o.id, c);
@@ -152,7 +166,7 @@ export function CampMap({
       }
     }
     return m;
-  }, [orcs, layout, ground]);
+  }, [orcs, layout, ground, viewport]);
 
   // §3.1-11 — the walkable bound an orc patrols/rests within: the whole ground safe area
   // (image-ground) or the orc's zone inner rect (zone-grid). Used to keep a drag-dropped orc on the
@@ -337,21 +351,39 @@ export function CampMap({
   // (placeholder parity, §3.4 / AC-20). Resolution is asset-independent → zero layout shift.
   const hasBackdrop = Boolean(activeBg?.file);
 
+  // Track the on-screen viewport size so the orc-gather area follows the map width. A
+  // ResizeObserver fires on layout-mode switches (Full / 50:50 / 30:70) and window resizes; sizes
+  // are rounded so sub-pixel jitter never thrashes the memoized cell layout.
+  useLayoutEffect(() => {
+    const sc = containerRef.current;
+    if (!sc) return;
+    const measure = (): void => {
+      const w = Math.round(sc.clientWidth);
+      const h = Math.round(sc.clientHeight);
+      setViewport((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(sc);
+    return () => ro.disconnect();
+  }, []);
+
   // §2.1 image-ground mode — the image world (2× the native background, fixed) is bigger than the
-  // viewport, so center the viewport on the walkable ground (instead of the top-left sky). Runs
-  // once per (camp, background): switching the background re-centers on the new ground; the user's
-  // subsequent drag-pan within a background is preserved.
+  // viewport, so center the viewport on the walkable ground (instead of the top-left sky). Re-runs
+  // per (camp, background, viewport SIZE): switching the background OR the layout mode re-centers
+  // on the (now-gathered) ground; the user's drag-pan within a given size is preserved.
   const centeredKeyRef = useRef<string | null>(null);
   useEffect(() => {
     const sc = containerRef.current;
-    const key = `${campId}:${activeBgRef ?? ''}`;
-    if (!sc || !ground || centeredKeyRef.current === key) return;
+    const key = `${campId}:${activeBgRef ?? ''}:${viewport.w}x${viewport.h}`;
+    if (!sc || !ground || viewport.w === 0 || centeredKeyRef.current === key) return;
     const cx = ground.safeArea.x + ground.safeArea.w / 2;
     const cy = ground.safeArea.y + ground.safeArea.h / 2;
     sc.scrollLeft = Math.max(0, cx - sc.clientWidth / 2);
     sc.scrollTop = Math.max(0, cy - sc.clientHeight / 2);
     centeredKeyRef.current = key;
-  }, [ground, campId, activeBgRef]);
+  }, [ground, campId, activeBgRef, viewport]);
 
   // §2.7 — NO zoom. The world is rendered at a fixed scale (BASE_SCALE); the background is shown
   // at its fixed 2× world size (orcs at original sprite size) and the user explores ONLY by

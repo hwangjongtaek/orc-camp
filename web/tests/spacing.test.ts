@@ -2,7 +2,7 @@
  * SPEC-301 §2.4b (#51) — personal-space bubble grid (pure, deterministic).
  */
 import { describe, it, expect } from 'vitest';
-import { computeCells, gridCols } from '../src/scene/spacing';
+import { computeCells, gatherArea, gridCols } from '../src/scene/spacing';
 import type { Rect } from '../src/scene/stations';
 
 const area: Rect = { x: 1000, y: 600, w: 1320, h: 800 };
@@ -61,5 +61,43 @@ describe('computeCells', () => {
 
   it('is deterministic', () => {
     expect(computeCells(area, 7)).toEqual(computeCells(area, 7));
+  });
+});
+
+describe('gatherArea (orcs cluster to fit the visible map)', () => {
+  it('returns the area unchanged when the viewport is at least as large (full-width mode)', () => {
+    expect(gatherArea(area, { w: 1600, h: 1000 })).toEqual(area);
+    // exactly equal is still "unchanged"
+    expect(gatherArea(area, { w: area.w, h: area.h })).toEqual(area);
+  });
+
+  it('returns the area unchanged when the viewport is not yet measured', () => {
+    expect(gatherArea(area, { w: 0, h: 0 })).toEqual(area);
+  });
+
+  it('shrinks to the viewport (minus padding) and stays centered on the area center', () => {
+    const pad = 48;
+    const g = gatherArea(area, { w: 600, h: 500 }, pad);
+    expect(g.w).toBe(600 - 2 * pad);
+    expect(g.h).toBe(500 - 2 * pad);
+    // centered: same center as the original area
+    expect(g.x + g.w / 2).toBeCloseTo(area.x + area.w / 2, 6);
+    expect(g.y + g.h / 2).toBeCloseTo(area.y + area.h / 2, 6);
+  });
+
+  it('never exceeds the area in either dimension, and stays inside it', () => {
+    const g = gatherArea(area, { w: 600, h: 5000 }, 48); // tall viewport → height clamps to area.h
+    expect(g.w).toBeLessThanOrEqual(area.w);
+    expect(g.h).toBe(area.h);
+    expect(g.x).toBeGreaterThanOrEqual(area.x - 1e-6);
+    expect(g.x + g.w).toBeLessThanOrEqual(area.x + area.w + 1e-6);
+  });
+
+  it('narrower viewport → fewer columns → orcs gather into a tighter band', () => {
+    const wide = computeCells(gatherArea(area, { w: 1600, h: 900 }, 48), 6);
+    const narrow = computeCells(gatherArea(area, { w: 420, h: 900 }, 48), 6);
+    const spanX = (cs: { center: { x: number } }[]): number =>
+      Math.max(...cs.map((c) => c.center.x)) - Math.min(...cs.map((c) => c.center.x));
+    expect(spanX(narrow)).toBeLessThan(spanX(wide));
   });
 });
