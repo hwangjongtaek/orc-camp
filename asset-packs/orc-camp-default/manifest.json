@@ -138,7 +138,7 @@
       "role": "main mascot, selected camp leader",
       "root": "sprites/orc-high-warchief-mascot/Orc_High_Warchief_Mascot",
       "frame_size": [232, 232],
-      "scale": 1,
+      "scale": 1.3,
       "anchor": [116, 175],
       "view": "low top-down",
       "directions": [
@@ -280,7 +280,7 @@
             "pixellab_character_id": "e1e3b502-38bc-49d9-ac7f-3a4259ff26d3",
             "root": "sprites/orc-high-warchief-mascot/tiers/veteran/Orc_High_Warchief_Mascot_Veteran",
             "frame_size": [232, 232],
-            "scale": 1,
+            "scale": 1.3,
             "anchor": [116, 175],
             "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
             "rotations": {
@@ -400,7 +400,7 @@
             "pixellab_character_id": "55edad33-8b53-4a4d-a2af-0a9e75f503ee",
             "root": "sprites/orc-high-warchief-mascot/tiers/champion/Orc_High_Warchief_Mascot_Champion",
             "frame_size": [232, 232],
-            "scale": 1,
+            "scale": 1.3,
             "anchor": [116, 175],
             "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
             "rotations": {
@@ -429,7 +429,7 @@
             "pixellab_character_id": "c748be94-f87a-4b68-a4f1-c7207cfd1c11",
             "root": "sprites/orc-high-warchief-mascot/tiers/warlord/Orc_High_Warchief_Mascot_Warlord",
             "frame_size": [232, 232],
-            "scale": 1,
+            "scale": 1.3,
             "anchor": [116, 175],
             "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
             "rotations": {
@@ -1308,7 +1308,7 @@
       "role": "interrupt/control/command symbol, iron commander",
       "root": "sprites/orc-iron-commander/Orc_Iron_Commander",
       "frame_size": [236, 236],
-      "scale": 1,
+      "scale": 1.2,
       "anchor": [118, 176],
       "view": "low top-down",
       "directions": [
@@ -1456,7 +1456,7 @@
             "pixellab_character_id": "94c3142f-777f-4b9f-82e7-db10ac7477de",
             "root": "sprites/orc-iron-commander/tiers/enforcer/Orc_Iron_Commander_Enforcer",
             "frame_size": [236, 236],
-            "scale": 1,
+            "scale": 1.2,
             "anchor": [118, 176],
             "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
             "rotations": {
@@ -1533,7 +1533,7 @@
             "pixellab_character_id": "7c2eacea-9f1d-4706-a104-739712400b3f",
             "root": "sprites/orc-iron-commander/tiers/marshal/Orc_Iron_Commander_Marshal",
             "frame_size": [236, 236],
-            "scale": 1,
+            "scale": 1.2,
             "anchor": [118, 176],
             "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
             "rotations": {
@@ -1562,7 +1562,7 @@
             "pixellab_character_id": "7ca301a7-5127-4d71-a836-2f0b4ddd516d",
             "root": "sprites/orc-iron-commander/tiers/sovereign/Orc_Iron_Commander_Sovereign",
             "frame_size": [236, 236],
-            "scale": 1,
+            "scale": 1.2,
             "anchor": [118, 176],
             "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
             "rotations": {

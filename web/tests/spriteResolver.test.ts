@@ -20,7 +20,7 @@ function character(over: Partial<CharacterDef>): CharacterDef {
   return {
     root: over.root ?? 'sprites/x/X',
     frame_size: over.frame_size ?? [232, 232],
-    scale: 1,
+    scale: over.scale ?? 1,
     anchor: over.anchor ?? [116, 208],
     directions: ['south'],
     animations: over.animations ?? {
@@ -102,6 +102,25 @@ describe('resolveSprite (SPEC-300)', () => {
     expect(unknown.characterKey).toBe('orc-unknown');
     expect(unknown.frameSize).toEqual([228, 228]);
     expect(unknown.anchor).toEqual([114, 204]);
+  });
+
+  it('SPEC-301 §2.1: per-character scale grows the sprite around its anchor (warchief ×1.3)', () => {
+    const m = manifest();
+    m.characters['orc-high-warchief-mascot']!.scale = 1.3; // pack: warchief 130%
+    // native 232 / anchor [116,208] → × scale(1.3) × mapSpriteScale(2), folded around the feet anchor
+    const big = resolveSprite(
+      input({ characterKey: 'orc-high-warchief-mascot' }),
+      env({ manifest: m, mapSpriteScale: 2 }),
+    );
+    expect(big.scaledFrameSize).toEqual([232 * 1.3 * 2, 232 * 1.3 * 2]);
+    expect(big.scaledAnchor).toEqual([116 * 1.3 * 2, 208 * 1.3 * 2]);
+    // a scale-1 character at the same map scale is unaffected (parity preserved)
+    const norm = resolveSprite(
+      input({ agentType: 'codex', characterKey: 'orc-codex-field-engineer' }),
+      env({ manifest: m, mapSpriteScale: 2 }),
+    );
+    expect(norm.scaledFrameSize).toEqual([232 * 2, 232 * 2]);
+    expect(norm.scaledAnchor).toEqual([116 * 2, 208 * 2]);
   });
 
   it('§3.1-11: dragging forces the IDLE animation in the drag-start direction (over status/roaming)', () => {

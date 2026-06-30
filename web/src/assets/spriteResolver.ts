@@ -256,6 +256,7 @@ interface Appearance {
   root: string; // relative to packRoot
   frameSize: [number, number];
   anchor: [number, number];
+  scale: number; // SPEC-301 §2.1 — per-character (or tier-variant) size multiplier; default 1
   animations: Record<string, AnimationDef>;
   rotations: Record<string, string> | undefined; // §3.4 static_tier source (tier variant)
   reducedMotion: ReducedMotionDef;
@@ -275,6 +276,7 @@ function appearanceFor(
       root: character.root,
       frameSize: character.frame_size,
       anchor: character.anchor,
+      scale: character.scale ?? 1,
       animations: character.animations,
       rotations: character.rotations,
       reducedMotion: character.reduced_motion,
@@ -288,6 +290,7 @@ function appearanceFor(
     root: e.root as string,
     frameSize: e.frame_size ?? character.frame_size,
     anchor: e.anchor ?? character.anchor,
+    scale: e.scale ?? character.scale ?? 1,
     animations: e.animations ?? {},
     rotations: e.rotations,
     reducedMotion: e.reduced_motion ?? character.reduced_motion,
@@ -338,8 +341,12 @@ function resolveCore(input: OrcRenderInput, env: RenderEnvironment): CoreSpriteS
   // returns base when `character.prestige` is absent or no available tier ≤ displayedTier exists.
   const displayedTier = (input.displayedTier ?? 0) as DisplayedTier;
   const appearance = appearanceFor(characterKey, character, displayedTier);
-  const frameSize = appearance.frameSize;
-  const anchor = appearance.anchor;
+  // SPEC-301 §2.1 — per-character size differentiation: the manifest `scale` (character, or the tier
+  // variant's override) grows the sprite around its FEET anchor. Folded into frame/anchor here so the
+  // map scale and the ground shadow follow it (anchor stays planted; a bigger orc just stands taller).
+  const cScale = appearance.scale;
+  const frameSize: [number, number] = [appearance.frameSize[0] * cScale, appearance.frameSize[1] * cScale];
+  const anchor: [number, number] = [appearance.anchor[0] * cScale, appearance.anchor[1] * cScale];
   const characterRoot = `${packRoot}/${appearance.root}`;
   const overlayPath = overlayPathFor(input.status, packRoot, manifest);
   const tierFields = { prestigeTier: displayedTier, appearanceKey: appearance.appearanceKey };
