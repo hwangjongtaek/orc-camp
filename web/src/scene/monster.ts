@@ -45,8 +45,8 @@ const WAYPOINT_MAX_ATTEMPTS = 24;
  * a 256px sprite renders at ~717px (nearest-neighbor upscale), accepting some resolution loss
  * (chunkier pixels) for a more imposing boss. Smaller scenes use a reduced scale (§3.4).
  */
-export const MONSTER_SCALE_DEFAULT = 2.8;
-const SCALE_BY_BG: Record<string, number> = { 'necropolis-camp': 2.0 };
+export const MONSTER_SCALE_DEFAULT = 2.24; // 80% of the previous 2.8 (user tuning 2026-06-30)
+const SCALE_BY_BG: Record<string, number> = { 'necropolis-camp': 1.6 }; // 80% of 2.0
 export function monsterScaleFor(bgRef: string | null | undefined): number {
   return (bgRef && SCALE_BY_BG[bgRef]) || MONSTER_SCALE_DEFAULT;
 }

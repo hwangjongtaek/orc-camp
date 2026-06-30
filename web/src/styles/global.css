@@ -226,6 +226,11 @@ img {
 .oc-tier-badge[data-tier='3'] {
   background: var(--oc-color-tier-3);
 }
+/* the grade NAME (character tier label, e.g. "Storm Adept") — emphasized, not muted */
+.oc-tier__label {
+  font-weight: 600;
+  color: var(--oc-color-text);
+}
 /* status-specific accent color (boosted by border-style; never the sole signal) */
 .oc-status--active {
   border-color: var(--oc-color-accent);

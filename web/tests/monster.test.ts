@@ -157,9 +157,9 @@ describe('SPEC-303 Phase 1 — waypoint + scale helpers', () => {
     }
   });
 
-  it('necropolis uses a reduced render scale; others the default (2× epic)', () => {
+  it('necropolis uses a reduced render scale; others the default', () => {
     expect(monsterScaleFor('necropolis-camp')).toBeLessThan(monsterScaleFor('orccamp-default'));
-    expect(monsterScaleFor('orccamp-default')).toBe(2.8);
+    expect(monsterScaleFor('orccamp-default')).toBe(2.24);
   });
 });
 

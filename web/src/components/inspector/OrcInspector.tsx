@@ -116,7 +116,7 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
                 <span className="oc-tier-badge" data-tier={displayedTier}>
                   T{displayedTier}
                 </span>
-                {tierLabel && <span className="oc-tier__label"> {tierLabel}</span>}
+                {tierLabel && <span className="oc-tier__label">{tierLabel}</span>}
               </span>
             ) : (
               <span className="oc-muted" data-testid="orc-tier">
