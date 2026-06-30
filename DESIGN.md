@@ -203,13 +203,17 @@ chip border-style so the seven states survive a grayscale render.
   **status summary bar** — where work is and where it's stuck, immediately. No
   landing/marketing hero.
 - **Camp detail is the map.** A camp opens as a full-bleed **pixel camp map**
-  (the operating surface), with the **orc inspector** and an **activity rail**
-  as side/bottom docks — a 3-pane desktop layout; mobile degrades to a single
-  column with the inspector as a bottom sheet.
-- **The map is a coordinate space, not wallpaper** (SPEC-301): the play-field is
-  partitioned into one **zone per tmux window**; within a zone, orcs gather at
-  the **station for their status**; multiple same-status orcs **fan out by a
-  deterministic, pane-stable slot offset**. Window grouping and pane identity
+  (the operating surface) that spans the whole row, with a single **tabbed dock**
+  below it (Details / Preview / Activity) — one column at every width (no right
+  column, no mobile bottom sheet). This gives the map the full width and merges
+  the old inspector + activity rail into one switchable panel (SPEC-201 §2.3).
+- **The map is a coordinate space, not wallpaper** (SPEC-301): the default camp is
+  a **single background image** at native resolution that the user **drags to pan**
+  (image-ground mode); orcs are placed inside the image's walkable **ground** and
+  gather at the **station for their status**; multiple same-status orcs **fan out
+  by a deterministic, pane-stable slot offset**. (A background without a ground
+  polygon falls back to the legacy zone-per-window grid.) Window grouping and pane
+  identity
   are preserved spatially.
 - **Density & spacing.** Base unit `{spacing.1}` (4px). Dense toolbars use
   `{spacing.1}`, panel interiors `{spacing.2}`, major sections `{spacing.4}`.

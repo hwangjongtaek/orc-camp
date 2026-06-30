@@ -85,6 +85,29 @@ describe('SPEC-301 resolveSprite roaming + direction', () => {
     expect(s.direction).toBe('south');
     expect(s.framePaths?.[0]).toBe('/pack/sprites/claude/C/animations/active/south/frame_000.png');
   });
+
+  it('#50: an ARRIVED active orc honors the requested (random) dwell direction', () => {
+    // movementState 'arrived' + a direction ⇒ active anim faces that direction (not forced south).
+    const s = resolveSprite(input({ status: 'active', movementState: 'arrived', direction: 'north-east' }), env());
+    expect(s.animationState).toBe('active');
+    expect(s.direction).toBe('north-east');
+    expect(s.framePaths?.[0]).toBe('/pack/sprites/claude/C/animations/active/north-east/frame_000.png');
+  });
+
+  it('#50: an arrived dwell with a missing direction folder still degrades to south', () => {
+    const m = manifest({
+      animations: {
+        idle: { frames: 7, fps: 4, frame_pattern: 'frame_%03d.png', folders: dir8('animations/idle') },
+        active: { frames: 7, fps: 8, frame_pattern: 'frame_%03d.png', folders: { south: 'animations/active/south' } },
+        roaming: { frames: 9, fps: 8, frame_pattern: 'frame_%03d.png', folders: dir8('animations/roaming') },
+      },
+    });
+    const s = resolveSprite(
+      input({ status: 'active', movementState: 'arrived', direction: 'north-east' }),
+      env({ manifest: m }),
+    );
+    expect(s.direction).toBe('south');
+  });
 });
 
 describe('SPEC-301-AC-08/AC-14c uniform map scale parity', () => {

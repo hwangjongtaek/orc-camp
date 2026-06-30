@@ -1,11 +1,10 @@
 /**
  * SPEC-300 §2.6 / SPEC-301 §2.8 — rich-map depth LAYER rendering (component level).
  *
- * Wang terrain layer paints the sheet at the resolved bbox (SPEC-300-AC-14); flat fallback
- * tiles base + mandatory accent variety (SPEC-300-AC-15 / SPEC-301-AC-20); backdrop layer
- * resolves the background + is non-constraining (SPEC-301-AC-16); decor resolves + excludes
- * reserved props + drops missing sprites (SPEC-300-AC-17); per-sprite shadow + placeholder
- * parity (SPEC-300-AC-18); z-order / pointer-events / tokens-only (SPEC-301-AC-17 / AC-19).
+ * Background image layer covers the world + is non-constraining (SPEC-301-AC-16); decor
+ * resolves + excludes reserved props + drops missing sprites (SPEC-300-AC-17); per-sprite
+ * shadow + placeholder parity (SPEC-300-AC-18); z-order / pointer-events / tokens-only
+ * (SPEC-301-AC-17 / AC-19).
  */
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -13,19 +12,12 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, within, waitFor } from '@testing-library/react';
 import { AssetProvider } from '../src/assets/AssetContext';
-import { TerrainLayer } from '../src/components/scene/TerrainLayer';
 import { DecorLayer } from '../src/components/scene/DecorLayer';
 import { BackdropLayer } from '../src/components/scene/BackdropLayer';
 import { CampMap } from '../src/components/scene/CampMap';
 import type { AssetManifest } from '../src/assets/manifest';
 import type { ZoneInfo } from '../src/scene/layout';
 import { innerRect, zoneRect, mapDims } from '../src/scene/layout';
-import {
-  cornerMask,
-  makeTerrainField,
-  wangBBox,
-  TERRAIN_TILE,
-} from '../src/scene/terrain';
 import { useStore } from '../src/store/store';
 import { makeCamp, makeOrc, makeScan } from './fixtures';
 import type { Orc } from '../src/types/domain';
@@ -77,7 +69,7 @@ function wangManifest(): AssetManifest {
       },
     },
     scene: {
-      backdrop: { background_ref: 'warbase-sunset-dashboard', fit: 'cover-width', repeat_x: true, parallax: 0.3 },
+      backdrop: { background_ref: 'warbase-sunset-dashboard', fit: 'cover', repeat_x: false, parallax: 0 },
       decor: {
         items: [
           { ref: 'props/log-pile', weight: 3 },
@@ -128,83 +120,17 @@ function zone(rect: ZoneInfo['rect'], windowIndex = 0, zoneIndex = 0): ZoneInfo 
   return { windowIndex, zoneIndex, rect, inner: innerRect(rect) };
 }
 
-const cells = (c: HTMLElement): HTMLElement[] =>
-  [...c.querySelectorAll('.oc-terrain__cell')] as HTMLElement[];
-
-describe('SPEC-300-AC-14 TerrainLayer paints Wang tiles at the resolved bbox', () => {
-  it('AC-14: renders per-cell sheet tiles; positions match cornerMask→wangBBox', () => {
-    const rect = { x: 0, y: 0, w: 256, h: 256 };
-    const zones = [zone(rect)];
-    const world = { w: 256, h: 256 };
-    const { container } = render(
-      <TerrainLayer zones={zones} world={world} manifest={wangManifest()} assetBase="/pack" />,
-    );
-    expect(container.querySelector('[data-testid="terrain-wang"]')).not.toBeNull();
-    const list = cells(container);
-    expect(list.length).toBeGreaterThan(0);
-
-    // Recompute the expected selection with the SAME pure field and verify a concrete cell.
-    const field = makeTerrainField({ world, zones: [rect] });
-    const k = TERRAIN_TILE / 32;
-    for (const el of list) {
-      const mask = el.getAttribute('data-mask')!;
-      const bb = wangBBox(wangManifest().tilesets!['orc-camp-terrain-wang-topdown']!.wang!, mask);
-      expect(el.style.backgroundPosition).toBe(`${-bb.x * k}px ${-bb.y * k}px`);
-      expect(el.style.backgroundImage).toContain(
-        '/pack/tiles/orc-camp-terrain-wang-topdown/orc-camp-terrain-wang-topdown.png',
-      );
-    }
-    // the top-left cell's mask equals the field-derived mask (deterministic wiring)
-    const c0 = Math.floor(rect.x / TERRAIN_TILE);
-    const r0 = Math.floor(rect.y / TERRAIN_TILE);
-    expect(list[0]!.getAttribute('data-mask')).toBe(cornerMask(field, c0, r0));
-  });
-
-  it('AC-14: identical re-render produces identical masks (deterministic)', () => {
-    const rect = { x: 0, y: 0, w: 256, h: 256 };
-    const props = { zones: [zone(rect)], world: { w: 256, h: 256 }, manifest: wangManifest(), assetBase: '/pack' };
-    const a = render(<TerrainLayer {...props} />);
-    const masksA = cells(a.container).map((e) => e.getAttribute('data-mask'));
-    const b = render(<TerrainLayer {...props} />);
-    const masksB = cells(b.container).map((e) => e.getAttribute('data-mask'));
-    expect(masksB).toEqual(masksA);
-  });
-});
-
-describe('SPEC-300-AC-15 / SPEC-301-AC-20 TerrainLayer flat fallback (no single tile)', () => {
-  it('AC-15: flat path tiles base moss + a MANDATORY varied accent scatter', () => {
-    const rect = { x: 0, y: 0, w: 512, h: 512 };
-    const { container } = render(
-      <TerrainLayer zones={[zone(rect)]} world={{ w: 512, h: 512 }} manifest={flatManifest()} assetBase="/pack" />,
-    );
-    expect(container.querySelector('[data-testid="terrain-flat"]')).not.toBeNull();
-    const tiled = container.querySelector('.oc-terrain__zone--tiled') as HTMLElement;
-    expect(tiled.style.backgroundImage).toContain('tile-00-moss-ground.png');
-    const accents = [...container.querySelectorAll('.oc-terrain__accent')] as HTMLElement[];
-    const distinct = new Set(accents.map((a) => a.getAttribute('data-accent')));
-    expect(accents.length).toBeGreaterThan(0);
-    expect(distinct.size).toBeGreaterThanOrEqual(2); // never a single repeated tile
-  });
-
-  it('AC-20: no tileset → terrain layer renders nothing (CSS gradient ground shows)', () => {
-    const rect = { x: 0, y: 0, w: 256, h: 256 };
-    const { container } = render(
-      <TerrainLayer zones={[zone(rect)]} world={{ w: 256, h: 256 }} manifest={null} assetBase="/pack" />,
-    );
-    expect(container.querySelector('.oc-terrain')).toBeNull();
-  });
-});
-
-describe('SPEC-301-AC-16 BackdropLayer resolution (non-constraining)', () => {
-  it('AC-16: resolves background_ref → image; repeat-x honored', () => {
+describe('SPEC-301-AC-16 BackdropLayer resolution (full-cover, non-constraining)', () => {
+  it('AC-16: resolves background_ref → image (cover via CSS, not inline repeat)', () => {
     const { container } = render(<BackdropLayer manifest={wangManifest()} assetBase="/pack" />);
     const bd = container.querySelector('[data-testid="map-backdrop"]') as HTMLElement;
     expect(bd).not.toBeNull();
     expect(bd.style.backgroundImage).toContain('/pack/backgrounds/warbase-sunset-dashboard.png');
-    expect(bd.style.backgroundRepeat).toBe('repeat-x');
+    // no inline repeat: full-cover sizing is owned by .oc-map__backdrop CSS (cover/no-repeat).
+    expect(bd.style.backgroundRepeat).toBe('');
   });
 
-  it('AC-16: missing backdrop declaration → no backdrop element (terrain unaffected)', () => {
+  it('AC-16: missing background declaration → no background element (CSS ground fallback)', () => {
     const { container } = render(<BackdropLayer manifest={flatManifest()} assetBase="/pack" />);
     expect(container.querySelector('[data-testid="map-backdrop"]')).toBeNull();
   });
@@ -286,7 +212,7 @@ describe('SPEC-301-AC-16/AC-17/AC-20 CampMap rich depth wiring (with manifest)',
   beforeEach(() => useStore.getState().resetServer());
   afterEach(() => vi.unstubAllGlobals());
 
-  it('renders backdrop + Wang terrain + decor + lighting; labels stay on top', async () => {
+  it('renders full-cover background image (no terrain tiles) + decor + lighting; labels stay on top', async () => {
     vi.stubGlobal('fetch', vi.fn(async () =>
       ({ ok: true, json: async () => wangManifest() }) as unknown as Response,
     ));
@@ -298,11 +224,16 @@ describe('SPEC-301-AC-16/AC-17/AC-20 CampMap rich depth wiring (with manifest)',
         <CampMap campId={campId} selectedOrcId={null} onSelect={() => {}} />
       </AssetProvider>,
     );
-    // manifest loads async → wait for the Wang terrain layer to mount.
+    // manifest loads async → wait for the background image layer to mount.
     await waitFor(() =>
-      expect(container.querySelector('[data-testid="terrain-wang"]')).not.toBeNull(),
+      expect(container.querySelector('[data-testid="map-backdrop"]')).not.toBeNull(),
     );
-    expect(container.querySelector('[data-testid="map-backdrop"]')).not.toBeNull();
+    const bd = container.querySelector('[data-testid="map-backdrop"]') as HTMLElement;
+    expect(bd.style.backgroundImage).toContain('/pack/backgrounds/warbase-sunset-dashboard.png');
+    // terrain tiling is fully replaced by the background image (no Wang/flat terrain layer).
+    expect(container.querySelector('.oc-terrain')).toBeNull();
+    // a background image is present → the CSS gradient ground fallback is NOT rendered.
+    expect(container.querySelector('.oc-map__ground')).toBeNull();
     expect(container.querySelector('[data-testid="decor-layer"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="map-lighting"]')).not.toBeNull();
     // always-on status label + raw target still render (never occluded by depth, A7).

@@ -47,6 +47,9 @@ tags:
 | `agentType` 판정 **규칙**·confidence 모델 | 핑거프린팅 | [[SPEC-003-agent-detection]] |
 | `status`/summary 추론 **규칙**·precedence·threshold | 상태 추론 | [[SPEC-004-status-inference]] |
 | redaction 패턴 카탈로그·line/byte limit 값·원문 비저장 메커니즘 | privacy 계약 | [[SPEC-006-privacy-redaction]] |
+| 누적 token/cost(`Orc.usage`) **수집·직렬화** 및 mascot tier 소비 | forward(미반영) — 제안 필드 | [[SPEC-302-mascot-prestige-tiers]] §2.2 (R-P2-008 proposed) |
+
+> **forward(R-P2-008, 미반영)**: [[SPEC-302-mascot-prestige-tiers]]가 mascot prestige tier 판정을 위해 `Orc`에 `usage: OrcUsage | null`(누적 tokens/cost) 추가를 **제안**한다. 본 spec의 현행 `Orc`에는 미포함이며, 채택 시 §2.1 인터페이스·envelope 예시를 함께 갱신한다(read-only/비저장 원칙 유지, best-effort·`null` 허용).
 
 ## 2. Contract
 

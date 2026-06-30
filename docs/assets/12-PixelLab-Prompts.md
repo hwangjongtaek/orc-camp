@@ -207,6 +207,23 @@ Negative:
 exact famous hammer, exact armor copy, named fantasy franchise character, faction emblem, photorealism, blur, text, watermark
 ```
 
+### Epic Monster NPC (background별 512×512 boss)
+
+camp scene마다 환경에 맞는 거대 boss 몬스터(ambient NPC, scene당 1마리)의 **base character 계약·variant
+prompt·5종 animation prompt(`active`/`waiting`/`idle`/`roaming`/`error`)·생성 runbook·manifest schema**는
+별도 SSOT [[16-Epic-Monster-NPC]]가 소유한다. background별 art 컨셉 프롬프트는 [[background-tile-merge-guide]]
+§6 각 테마의 "Epic monster" 절, 런타임 행동/렌더는 [[SPEC-303-epic-monster-npc]]·[[SPEC-300-asset-rendering]]
+§2.7/§3.10. (오크 character와 달리 크기 512×512, `stale`/`terminated` 없음, status-less. 전체 prompt는 여기
+중복하지 않는다.)
+
+### Character Portrait (bust / avatar)
+
+각 character의 **Baldur's Gate 풍 2:3 흉상(bust) portrait**(머리→가슴, 정적·정면, CSS frame은 web 소유)의
+framing 계약·character별 base prompt·prestige tier delta(5 base + 15 tier = 20)·생성 runbook·manifest
+`portraits` schema는 별도 SSOT [[17-Character-Avatar-Portraits]]가 소유한다. 런타임 렌더/배치/수용 기준은
+[[SPEC-304-character-avatar-portraits]]. (top-down sprite와 달리 세로 2:3·512×768·transparent·frame
+미포함. 전체 portrait prompt는 여기 중복하지 않는다.)
+
 ## State Animation Prompts
 
 Animation은 base character를 reference image로 고정하고 action prompt만 바꾼다.

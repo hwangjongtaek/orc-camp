@@ -103,6 +103,12 @@ export const STATUS_SAMPLES: LabeledPaneSample[] = [
     rawCapture: 'Thinking ⠙ (13s · 1300 tokens)',
     paneMeta: statusMeta(), scannedAt: T0, gold: { status: 'active' },
   },
+  // §3.2 S-WORK: agent ACTUALLY working a turn (explicit interrupt-hint) → active, single-cycle.
+  {
+    id: 's-active-working', source: 'fixture',
+    rawCapture: 'Editing src/app.ts\n✻ Forging… (esc to interrupt · 8s · ↑ 2.1k tokens)',
+    paneMeta: statusMeta(), scannedAt: T0, gold: { status: 'active' },
+  },
 
   // --- idle: old activity, no change/prompt/error ---
   { id: 's-idle-1', source: 'fixture', rawCapture: 'done.\n~/proj $', paneMeta: statusMeta({ lastActivityAt: T_OLD }), scannedAt: T0, gold: { status: 'idle' } },
@@ -117,6 +123,9 @@ export const STATUS_SAMPLES: LabeledPaneSample[] = [
   { id: 's-wait-prompt', source: 'fixture', priorCapture: 'ready\n❯ ', rawCapture: 'ready\n❯ ', paneMeta: statusMeta(), scannedAt: T0, gold: { status: 'waiting', waiting: true } },
   { id: 's-wait-question', source: 'fixture', priorCapture: 'Which file should I edit?', rawCapture: 'Which file should I edit?', paneMeta: statusMeta(), scannedAt: T0, gold: { status: 'waiting', waiting: true } },
   { id: 's-wait-menu', source: 'fixture', priorCapture: 'Choose an option:\n1) yes\n2) no', rawCapture: 'Choose an option:\n1) yes\n2) no', paneMeta: statusMeta(), scannedAt: T0, gold: { status: 'waiting', waiting: true } },
+  // §3.2 S-IDLE-PROMPT: a running agent IDLE at its (static) input box — fresh pane-activity but NO
+  // working sign → waiting, NOT active (the "running ⇒ always active" fix). prior==raw (static).
+  { id: 's-wait-idle-box', source: 'fixture', priorCapture: '╭────────────╮\n│ >          │\n╰────────────╯\n? for shortcuts', rawCapture: '╭────────────╮\n│ >          │\n╰────────────╯\n? for shortcuts', paneMeta: statusMeta(), scannedAt: T0, gold: { status: 'waiting', waiting: true } },
 
   // --- HARD negative: mid-stream (y/n) but tail is streaming (prior differs) → NOT waiting ---
   {

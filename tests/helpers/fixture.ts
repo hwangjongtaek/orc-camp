@@ -74,6 +74,7 @@ function paneLine(p: PaneFields): string {
     String(p.pid ?? 1000),
     p.dead ? '1' : '0',
     p.active ? '1' : '0',
+    String(p.activityEpoch ?? DEFAULT_EPOCH), // #{window_activity} (mirrors pane_activity in fixtures)
   ].join(US);
 }
 

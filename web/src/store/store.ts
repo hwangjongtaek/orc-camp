@@ -42,6 +42,14 @@ export interface UiSlice {
   selectedCampId: string | null;
   selectedOrcId: string | null;
   inspectorOpen: boolean;
+  /** Active camp background ref override (manifest backgrounds key); null = manifest scene default. */
+  backgroundRef: string | null;
+  /**
+   * SPEC-301 §3.1-11 — user drag-and-drop placements, by orcId, in logical WORLD coordinates.
+   * A dropped orc re-anchors here (overriding its computed cell home) and resumes active/waiting
+   * at the drop point. Client-only UI state; pruned when the orc disappears.
+   */
+  orcPositions: Record<string, { x: number; y: number }>;
 }
 
 export type ToastSeverity = 'info' | 'warn' | 'error';
@@ -78,6 +86,9 @@ export interface StoreState {
   setSelectedCamp: (campId: string | null) => void;
   setSelectedOrc: (orcId: string | null) => void;
   setInspectorOpen: (open: boolean) => void;
+  setBackgroundRef: (ref: string | null) => void;
+  /** SPEC-301 §3.1-11 — set (or clear, with null) a user drag-drop placement for an orc. */
+  setOrcPosition: (orcId: string, pos: { x: number; y: number } | null) => void;
 
   // --- misc ---
   setSettings: (settings: SettingsResponse | null) => void;
@@ -103,14 +114,34 @@ const initialUi: UiSlice = {
   selectedCampId: null,
   selectedOrcId: null,
   inspectorOpen: false,
+  backgroundRef: null,
+  orcPositions: {},
 };
 
-/** Drop the orc selection if the selected orc no longer exists (SPEC-200 §3.3). */
-function reconcileSelection(server: ServerData, ui: UiSlice): UiSlice {
-  if (ui.selectedOrcId !== null && !server.orcsById[ui.selectedOrcId]) {
-    return { ...ui, selectedOrcId: null, inspectorOpen: false };
+/** Prune drag-drop placements whose orc no longer exists (keeps the map from leaking stale homes). */
+function prunePositions(
+  server: ServerData,
+  positions: UiSlice['orcPositions'],
+): UiSlice['orcPositions'] {
+  const ids = Object.keys(positions);
+  if (ids.length === 0) return positions;
+  let changed = false;
+  const next: UiSlice['orcPositions'] = {};
+  for (const id of ids) {
+    if (server.orcsById[id]) next[id] = positions[id]!;
+    else changed = true;
   }
-  return ui;
+  return changed ? next : positions;
+}
+
+/** Drop the orc selection if the selected orc no longer exists (SPEC-200 §3.3); prune stale placements. */
+function reconcileSelection(server: ServerData, ui: UiSlice): UiSlice {
+  const orcPositions = prunePositions(server, ui.orcPositions);
+  const base = orcPositions === ui.orcPositions ? ui : { ...ui, orcPositions };
+  if (base.selectedOrcId !== null && !server.orcsById[base.selectedOrcId]) {
+    return { ...base, selectedOrcId: null, inspectorOpen: false };
+  }
+  return base;
 }
 
 export const useStore = create<StoreState>()((set, get) => ({
@@ -208,6 +239,17 @@ export const useStore = create<StoreState>()((set, get) => ({
   },
   setInspectorOpen: (inspectorOpen) => {
     set((state) => ({ ui: { ...state.ui, inspectorOpen } }));
+  },
+  setBackgroundRef: (backgroundRef) => {
+    set((state) => ({ ui: { ...state.ui, backgroundRef } }));
+  },
+  setOrcPosition: (orcId, pos) => {
+    set((state) => {
+      const orcPositions = { ...state.ui.orcPositions };
+      if (pos) orcPositions[orcId] = pos;
+      else delete orcPositions[orcId];
+      return { ui: { ...state.ui, orcPositions } };
+    });
   },
 
   setSettings: (settings) => set({ settings }),

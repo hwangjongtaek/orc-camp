@@ -123,3 +123,18 @@ export function selectCamp(server: ServerData, campId: string): Camp | null {
     .filter((o): o is Orc => o !== undefined);
   return { ...meta, orcs };
 }
+
+/**
+ * SPEC-304 §2.2 — the ordered, existing orc ids of the camp that contains `orcId`, in the SAME
+ * order CampMap derives its `orcs` (windowIndex/paneIndex sort, filtered to existing orcs). The
+ * inspector uses this with `characterKeyMap` so the portrait's character matches the on-map sprite.
+ * Returns [] if the orc isn't found in any camp.
+ */
+export function campOrcIdsForOrc(server: ServerData, orcId: string): string[] {
+  for (const ids of Object.values(server.orcIdsByCamp)) {
+    if (ids.includes(orcId)) {
+      return ids.filter((id) => server.orcsById[id] !== undefined);
+    }
+  }
+  return [];
+}

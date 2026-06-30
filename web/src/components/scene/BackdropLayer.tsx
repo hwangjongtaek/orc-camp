@@ -1,41 +1,46 @@
 /**
- * SPEC-300 §2.6b + SPEC-301 §2.8a — non-constraining backdrop / horizon layer.
+ * SPEC-300 §2.6b + SPEC-301 §2.8a — full-cover background image layer.
  *
  * Resolves `scene.backdrop.background_ref` → `backgrounds[ref].file` and paints it as the
- * backmost world layer (cover-width, anchored top, repeat-x). It does NOT constrain the
- * world/zone/sprite coordinates (those are layout constants) — missing backdrop just leaves
- * the terrain as the background (§3.4). Parallax is applied by CampMap as a TRANSFORM only
- * (zero layout shift, AC-16); reduced-motion pins it (AC-19). The element is aria-hidden and
- * pointer-events:none so it never intercepts selection/keyboard.
+ * backmost world layer, covering the ENTIRE world (background-size: cover, centered). This
+ * replaces the per-zone Wang/flat terrain tiling: a single background image IS the ground.
+ * It does NOT constrain the world/zone/sprite coordinates (those are layout constants) — a
+ * missing backdrop just leaves the CSS gradient ground as the background (§3.4). The element
+ * is static (no parallax → zero layout shift, AC-16), aria-hidden, and pointer-events:none so
+ * it never intercepts selection/keyboard.
  */
-import { forwardRef } from 'react';
 import type { AssetManifest } from '../../assets/manifest';
 
-function backdropSrc(manifest: AssetManifest | null, assetBase: string): string | null {
-  const bd = manifest?.scene?.backdrop;
-  if (!bd?.background_ref) return null;
-  const bg = manifest?.backgrounds?.[bd.background_ref];
+function backdropSrc(
+  manifest: AssetManifest | null,
+  assetBase: string,
+  backgroundRef?: string | null,
+): string | null {
+  const ref = backgroundRef ?? manifest?.scene?.backdrop?.background_ref;
+  if (!ref) return null;
+  const bg = manifest?.backgrounds?.[ref];
   if (!bg?.file) return null;
   return `${assetBase.replace(/\/+$/, '')}/${bg.file}`;
 }
 
-export const BackdropLayer = forwardRef<
-  HTMLDivElement,
-  { manifest: AssetManifest | null; assetBase: string }
->(function BackdropLayer({ manifest, assetBase }, ref): JSX.Element | null {
-  const src = backdropSrc(manifest, assetBase);
+export function BackdropLayer({
+  manifest,
+  assetBase,
+  backgroundRef,
+}: {
+  manifest: AssetManifest | null;
+  assetBase: string;
+  /** Override the active background (camp switcher); falls back to scene.backdrop default. */
+  backgroundRef?: string | null;
+}): JSX.Element | null {
+  const src = backdropSrc(manifest, assetBase, backgroundRef);
   if (!src) return null;
-  const repeatX = manifest?.scene?.backdrop?.repeat_x ?? true;
   return (
     <div
-      ref={ref}
       className="oc-map__backdrop"
       aria-hidden="true"
       data-testid="map-backdrop"
-      style={{
-        backgroundImage: `url("${src}")`,
-        backgroundRepeat: repeatX ? 'repeat-x' : 'no-repeat',
-      }}
+      style={{ backgroundImage: `url("${src}")` }}
     />
   );
-});
+}

@@ -396,6 +396,83 @@ describe('confidence bands are structurally ordered', () => {
 });
 
 // ===========================================================================
+// SPEC-004 §3.2 — working-vs-waiting (S-WORK / S-IDLE-PROMPT): measure whether a
+// recognised agent is ACTUALLY working a turn, not just "running ⇒ active".
+// ===========================================================================
+
+describe('SPEC-004 §3.2 S-WORK — agent working indicator → active (single-cycle)', () => {
+  it('claude-code "esc to interrupt" in the tail → active HIGH, even with no prior', () => {
+    const r = inferStatus(
+      makeInput({
+        candidate: makeCandidate({ agentType: 'claude-code' }),
+        pane: { recentOutput: ['Editing src/foo.ts', '✻ Forging… (esc to interrupt · 12s)'] },
+        lifecycle: { lastActivityAt: ACT_RECENT },
+        prior: null, // works WITHOUT a prior snapshot (no diff needed)
+      }),
+    );
+    expect(r.status).toBe('active');
+    expect(isHigh(r.statusConfidence)).toBe(true);
+    expect(r.statusSignals.some((s) => s.ruleId === 'active/working.indicator')).toBe(true);
+  });
+
+  it('codex working tail → active', () => {
+    const r = inferStatus(
+      makeInput({
+        candidate: makeCandidate({ agentType: 'codex' }),
+        pane: { command: 'codex', recentOutput: ['running tool', 'Working  (Esc to interrupt)'] },
+        lifecycle: { lastActivityAt: ACT_RECENT },
+        prior: null,
+      }),
+    );
+    expect(r.status).toBe('active');
+  });
+
+  it('working indicator + agentProcessAlive=null → active but degraded (not HIGH, §3.8)', () => {
+    const r = inferStatus(
+      makeInput({
+        candidate: makeCandidate({ agentType: 'claude-code' }),
+        pane: { recentOutput: ['compiling', 'Thinking… (esc to interrupt)'] },
+        lifecycle: { lastActivityAt: ACT_RECENT, agentProcessAlive: null },
+        prior: null,
+      }),
+    );
+    expect(r.status).toBe('active');
+    expect(r.statusConfidence).toBeLessThan(0.8);
+    expect(isMedium(r.statusConfidence)).toBe(true);
+  });
+});
+
+describe('SPEC-004 §3.2 S-IDLE-PROMPT — running but idle agent → waiting, NOT active', () => {
+  it('claude-code alive + recent activity but NO working indicator → waiting (the running⇒active fix)', () => {
+    const r = inferStatus(
+      makeInput({
+        candidate: makeCandidate({ agentType: 'claude-code' }),
+        // the idle input box (no "esc to interrupt"); cursor/animation keeps pane_activity fresh
+        pane: { recentOutput: ['╭─────────────╮', '│ >           │', '╰─────────────╯', '? for shortcuts'] },
+        lifecycle: { lastActivityAt: ACT_RECENT, agentProcessAlive: true },
+        prior: null,
+      }),
+    );
+    expect(r.status).toBe('waiting');
+    expect(r.status).not.toBe('active'); // recent pane-activity is TUI noise, not work
+    expect(r.statusSignals.some((s) => s.ruleId === 'waiting/agent_idle')).toBe(true);
+  });
+
+  it('a GENERIC (unknown-type) candidate keeps the weak-active recent-activity fallback', () => {
+    const r = inferStatus(
+      makeInput({
+        candidate: makeCandidate({ agentType: 'unknown', matchedSignals: [] }),
+        pane: { command: 'node', recentOutput: ['doing some work'] },
+        lifecycle: { lastActivityAt: ACT_RECENT },
+        prior: null,
+      }),
+    );
+    expect(r.status).toBe('active'); // unknown agent: recent activity → weak active (unchanged)
+    expect(isLow(r.statusConfidence)).toBe(true);
+  });
+});
+
+// ===========================================================================
 // SPEC-004 §3.1-2b / §3.8 — liveness-gate (agentProcessAlive) + agent-gone S-AGONE
 // ===========================================================================
 

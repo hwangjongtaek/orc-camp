@@ -2,7 +2,7 @@
 spec: SPEC-900
 title: 전체 제품 추적성 롤업
 status: approved
-updated: 2026-06-28
+updated: 2026-06-29
 requirements: []
 decisions: []
 tags:
@@ -28,7 +28,7 @@ tags:
 - **전체 제품 P0 커버리지 매트릭스**(§2): R-CLI / R-TMUX / R-ORC / R-UI / R-PRIV / R-CTRL / R-API / R-SET / R-SEC / R-OBS 전 그룹의 각 P0 `R-*` → 1차 소유 spec → 대표 AC id → 검증 계층. **무커버 R-\*는 P0 GAP 행으로 명시**한다.
 - **비기능 커버리지**(§3.1): local-first·보안·개인정보·성능·scan latency·신뢰성·확장성·사용성·접근성·관측성·배포 11개 영역 → 소유 spec/AC.
 - **채택 P1 커버리지**(§3.2): R-P1-001/002/004/006/010/011 → spec/AC.
-- **P2 pre-flag ledger**(§3.3): R-P2-001~007 → forward pre-flag + 스트레스 불변식.
+- **P2 pre-flag ledger**(§3.3): R-P2-001~008 → forward pre-flag + 스트레스 불변식.
 - **롤업 자체의 수용 기준**(§4): 완결성 기준(`SPEC-900-AC-NN`) — "모든 P0가 ≥1 AC에 매핑된다" 등.
 - **Epic→spec→status 개요 + no-silent-truncation 명세**(§5): 의도적으로 후속 슬라이스로 미룬 항목을 빠짐없이 명시.
 
@@ -98,12 +98,12 @@ tags:
 | --- | --- | --- | --- | --- |
 | R-UI-001 | SPEC-201 (route SPEC-200) | SPEC-201-AC-01/02; SPEC-200-AC-01/15; SPEC-202-AC-18 | C | 첫 화면 = camp list |
 | R-UI-002 | SPEC-201 | SPEC-201-AC-01, AC-02 | C | CampCard 콘텐츠 매핑 |
-| R-UI-003 | SPEC-201 (sprite SPEC-300, 공간 맵 SPEC-301) | SPEC-201-AC-03/14; SPEC-300-AC-05/06/09/12/14/15/16/17/18; SPEC-301-AC-01/02/03/08/09/12/14/15/16/17/18/20/21 | C | camp scene·orc sprite·공간 배치 맵(zone/station/slot, SPEC-301이 scene 배치 supersede) + **입체(깊이) scene**(Wang 자동 타일링·backdrop+parallax·scenery·shadow·lighting, SPEC-300 §2.5/§2.6·SPEC-301 §2.8) |
-| R-UI-004 | SPEC-201 (control SPEC-400, preview text SPEC-101) | SPEC-201-AC-04/11/13; SPEC-400-AC-14; SPEC-202-AC-07; SPEC-101-AC-17/18 | C·I | inspector 4영역. preview text 경로 = `GET /api/orcs/:orcId/preview`([[08-Decisions|D-026]]) |
+| R-UI-003 | SPEC-201 (sprite SPEC-300, 공간 맵 SPEC-301) | SPEC-201-AC-03/14/15; SPEC-300-AC-05/06/09/12/16/17/18; SPEC-301-AC-01/02/03/08/09/12/14/17/18/20/21/22/23 | C | camp scene·orc sprite·**image-ground(단일 배경 이미지=world, native·drag-pan) 공간 배치 맵** + legacy zone/station/slot fallback(SPEC-301이 scene 배치 supersede). **Wang 자동 타일링·backdrop parallax는 superseded**(SPEC-300-AC-14/15·SPEC-301-AC-15/16), 단일 배경 이미지+decor/shadow/lighting로 대체 |
+| R-UI-004 | SPEC-201 (control SPEC-400, preview text SPEC-101) | SPEC-201-AC-04/11/13/15/16; SPEC-400-AC-14; SPEC-202-AC-07; SPEC-101-AC-17/18 | C·I | Details 탭=read-only 메타 + **terminal preview AND control dock은 Preview 탭**(`PanePreview`+`CommandDock`) + **단일 탭 dock(Details/Preview/Activity) 통합**(우측 컬럼·bottom-sheet 제거). control disabled = SPEC-400 §2.11 predicate. preview text 경로 = `GET /api/orcs/:orcId/preview`([[08-Decisions|D-026]]) |
 | R-UI-005 | SPEC-201 (신호 SPEC-102, store SPEC-200) | SPEC-201-AC-05/06/07/12; SPEC-200-AC-11/14; SPEC-102-AC-07/08 | C | 7+상태 구분(no-agent≠no-session, disconnected≠stale) |
-| R-UI-006 | SPEC-300 / SPEC-202 (배포 SPEC-700, 맵 SPEC-301) | SPEC-202-AC-16/17; SPEC-300-AC-08/09/10/13/15/17/18; SPEC-301-AC-08/10/14/20; SPEC-700-AC-06 | C·I | placeholder parity·동일 layout/interaction·맵 uniform scale parity + **rich-map depth fallback**(terrain/backdrop/decor/shadow CSS fallback, 단일 평면 tile 회귀 방지) |
-| R-UI-007 | SPEC-201 (deep-link SPEC-200, 데이터 SPEC-005) | SPEC-201-AC-08; SPEC-200-AC-02; SPEC-202-AC-21; SPEC-005-AC-02/03 | C·U | raw tmux target 상시 노출 |
-| R-UI-008 | SPEC-301 (sprite SPEC-300, 데이터 불변 SPEC-005) | SPEC-301-AC-01/02/03/12/14/15/18 | C | 활동을 공간 표현(위치=기존 필드 결정적 함수, 서버 좌표 불추가; [[08-Decisions|D-035]]) + terrain field/scenery도 client-derived 결정적 |
+| R-UI-006 | SPEC-300 / SPEC-202 (배포 SPEC-700, 맵 SPEC-301) | SPEC-202-AC-16/17; SPEC-300-AC-08/09/10/13/16/17/18; SPEC-301-AC-08/10/14/20/22; SPEC-700-AC-06 | C·I | placeholder parity·동일 layout/interaction·맵 uniform scale parity + **image-ground fallback**(배경 이미지→CSS gradient, 빈 화면 회귀 방지). (terrain fallback chain SPEC-300-AC-15는 superseded) |
+| R-UI-007 | SPEC-201 (deep-link SPEC-200, 데이터 SPEC-005) | SPEC-201-AC-08/15; SPEC-200-AC-02; SPEC-202-AC-21; SPEC-005-AC-02/03 | C·U | raw tmux target 상시 노출(dock Details 탭 포함) |
+| R-UI-008 | SPEC-301 (sprite SPEC-300, 데이터 불변 SPEC-005) | SPEC-301-AC-01/02/03/12/14/22/23 | C | 활동을 공간 표현(위치=기존 필드 결정적 함수, 서버 좌표 불추가; [[08-Decisions|D-035]]). image-ground placement·ground-ratio 게이트도 client-derived 결정적 |
 
 ### 2.5 R-PRIV — Terminal preview·Privacy (1차 [[SPEC-006-privacy-redaction]], R-PRIV-006은 [[SPEC-201-dashboard-screens]]/[[SPEC-500-settings-persistence]]/[[SPEC-101-snapshot-api]])
 
@@ -114,7 +114,7 @@ tags:
 | R-PRIV-003 | SPEC-006 | SPEC-006-AC-01~05/15/17 (지표 SPEC-007-AC-04) | U·M | 패턴 카탈로그·false-redaction. `TC-U-RED-PATTERNS`/`TC-M-FALSERED` |
 | R-PRIV-004 | SPEC-006 (설정 SPEC-500, serve SPEC-101) | SPEC-006-AC-10; SPEC-500-AC-06/12; SPEC-101-AC-16 | I | full output 비저장·memory only. `TC-I-NONPERSIST` |
 | R-PRIV-005 | SPEC-006 (log SPEC-600/101) | SPEC-006-AC-11; SPEC-101-AC-10; SPEC-600-AC-06/07 | I | debug log 원문 미기록 |
-| R-PRIV-006 | SPEC-201 + SPEC-500 (text 경로 SPEC-101) | SPEC-201-AC-09/10; SPEC-500-AC-04/12; SPEC-101-AC-17/18 | C·I | preview 노출 toggle·line-count 저장·floor-lock. end-to-end 경로 = `GET /api/orcs/:orcId/preview` |
+| R-PRIV-006 | SPEC-201 + SPEC-500 (text 경로 SPEC-101) | SPEC-201-AC-09/10/16; SPEC-500-AC-04/12; SPEC-101-AC-17/18 | C·I | preview 노출 toggle·line-count 저장·floor-lock + **별도 Preview 탭 lazy mount**(노출면 최소화). end-to-end 경로 = `GET /api/orcs/:orcId/preview` |
 
 ### 2.6 R-CTRL — Control action (1차 [[SPEC-400-control-actions]])
 
@@ -194,13 +194,13 @@ tags:
 | --- | --- | --- | --- |
 | R-P1-001 (camp/orc alias·note) | SPEC-500 | SPEC-500-AC-P1-01 | SQLite `alias` table(stable id 키) |
 | R-P1-002 (수동 mark/unmark) | SPEC-500 | SPEC-500-AC-P1-02 | SQLite `manual_mark`(paneId 키) |
-| R-P1-004 (sprite variant·animation) | SPEC-300 (정합 SPEC-202, movement SPEC-301) | SPEC-300-AC-01~07/11; SPEC-202-AC-06/11; SPEC-301-AC-04/05/07/13/19 | agentType별 variant·status animation·reduced-motion·roaming movement(8방향)·depth 모션 reduced-motion 정지 |
+| R-P1-004 (sprite variant·animation) | SPEC-300 (정합 SPEC-202, movement SPEC-301) | SPEC-300-AC-01~07/11; SPEC-202-AC-06/11; SPEC-301-AC-04/05/07/13/19 | agentType별 variant·status animation·reduced-motion·roaming movement(8방향)·scene 모션(decor/lighting) reduced-motion 정지 |
 | R-P1-006 (SQLite history) | SPEC-500 | SPEC-500-AC-P1-03/04/05 | session/event history·redacted·retention·output opt-in |
 | R-P1-010 (Linux 검증·문서화) | SPEC-700 | SPEC-700-AC-14 | `smoke:linux` job(P1 advisory) |
 | R-P1-011 (detector config/plugin 확장) | SPEC-800 | SPEC-800-AC-03/04/05/06/08 | config-rule-first([[08-Decisions|D-031]])·calibration 우회 불가 |
 | R-P1-013 (status 변화 roaming 이동·8방향) | SPEC-301 (sprite SPEC-300) | SPEC-301-AC-04/05 | roaming walk-cycle 진입·8방향 quantize([[08-Decisions|D-035]]) |
 
-> 미채택 P1(R-P1-003/005/007/008/009/012)은 owner spec에서 **forward 제약**으로만 보존된다(예: SPEC-202-AC R-P1-009 forward focus backbone). P0 커버리지 대상 아님. **R-P1-005**(background/asset-pack 교체)는 미채택이나, rich-map 작업으로 backdrop·Wang/flat tileset이 manifest/asset-pack 구동 비-제약 레이어로 분리되어 **교체 substrate가 마련**됐다(SPEC-300-AC-14/16·SPEC-301-AC-16/20). per-camp **전환 UI·설정**은 [[SPEC-500-settings-persistence]] forward(미작성)다.
+> 미채택 P1(R-P1-003/005/007/008/009/012)은 owner spec에서 **forward 제약**으로만 보존된다(예: SPEC-202-AC R-P1-009 forward focus backbone). P0 커버리지 대상 아님. **R-P1-005**(background/asset-pack 교체)는 미채택이나, image-ground 작업으로 단일 배경 이미지(`scene.backdrop`→`backgrounds[ref]`)가 manifest/asset-pack 구동 레이어로 분리되어 **교체 substrate가 마련**됐다(SPEC-300-AC-16·SPEC-301-AC-20/23, 신규 배경은 ground-ratio 게이트 통과 필요). per-camp **전환 UI·설정**은 [[SPEC-500-settings-persistence]] forward(미작성)다.
 
 ### 3.3 P2 pre-flag ledger — forward, NOT a P0 gap
 
@@ -215,8 +215,9 @@ tags:
 | R-P2-005 (action replay·timeline) | [[02-Requirements]] P2 (저-압력) | 보존 정책 충돌 가능(원문 비저장) — §6 Q2 |
 | R-P2-006 (workflow automation·handoff) | [[SPEC-800-extensibility]] §4.4 | **read-only + 단정 금지(confidence)** — 추론 오류가 행동 오류로 격상 |
 | R-P2-007 (enterprise policy·audit export) | [[SPEC-800-extensibility]] §4.5 | **privacy(비저장) + local-first** — audit export가 R-PRIV-004/005와 충돌 |
+| R-P2-008 (character prestige tier · delivered 5종 mascot/shaman/codex/unknown/iron-commander) | [[SPEC-302-mascot-prestige-tiers]] (draft) + [[15-Character-State-Model]] | **데이터 계약 SSOT** — 누적 token/cost(`Orc.usage`) 신규 수집이 forward([[SPEC-005-data-contract]]/[[SPEC-002-tmux-discovery]]); 미구현 시 tier 0 고정. read-only/privacy 비-스트레스(소비-only, 비저장) |
 
-> 7개 중 5개(001/003/004/006/007)는 [[SPEC-800-extensibility]] §4에 스트레스 불변식과 함께 정식 pre-flag. R-P2-002/005는 핵심 불변식 압력이 낮아 §4 stress-flag에 미포함(§6 Q2 — 보완 권고). **어느 것도 P0 gap이 아니다**(§4 SPEC-900-AC-04).
+> 8개 중 5개(001/003/004/006/007)는 [[SPEC-800-extensibility]] §4에 스트레스 불변식과 함께 정식 pre-flag. R-P2-002/005/008은 핵심 불변식 압력이 낮아(008은 소비-only·비저장·`usage=null`→tier 0으로 데이터/자산 forward 격리) §4 stress-flag에 미포함(§6 Q2 — 보완 권고). **어느 것도 P0 gap이 아니다**(§4 SPEC-900-AC-04).
 
 ## 4. Acceptance criteria
 
@@ -238,9 +239,9 @@ tags:
   - Then 각 영역이 ≥1 소유 spec/AC에 매핑되고, 미매핑 영역이 0개다.
 
 - **SPEC-900-AC-04** (P1 채택분 + P2 pre-flag 정합)
-  - Given 채택 P1(R-P1-001/002/004/006/010/011)과 P2(R-P2-001~007)가 주어졌을 때
+  - Given 채택 P1(R-P1-001/002/004/006/010/011)과 P2(R-P2-001~008)가 주어졌을 때
   - When §3.2/§3.3을 순회하면
-  - Then 채택 P1은 각각 ≥1 AC에 매핑되고, P2 7개는 모두 forward pre-flag로 표기되어 **어느 것도 P0 GAP으로 분류되지 않는다**(P2는 P0 커버리지 비대상).
+  - Then 채택 P1은 각각 ≥1 AC에 매핑되고, P2 8개는 모두 forward pre-flag로 표기되어 **어느 것도 P0 GAP으로 분류되지 않는다**(P2는 P0 커버리지 비대상).
 
 - **SPEC-900-AC-05** (no silent truncation)
   - Given §5의 의도적 후속(deferred) 항목 ledger가 주어졌을 때
@@ -261,7 +262,7 @@ tags:
 | 1 Scan | SPEC-001~007 | **approved** | 1차 게이트 통과(2026-06-26), P0 gap 0 |
 | 2 Server·API | SPEC-100/101/102 | draft | full-product 게이트(2026-06-27) 통과, 미승격 |
 | 3 Dashboard | SPEC-200/201/202 | draft | 동일 |
-| 4 Camp Visual | SPEC-300 / SPEC-301 | SPEC-300 draft · SPEC-301 draft | SPEC-301(camp 맵·movement·roaming) + **rich map rendering·depth**(SPEC-300 §2.5/§2.6/§3.9 scene asset 메커니즘·SPEC-301 §2.8/§3.5 depth toolkit) 추가, spec-reviewer 게이트 대기 |
+| 4 Camp Visual | SPEC-300 / SPEC-301 / SPEC-302 / SPEC-303 | SPEC-300 draft · SPEC-301 draft · SPEC-302 draft · SPEC-303 draft | SPEC-301(camp 맵·movement·roaming) + **image-ground(단일 배경 이미지=world=2× native, 원본 크기 sprite, 고정 스케일·drag-pan only(no zoom)) 배치·ground-ratio 게이트**(SPEC-301 §2.1a/§2.7/§2.8f/AC-22/23, SPEC-300 §2.5/§2.6 backdrop full-cover) 구현 반영. 구 corner-Wang/parallax depth·zoom/fit은 superseded. **SPEC-302**(mascot prestige tier, R-P2-008 proposed)·**SPEC-303**(epic monster ambient NPC, R-UI-010 proposed·자산 [[16-Epic-Monster-NPC]]·§6 C3)는 forward draft(자산 생성 deferred). spec-reviewer 게이트 대기 |
 | 5 Control | SPEC-400 | draft | 동일 |
 | 6 Settings | SPEC-500 | draft | 동일 |
 | 7 Observability | SPEC-600 | draft | 동일 |
@@ -281,7 +282,7 @@ tags:
 | R-PRIV-006 (preview 노출/line-count 조정) | dashboard(SPEC-201) + settings(SPEC-500) | scan preview는 metadata-only | scan-MVP는 flag **reserved**(SPEC-001-AC-15 negative, [[08-Decisions|D-021]]); 본체는 SPEC-201-AC-09/10 + SPEC-500-AC-04/12 |
 | preview text 전달 endpoint | SPEC-101 `GET /api/orcs/:orcId/preview` | snapshot은 metadata-only 유지 | [[08-Decisions|D-026]] 경로 확정, **SPEC-101-AC-17/18**로 검증 |
 | 미채택 P1(R-P1-003/005/007/008/009/012) | 후속 P1 wave | MVP 비필수 | owner spec에 forward 제약으로 보존(예: SPEC-202 R-P1-009 focus backbone) |
-| P2(R-P2-001~007) | 미래 epic | 비목표/forward | [[SPEC-800-extensibility]] §4 pre-flag(§3.3) |
+| P2(R-P2-001~008) | 미래 epic | 비목표/forward | [[SPEC-800-extensibility]] §4 pre-flag(§3.3); R-P2-008은 [[SPEC-302-mascot-prestige-tiers]](draft) |
 
 > 위 6행 외에 "조용히 누락"된 P0/채택-P1 요구사항은 없다(§4 SPEC-900-AC-05). scan 슬라이스 정합 정정(D-014~D-021)과 full-product 정정(D-022~D-034)은 모두 [[08-Decisions]]에 기록됐고 본 매트릭스에 반영됐다.
 
@@ -289,7 +290,8 @@ tags:
 
 ### Conflicts / Upstream
 
-- **C2 — 신규 R-UI-009·D-036 채택 제안(rich map depth, 표시만)**: rich/depth map 렌더링(Wang 자동 타일링·backdrop+parallax·scenery·lighting·shadow, [[SPEC-300-asset-rendering]] §2.5/§2.6·[[SPEC-301-camp-map-movement]] §2.8)은 현재 **R-UI-003/R-UI-006로 부수 충족**되어 위 §2.4 매트릭스에 신규 AC가 반영됐다(P0 gap 미발생). [[SPEC-301-camp-map-movement]] §6 C5가 정식 `R-UI-009`(P1)·`D-036` drop-in을 **제안**한다(write scope 밖, orchestrator/user 적용 위임). 채택 시 본 롤업 §2.4 R-UI-009 행 신설·§3.2 P1 목록 갱신이 필요하다. **표시만**(본 spec은 청사진을 수정하지 않음). 또한 manifest에 corner-Wang tileset·`scene` 선언 추가가 선행돼야 한다(SPEC-300 §6 C4, generation_status closed → version bump).
+- **C2 — 신규 R-UI-009·D-036 채택 제안(image-ground camp map, 표시만)**: camp map 렌더링은 **image-ground(단일 배경 이미지=world, native·drag-pan)** 모델로 구현됐고(구 corner-Wang/parallax depth는 superseded), 현재 **R-UI-003/R-UI-006/R-UI-008로 부수 충족**되어 위 §2.4 매트릭스에 신규 AC(SPEC-301-AC-22/23, SPEC-300-AC-16)가 반영됐다(P0 gap 미발생). [[SPEC-301-camp-map-movement]] §6 C5가 image-ground로 갱신한 정식 `R-UI-009`(P1)·`D-036` drop-in을 **제안**한다(write scope 밖, orchestrator/user 적용 위임). 채택 시 본 롤업 §2.4 R-UI-009 행 신설·§3.2 P1 목록 갱신이 필요하다. **표시만**(본 spec은 청사진을 수정하지 않음). manifest는 image-ground 선언(`scene.backdrop`/`backgrounds.orccamp-default` ground polygon)을 **이미 보유**하므로 별도 asset 생성 선행 게이트는 없다(SPEC-300 §6 C4 RESOLVED).
+- **C3 — 신규 R-UI-010·D-037 채택 제안(epic monster ambient NPC, 표시만)**: camp scene에 배경별 epic 보스 몬스터 1마리를 **비-상호작용·비-load-bearing** ambient NPC로 추가하는 forward다. 거동([[SPEC-303-epic-monster-npc]]: full-`ground.polygon` roaming·무작위 dwell FSM·orc-intersection→error 래치·결정적·reduced-motion 정지)·자산([[16-Epic-Monster-NPC]]: 512 base + 5 애니메이션, 생성 deferred)·배경별 art concept([[background-tile-merge-guide]] §6)·render contract([[SPEC-300-asset-rendering]])가 작성됐고, 청사진은 **R-UI-010(proposed)**·**D-037(proposed)**로 [[02-Requirements]]/[[08-Decisions]]에 반영됐다. 비-상호작용·비-load-bearing·client-derived(INV-1)·zero-layout-shift 비교란이라 read-only/privacy/data-contract 불변식 압력이 없다(P0 gap 미발생). 자산 *생성*은 `PIXELLAB_AUTH_HEADER` 보류로 deferred(미가용 시 미렌더). 채택(R-UI-010 정식 승격) 시 §3.2 P1 목록에 행 신설이 필요하다. **표시만**. `R-UI-009`(image-ground, C2)와 id 충돌을 피해 R-UI-010을 사용했고, SPEC-301 §6 C5의 stale "D-036(image-ground)"는 mascot이 D-036을 점유해 본 결정은 D-037을 쓴다.
 - **C1 — README index status 요약 ↔ 헤더 status(정보성)**: [[docs/specs/README|README]] Epic 2~9 인덱스 표는 spec을 `planned`로 표기하나, 실제 헤더 status는 `draft`이고 full-product 게이트를 통과했다. README는 "표는 요약, 헤더가 SSOT"라고 명시하므로 충돌은 아니나, orchestrator가 인덱스 표를 `draft`로 갱신하면 정합이 명확해진다. **표시만**(본 spec은 README를 수정하지 않음).
 
 ### Open Questions (검토 필요)

@@ -52,11 +52,11 @@
 ## Layout
 
 - 첫 화면은 camp list와 상태 summary가 바로 보이는 operational dashboard다. landing page나 marketing hero를 만들지 않는다.
-- camp detail은 full-bleed pixel camp scene을 중심에 두고, control/status panel은 좌우 또는 하단 dock으로 배치한다.
+- camp detail은 full-bleed pixel camp scene을 전체 폭으로 두고, 그 아래 단일 **탭 dock**(Details / Preview / Activity)을 배치한다 — 모든 폭에서 단일 컬럼(우측 컬럼·모바일 bottom sheet 없음). 맵이 화면을 크게 쓰고, 기존 inspector + activity rail은 하나의 탭 패널로 통합된다(SPEC-201 §2.3).
 - UI card 안에 card를 중첩하지 않는다.
 - repeated item에만 card를 사용한다. page section은 full-width band 또는 unframed layout으로 둔다.
-- desktop은 3-pane 구조를 허용한다: camp scene, selected orc inspector, event/activity rail.
-- mobile은 camp scene 위주로 보여주고 inspector는 bottom sheet로 전환한다.
+- 기본 camp scene은 단일 배경 이미지를 native 해상도로 보여주고 사용자가 드래그-팬으로 탐색한다(image-ground). orc는 이미지의 walkable ground 안에 배치된다. (ground polygon이 없는 배경은 legacy zone-grid로 fallback.)
+- Preview 탭은 현재 read-only redacted terminal tail이며, 추후 SSH 접속/PTY 브리지로 대화형 제어 경험으로 개선 예정(SPEC-201 §2.5 TODO).
 
 ## Components
 

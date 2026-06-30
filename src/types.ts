@@ -431,6 +431,10 @@ export const FMT_P = [
   '#{pane_pid}',
   '#{pane_dead}',
   '#{pane_active}',
+  // SPEC-002 §2.6 (D-022) — per-window activity fallback. `#{pane_activity}` is EMPTY on some tmux
+  // builds (observed tmux 3.6b), which would collapse lastActivityAt to scan-time and make `idle`
+  // unreachable; `#{window_activity}` is widely populated and used when pane_activity is blank.
+  '#{window_activity}',
 ].join(US);
 
 export const FMT_W = [

@@ -1,9 +1,11 @@
 /**
- * SPEC-201 §3.8 (#45) — CampDetailView responsive inspector.
+ * SPEC-201 §2.3/§2.4 — CampDetailView tabbed dock.
  *
- * Mobile (≤880px): a selected orc opens the inspector as a bottom-sheet dialog with the full
- * inspector content reachable (raw tmuxTarget + status + terminal preview + control dock).
- * Desktop: the inspector renders inline (no dialog). Dismissing the sheet clears ?orc.
+ * The right-hand inspector column and the standalone activity rail are merged into ONE bottom
+ * dock whose constituents are switchable tabs (Details / Preview / Activity). The map spans the
+ * full row above the dock at every viewport width (no right column, no mobile bottom-sheet). The
+ * full inspector content (raw tmuxTarget + control dock) is reachable in Details; the terminal
+ * preview is reachable in Preview.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, within, fireEvent } from '@testing-library/react';
@@ -16,19 +18,6 @@ import { setToken } from '../src/api/token';
 import { __setClockDriverForTest } from '../src/scene/clock';
 import { makeCamp, makeOrc, makeScan } from './fixtures';
 import type { Orc } from '../src/types/domain';
-
-function setViewport(isMobile: boolean): void {
-  window.matchMedia = ((q: string) => ({
-    matches: isMobile && q.includes('max-width'),
-    media: q,
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  })) as unknown as typeof window.matchMedia;
-}
 
 const services: AppServices = {
   api: {} as never,
@@ -69,52 +58,67 @@ beforeEach(() => {
   // keep the shared clock quiet (no background rAF loop during the render-only test)
   __setClockDriverForTest({ raf: () => 1, caf: () => {} });
 });
-afterEach(() => setViewport(false));
+afterEach(() => vi.restoreAllMocks());
 
 const orc = (): Orc =>
   makeOrc({ paneId: '%1', windowIndex: 0, status: 'active', tmuxTarget: 'work:1.2', command: 'node' });
 
-describe('SPEC-201 §3.8 #45 CampDetailView responsive inspector', () => {
-  it('mobile + selected orc → bottom-sheet dialog with the full inspector reachable', () => {
-    setViewport(true);
+const tab = (container: HTMLElement, name: string): HTMLElement =>
+  within(container).getByRole('tab', { name: new RegExp(name, 'i') });
+
+describe('SPEC-201 §2.3 CampDetailView tabbed dock', () => {
+  it('renders a single dock with Details / Preview / Activity tabs (no right column, no sheet)', () => {
     const campId = seed([orc()]);
     const container = renderDetail(campId, '?orc=pane:%1');
 
-    const sheet = container.querySelector('[data-testid="inspector-sheet"]') as HTMLElement;
-    expect(sheet).not.toBeNull();
-    expect(sheet.getAttribute('role')).toBe('dialog');
-    const inSheet = within(sheet);
-    // raw tmuxTarget + control dock + terminal preview are all reachable in the sheet
-    expect(inSheet.getAllByText('work:1.2').length).toBeGreaterThan(0);
-    expect(inSheet.getByText('Terminal preview')).toBeTruthy();
-    expect(inSheet.getByRole('button', { name: 'Send' })).toBeTruthy();
-    // the inspector lives inside the sheet (not inline)
-    expect(sheet.querySelector('.oc-inspector')).not.toBeNull();
-  });
-
-  it('mobile + no selection → no sheet', () => {
-    setViewport(true);
-    const campId = seed([orc()]);
-    const container = renderDetail(campId);
+    const dock = container.querySelector('[data-testid="camp-dock"]') as HTMLElement;
+    expect(dock).not.toBeNull();
+    expect(within(dock).getByRole('tab', { name: /details/i })).toBeTruthy();
+    expect(within(dock).getByRole('tab', { name: /preview/i })).toBeTruthy();
+    expect(within(dock).getByRole('tab', { name: /activity/i })).toBeTruthy();
+    // the old mobile bottom-sheet dialog is gone
     expect(container.querySelector('[data-testid="inspector-sheet"]')).toBeNull();
   });
 
-  it('mobile: closing the sheet clears the ?orc selection', () => {
-    setViewport(true);
+  it('Details tab (default) shows the orc inspector (raw tmuxTarget); NO control dock here', () => {
     const campId = seed([orc()]);
     const container = renderDetail(campId, '?orc=pane:%1');
-    expect(container.querySelector('[data-testid="inspector-sheet"]')).not.toBeNull();
-    fireEvent.click(container.querySelector('[aria-label="Close inspector"]')!);
-    expect(container.querySelector('[data-testid="inspector-sheet"]')).toBeNull();
-  });
 
-  it('desktop → inline inspector, no dialog', () => {
-    setViewport(false);
-    const campId = seed([orc()]);
-    const container = renderDetail(campId, '?orc=pane:%1');
-    expect(container.querySelector('[data-testid="inspector-sheet"]')).toBeNull();
     const inspector = container.querySelector('.oc-inspector') as HTMLElement;
     expect(inspector).not.toBeNull();
     expect(within(inspector).getAllByText('work:1.2').length).toBeGreaterThan(0);
+    // the control dock moved to the Preview tab → not in Details
+    expect(within(inspector).queryByRole('button', { name: 'Send' })).toBeNull();
+  });
+
+  it('Preview tab exposes the terminal preview AND the control dock (both moved out of Details)', () => {
+    const campId = seed([orc()]);
+    const container = renderDetail(campId, '?orc=pane:%1');
+
+    // neither preview nor control dock in Details
+    expect(within(container).queryByText('Terminal preview')).toBeNull();
+    expect(within(container).queryByRole('button', { name: 'Send' })).toBeNull();
+    fireEvent.click(tab(container, 'preview'));
+    // both reachable in the Preview tabpanel
+    expect(within(container).getByText('Terminal preview')).toBeTruthy();
+    expect(within(container).getByRole('button', { name: 'Send' })).toBeTruthy();
+  });
+
+  it('Activity tab shows the recent-activity feed', () => {
+    const campId = seed([orc()]);
+    useStore.setState({
+      activity: [{ id: 'a1', at: '2026-06-28T00:00:00.000Z', type: 'spawn', message: 'orc started' }],
+    });
+    const container = renderDetail(campId, '?orc=pane:%1');
+
+    fireEvent.click(tab(container, 'activity'));
+    expect(within(container).getByText('orc started')).toBeTruthy();
+  });
+
+  it('no selection → dock still present; Details shows an empty state', () => {
+    const campId = seed([orc()]);
+    const container = renderDetail(campId);
+    expect(container.querySelector('[data-testid="camp-dock"]')).not.toBeNull();
+    expect(within(container).getByText(/select an orc/i)).toBeTruthy();
   });
 });

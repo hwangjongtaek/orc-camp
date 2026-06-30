@@ -81,6 +81,57 @@ describe('SPEC-301-AC-07 reduced-motion snap', () => {
   });
 });
 
+describe('SPEC-301 §3.1-10 active patrol + non-active rest (opt-in)', () => {
+  it('active orc patrols: dwells at its post then roams, looping (patrol ON)', () => {
+    const c = new RoamingController({ patrol: true });
+    c.sync([{ id: 'a', status: 'active', target: posActive }], 0, { reducedMotion: false });
+    // At the arrival instant it dwells at its post (plays the active anim).
+    const s0 = c.snapshot('a', 0)!;
+    expect(s0.movementState).toBe('arrived');
+    expect(s0.displayedState).toBe('active');
+    expect(s0.renderedPos).toEqual(posActive);
+    // Across a patrol window it both roams and leaves its post (does not stand still).
+    let roamed = false;
+    let movedAway = false;
+    for (let t = 0; t <= 12000; t += 100) {
+      const s = c.snapshot('a', t)!;
+      if (s.movementState === 'roaming') roamed = true;
+      if (Math.hypot(s.renderedPos.x - posActive.x, s.renderedPos.y - posActive.y) > 1) {
+        movedAway = true;
+      }
+    }
+    expect(roamed).toBe(true);
+    expect(movedAway).toBe(true);
+  });
+
+  it('default controller (patrol OFF) keeps an active orc parked at its post', () => {
+    const c = new RoamingController();
+    c.sync([{ id: 'a', status: 'active', target: posActive }], 0, { reducedMotion: false });
+    expect(c.snapshot('a', 9000)!.renderedPos).toEqual(posActive);
+    expect(c.snapshot('a', 9000)!.movementState).toBe('arrived');
+  });
+
+  it('non-active orc rests at a seeded spot off its slot, but never drifts (patrol ON)', () => {
+    const c = new RoamingController({ patrol: true });
+    c.sync([{ id: 'a', status: 'waiting', target: posIdle }], 0, { reducedMotion: false });
+    const s1 = c.snapshot('a', 1000)!;
+    const s2 = c.snapshot('a', 9000)!;
+    expect(s1.movementState).toBe('arrived');
+    expect(s1.displayedState).toBe('waiting');
+    expect(s1.renderedPos).not.toEqual(posIdle); // seeded rest displacement applied
+    expect(s2.renderedPos).toEqual(s1.renderedPos); // …but it holds that spot (no drift)
+  });
+
+  it('reduced-motion disables patrol AND rest (snap to the exact target)', () => {
+    const c = new RoamingController({ patrol: true });
+    c.sync([{ id: 'a', status: 'active', target: posActive }], 0, { reducedMotion: true });
+    expect(c.snapshot('a', 5000)!.renderedPos).toEqual(posActive);
+    expect(c.snapshot('a', 5000)!.movementState).toBe('arrived');
+    c.sync([{ id: 'b', status: 'waiting', target: posIdle }], 0, { reducedMotion: true });
+    expect(c.snapshot('b', 5000)!.renderedPos).toEqual(posIdle);
+  });
+});
+
 describe('SPEC-301-AC-13 single shared clock + state-entry anchored phase', () => {
   beforeEach(() => {
     __setClockDriverForTest({ raf: () => 1, caf: () => {} });
@@ -131,5 +182,52 @@ describe('SPEC-301-AC-13 single shared clock + state-entry anchored phase', () =
     c.sync([{ id: 'a', status: 'active', target: posActive }], 200000, { reducedMotion: false });
     const held = c.snapshot('a', 200000)!;
     expect(held.tEnter).toBe(tEnter);
+  });
+});
+
+describe('SPEC-301 §3.1-11 place() — drag-drop drop snaps the orc + resumes status behavior', () => {
+  const drop = { x: 700, y: 500 };
+
+  it('snaps to the drop instantly (no walk-back) and a same-home sync is a no-op', () => {
+    const c = new RoamingController(); // no patrol/wander → renderedPos is the exact target
+    c.sync([{ id: 'a', status: 'waiting', target: posIdle }], 0, { reducedMotion: false });
+
+    c.place('a', drop, 1000);
+    const s = c.snapshot('a', 1000)!;
+    expect(s.movementState).toBe('arrived'); // snapped, not roaming
+    expect(s.renderedPos).toEqual(drop); // exact drop (no walk tween, no jitter)
+    expect(s.status).toBe('waiting'); // status preserved across the place
+
+    // the subsequent sync with the new home (= drop) must NOT start a walk (target unchanged)
+    c.sync([{ id: 'a', status: 'waiting', target: drop }], 1000, { reducedMotion: false });
+    expect(c.snapshot('a', 1000)!.movementState).toBe('arrived');
+  });
+
+  it('a dropped orc stays EXACTLY at the drop under patrol/wander (no drift, no cell-clamp revert)', () => {
+    // patrol + wander ON, and the orc had a SMALL old cell bound far from the drop — the previous
+    // bug clamped patrol/rest into that old cell, reverting the orc toward its pre-drag home.
+    const c = new RoamingController({ patrol: true, ambientWander: true });
+    c.sync(
+      [{ id: 'a', status: 'active', target: posIdle, bound: { x: 80, y: 80, w: 60, h: 60 } }],
+      0,
+      { reducedMotion: false },
+    );
+    c.place('a', drop, 0);
+    for (let t = 0; t <= 20000; t += 250) {
+      const s = c.snapshot('a', t)!;
+      expect(s.renderedPos).toEqual(drop); // pinned → exact drop, every frame (no drift / no revert)
+      expect(s.displayedState).toBe('active'); // …and the active animation plays in place
+    }
+    // a same-home sync (e.g. live refresh) keeps it pinned at the drop
+    c.sync([{ id: 'a', status: 'active', target: drop, pinned: true }], 5000, { reducedMotion: false });
+    expect(c.snapshot('a', 5000)!.renderedPos).toEqual(drop);
+  });
+
+  it('a waiting dropped orc rests at the EXACT drop even with the rest-offset spread on', () => {
+    const c = new RoamingController({ patrol: true }); // patrol on ⇒ non-active orcs get restOffset…
+    c.sync([{ id: 'a', status: 'waiting', target: posIdle }], 0, { reducedMotion: false });
+    c.place('a', drop, 0);
+    // …but a pinned orc skips the offset → renders exactly where it was dropped (the "slightly off" fix)
+    expect(c.snapshot('a', 3000)!.renderedPos).toEqual(drop);
   });
 });

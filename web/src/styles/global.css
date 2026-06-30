@@ -280,16 +280,43 @@ img {
 }
 
 /* --- Camp detail layout (3-pane) --- */
+/* SPEC-201 §2.3 — single column: the map takes the full row, the tabbed dock sits below it
+   (no right column → the scene gets all the horizontal space at every viewport width). */
 .oc-detail {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  display: flex;
+  flex-direction: column;
   gap: var(--oc-space-3);
-  align-items: start;
 }
-@media (max-width: 880px) {
-  .oc-detail {
-    grid-template-columns: minmax(0, 1fr);
-  }
+/* SPEC-301 §2.1a — scene toolbar (background switcher), right-aligned above the map. */
+.oc-detail__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 0;
+}
+.oc-bgswitch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-2);
+}
+.oc-bgswitch__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--oc-color-text-muted);
+}
+.oc-bgswitch__select {
+  background: var(--oc-color-surface-raised);
+  color: var(--oc-color-text);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  padding: var(--oc-space-1) var(--oc-space-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.oc-bgswitch__select:focus-visible {
+  outline: var(--oc-focus-ring);
+  outline-offset: 1px;
 }
 .oc-detail__header {
   display: flex;
@@ -391,14 +418,152 @@ img {
   text-align: center;
 }
 
-/* --- Inspector --- */
-.oc-inspector {
-  position: sticky;
-  top: 64px;
+/* --- Camp dock (tabbed bottom panel: Details / Preview / Activity) --- */
+.oc-dock {
   background: var(--oc-color-surface-raised);
   border: 1px solid var(--oc-color-border);
   border-radius: var(--oc-radius-card);
+  overflow: hidden;
+}
+.oc-tabs {
+  display: flex;
+  gap: var(--oc-space-1);
+  padding: var(--oc-space-1) var(--oc-space-2) 0;
+  border-bottom: 1px solid var(--oc-color-border);
+  background: var(--oc-color-surface-base);
+}
+.oc-tab {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-1);
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--oc-color-text-muted);
+  padding: var(--oc-space-2) var(--oc-space-3);
+  border-radius: var(--oc-radius-pixel) var(--oc-radius-pixel) 0 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.oc-tab:hover {
+  color: var(--oc-color-text);
+}
+.oc-tab[aria-selected='true'] {
+  color: var(--oc-color-text);
+  background: var(--oc-color-surface-raised);
+  border-color: var(--oc-color-border);
+}
+.oc-tab:focus-visible {
+  outline: var(--oc-focus-ring);
+  outline-offset: -2px;
+}
+.oc-tab__badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--oc-color-text-muted);
+  background: var(--oc-color-surface-raised);
+  border: 1px solid var(--oc-color-border);
+  border-radius: 999px;
+  padding: 0 var(--oc-space-1);
+  min-width: 18px;
+  text-align: center;
+}
+.oc-tabpanel {
   padding: var(--oc-space-3);
+}
+.oc-tabpanel:focus-visible {
+  outline: var(--oc-focus-ring);
+  outline-offset: -2px;
+}
+
+/* --- Inspector (Details tab content; the dock supplies the card chrome) --- */
+.oc-inspector {
+  padding: 0;
+  /* SPEC-304 §2.3 — reflow keyed off the dock/container width (not the viewport). */
+  container-type: inline-size;
+}
+
+/* SPEC-304 §2.3 — metadata | portrait. Narrow dock: single column, portrait stacked ABOVE
+   metadata. Wide dock: 2-col with the portrait in the right column. */
+.oc-inspector__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--oc-space-3);
+  align-items: start;
+}
+.oc-inspector__meta {
+  min-width: 0;
+}
+.oc-portrait {
+  order: -1; /* narrow: above metadata */
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-1);
+}
+@container (min-width: 560px) {
+  .oc-inspector__grid {
+    grid-template-columns: 1fr minmax(170px, 220px);
+  }
+  .oc-portrait {
+    order: 0; /* wide: right column, source order */
+  }
+}
+
+/* SPEC-304 — fixed 2:3 box (reserved whether asset or placeholder → zero layout shift). The
+   decorative frame is owned here (CSS), never baked into the image. */
+.oc-portrait__frame {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: var(--oc-radius-card);
+  border: 2px solid var(--oc-color-border);
+  background: var(--oc-color-surface-base);
+  box-shadow:
+    inset 0 0 0 2px var(--oc-color-surface-raised),
+    0 1px 3px rgb(0 0 0 / 35%);
+  image-rendering: pixelated;
+}
+.oc-portrait__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+.oc-portrait__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(120% 80% at 50% 18%, var(--oc-color-surface-raised), transparent 60%),
+    var(--oc-color-surface-base);
+}
+/* a neutral orc-bust silhouette so the placeholder reads as "portrait, asset pending" */
+.oc-portrait__placeholder-mark {
+  width: 52%;
+  height: 52%;
+  background: var(--oc-color-text-muted);
+  opacity: 0.5;
+  clip-path: polygon(50% 6%, 70% 16%, 74% 38%, 86% 54%, 86% 100%, 14% 100%, 14% 54%, 26% 38%, 30% 16%);
+}
+.oc-portrait__caption {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.oc-portrait__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--oc-color-text);
+}
+.oc-portrait__role {
+  font-size: 11px;
 }
 .oc-field {
   margin-bottom: var(--oc-space-2);
@@ -500,13 +665,10 @@ img {
   }
 }
 
-/* --- Activity rail --- */
+/* --- Activity feed (Activity tab content; the dock supplies the card chrome) --- */
 .oc-activity {
-  margin-top: var(--oc-space-3);
-  background: var(--oc-color-surface-raised);
-  border: 1px solid var(--oc-color-border);
-  border-radius: var(--oc-radius-card);
-  padding: var(--oc-space-3);
+  display: flex;
+  flex-direction: column;
 }
 .oc-activity__item {
   font-size: 12px;
@@ -723,6 +885,14 @@ img {
   z-index: 0;
   cursor: grab;
   touch-action: pan-x pan-y; /* touch = native momentum scroll (drag-to-pan on mobile, #45) */
+  /* §2.7 — navigation is drag-pan only (no zoom), so the scrollbars are pure clutter: hide them
+     at all times (scroll/drag/touch still work). Hidden always — not just while panning — so
+     toggling never reflows the world by the scrollbar gutter width. */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge/IE */
+}
+.oc-map__scroll::-webkit-scrollbar {
+  display: none; /* WebKit (Chrome/Safari) */
 }
 .oc-map__scroll--panning {
   cursor: grabbing;
@@ -748,51 +918,27 @@ img {
   font-weight: 600;
   box-shadow: var(--oc-shadow-pixel);
 }
-/* ① backdrop/horizon (SPEC-300 §2.6b / §2.8a) — backmost; cover-width, anchored top.
-   Parallax transform is set by CampMap on scroll (transform-only). pointer-events:none. */
+/* ① background image (SPEC-300 §2.6b / §2.8a) — backmost; a single image covers the whole
+   world (cover, centered), replacing per-zone terrain tiling. Static (no parallax) so it
+   always fully covers the world on scroll. pointer-events:none. */
 .oc-map__backdrop {
   position: absolute;
   inset: 0;
-  background-position: top center;
-  background-size: 100% auto;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   image-rendering: pixelated;
   z-index: var(--oc-z-map-backdrop);
   pointer-events: none;
-  will-change: transform;
 }
-/* ground base: opaque dusk gradient when there is no backdrop (terrain L2); a translucent
-   glaze when a backdrop is present so the horizon shows through (depth). */
+/* ground fallback: opaque dusk gradient shown ONLY when no background image is declared
+   (placeholder parity, §3.4 / AC-20). With a background image present this is not rendered. */
 .oc-map__ground {
   position: absolute;
   inset: 0;
   background: var(--oc-map-ground);
   z-index: var(--oc-z-map-bg);
   pointer-events: none;
-}
-.oc-map__ground--glaze {
-  opacity: 0.5;
-}
-
-/* ② terrain (SPEC-300 §2.6a) — per-zone Wang/flat tiles, static paint, never interactive. */
-.oc-terrain {
-  position: absolute;
-  inset: 0;
-  z-index: var(--oc-z-map-terrain);
-  pointer-events: none;
-}
-.oc-terrain__zone {
-  position: absolute;
-  overflow: hidden;
-}
-.oc-terrain__zone--tiled {
-  background-repeat: repeat;
-  background-position: top left;
-  image-rendering: pixelated;
-}
-.oc-terrain__cell {
-  position: absolute;
-  background-repeat: no-repeat;
-  image-rendering: pixelated;
 }
 
 /* ③ decor/scenery (SPEC-300 §2.6c) — below stations/sprites/labels, never interactive. */
@@ -870,13 +1016,84 @@ img {
   border: 2px solid transparent;
   background: transparent;
   color: inherit;
-  cursor: pointer;
+  cursor: grab; /* §3.1-11 — orcs are draggable */
   overflow: visible;
   z-index: var(--oc-z-map-orc);
+  touch-action: none; /* §3.1-11 — a touch starting on an orc drags it (background still scrolls) */
+  user-select: none; /* §3.1-11 — don't text-select / native-drag while dragging the orc */
+  -webkit-user-select: none;
 }
+/* §3.1-11 — disable the browser's native image drag (ghost image) so our pointer-drag owns the
+   gesture; otherwise pressing the sprite starts an HTML5 drag and the orc barely moves. */
+.oc-orc img {
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none; /* clicks/drags target the button, not the inner image */
+}
+/* §3.1-11 — while being dragged: grabbing cursor + lifted above peers so it reads as "picked up". */
+.oc-orc--dragging {
+  cursor: grabbing;
+  z-index: var(--oc-z-map-bubble);
+}
+.oc-orc--dragging .oc-orc__sprite {
+  filter: drop-shadow(0 6px 6px rgb(0 0 0 / 0.35));
+}
+/* §2.6c (#51) — selection is shown by a game-style marker (ground ring / corner reticle), NOT a
+   blue box. Keep the border transparent so there is zero layout shift between states. */
 .oc-orc--selected {
-  border-color: var(--oc-color-accent);
-  border-radius: var(--oc-radius-pixel);
+  border-color: transparent;
+}
+/* Pixel-art ground ring (pixellab `selected-orc`) or the CSS corner-bracket fallback. A ground
+   decoration below the sprite (the orc stands in the ring); never affects the sprite box. */
+.oc-orc__select-marker {
+  position: absolute;
+  pointer-events: none;
+  image-rendering: pixelated;
+  z-index: var(--oc-z-map-shadow);
+  animation: oc-select-pulse 1.4s ease-in-out infinite;
+}
+@keyframes oc-select-pulse {
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.oc-orc__select-marker--css {
+  inset: 0;
+}
+.oc-orc__select-corner {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border: 3px solid var(--oc-color-accent);
+  filter: drop-shadow(0 0 2px var(--oc-color-accent));
+}
+.oc-orc__select-corner--tl {
+  top: 4px;
+  left: 4px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.oc-orc__select-corner--tr {
+  top: 4px;
+  right: 4px;
+  border-left: 0;
+  border-bottom: 0;
+}
+.oc-orc__select-corner--bl {
+  bottom: 4px;
+  left: 4px;
+  border-right: 0;
+  border-top: 0;
+}
+.oc-orc__select-corner--br {
+  bottom: 4px;
+  right: 4px;
+  border-left: 0;
+  border-top: 0;
 }
 /* ⑤ per-sprite ground shadow (SPEC-300 §2.6e) — CSS ellipse under the scaled ground anchor.
    Absolute decoration: never affects the sprite box/layout. Asset == placeholder (parity). */
@@ -886,6 +1103,19 @@ img {
   background: var(--oc-shadow-ground);
   filter: blur(1px);
   z-index: var(--oc-z-map-shadow);
+  pointer-events: none;
+}
+/* SPEC-303 — epic monster renders ON THE ORC PLANE but later in DOM ⇒ painted ABOVE orc sprites
+   (orcs are smaller, so reading them beneath the larger monster is fine). Below the lighting (11). */
+.oc-monster {
+  z-index: var(--oc-z-map-orc);
+}
+/* SPEC-303 — epic monster ground shadow (same token treatment as the orc shadow, scaled larger). */
+.oc-monster__shadow {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--oc-shadow-ground);
+  filter: blur(2px);
   pointer-events: none;
 }
 .oc-orc__sprite {
@@ -919,23 +1149,8 @@ img {
   color: var(--oc-color-text-muted);
   text-align: center;
 }
-.oc-orc__overlay {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  image-rendering: pixelated;
-  z-index: var(--oc-z-map-overlay);
-  pointer-events: none;
-}
-.oc-orc__overlay--glyph {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: var(--oc-color-text);
-}
+/* The per-sprite status effect icon was removed — status is already conveyed by the always-on
+   text label below (oc-orc__label). The --oc-z-map-overlay token is retained for the z-stack. */
 .oc-orc__label {
   position: absolute;
   left: 50%;
@@ -996,6 +1211,41 @@ img {
   margin-top: 2px;
   color: var(--oc-color-text-muted);
   font-size: 10px;
+}
+
+/* §2.6b (#50/#52) — intermittent ambient speech bubble: a smaller, lighter variant of .oc-bubble
+   that pops up occasionally with an orcish-flavoured combo of the orc's preview words. Wraps to a
+   couple of lines; the --multiline variant (active orcs, "talking while they work") is wider and
+   allows up to 3 lines so the longer utterance reads as 2–3 lines of chatter. */
+.oc-bubble--speech {
+  min-width: 0;
+  max-width: 200px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; /* terse: up to 2 lines */
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-color: var(--oc-color-border);
+  animation: oc-speech-pop 0.16s ease-out; /* reduced-motion rule below makes this instant */
+}
+.oc-bubble--speech-multiline {
+  max-width: 240px;
+  -webkit-line-clamp: 3; /* active: 2–3 lines of orcish chatter */
+  line-clamp: 3;
+}
+.oc-bubble__speech-text {
+  color: var(--oc-color-text);
+}
+@keyframes oc-speech-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* --- Mobile inspector bottom sheet (SPEC-201 §3.8, #45) --- */

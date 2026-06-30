@@ -34,7 +34,7 @@ Orc Camp는 command line 기반 AI agent orchestration tool이다. 사용자가 
 
 - **Product** (`docs/product/`): [[01-Planning|01 Planning]] · [[02-Requirements|02 Requirements]] · [[07-Roadmap|07 Roadmap]] · [[08-Decisions|08 Decisions]] · [[09-Reviews|09 Reviews]] · [[14-MVP-PoC-Scope|14 MVP PoC Scope]]
 - **Design** (`docs/design/`): [[DESIGN|Design System Contract]] · [[03-UX-UI|03 UX/UI]] · [[04-Frontend|04 Frontend]] · [[05-Backend|05 Backend]] · [[06-Infra|06 Infra]] · [[10-System-Architecture|10 System Architecture]]
-- **Assets** (`docs/assets/`): [[11-PixelLab-Asset-Setup|11 PixelLab Asset Setup]] · [[12-PixelLab-Prompts|12 PixelLab Prompts]] · [[13-PixelLab-Asset-Registry|13 PixelLab Asset Registry]]
+- **Assets** (`docs/assets/`): [[11-PixelLab-Asset-Setup|11 PixelLab Asset Setup]] · [[12-PixelLab-Prompts|12 PixelLab Prompts]] · [[13-PixelLab-Asset-Registry|13 PixelLab Asset Registry]] · [[15-Character-State-Model|15 Character State Model & Prestige Tiers]]
 - **Specs (구현 SSOT)** (`docs/specs/`): [docs/specs/README.md](docs/specs/README.md) · `SPEC-*.md`
 
 ## 현재 결정 요약
@@ -88,6 +88,23 @@ orc-camp serve --port 4123 --no-open        # default는 browser 자동 open
 - **snapshot runtime**: 변경 tick당 `snapshotVersion +1`(diff engine), last-good/stale fallback 재사용, `runtimeEpoch`로 restart 식별. 보안 경계는 security-privacy-engineer 감사 **PASS(P0 0·P1 0)**.
 - **realtime(SPEC-102)**: `WS /api/events` — handshake auth(token query/subprotocol, close 4401/4403), `welcome` → per-tick `batch` diff event(convergent, version 적재) → `server_stale_changed`/`server_heartbeat`. client reconcile/reconnect는 dashboard(Epic 3) 소유.
 - **후속(미구현)**: dashboard SPA(Epic 3), control actions(SPEC-400), settings/observability/packaging(SPEC-500/600/700).
+
+## 캐릭터 prestige tier — 누적 usage 기반 외형 단계 (asset pack v0.2.0)
+
+orc가 누적해서 더 많은 LLM token/cost를 소비할수록 그 캐릭터의 갑옷·장비·`active` 연출이 단계적으로 호화로워지는 **prestige tier**(T0 base → T1 → T2 → T3). 설계·생성 SSOT는 [[15-Character-State-Model]], 런타임 resolution 계약은 [[SPEC-302-mascot-prestige-tiers]], 자산 ID/SHA/prompt 추적은 [[13-PixelLab-Asset-Registry]] #10.
+
+delivered 5종 character(`orc-high-warchief-mascot`·`orc-claude-storm-shaman`·`orc-codex-field-engineer`·`orc-unknown`·`orc-iron-commander`)에 PixelLab `create_character_state`로 tier variant(8방향 rotation)와 8-frame v3 animation을 생성한다. 무기 일관성(8방향 grip)·IP 발산(기존 게임 캐릭터 비재현)·text-artifact 금지를 생성 규칙으로 강제한다([[15-Character-State-Model]] §4).
+
+**점진 도입(phased rollout, SPEC-302 §3.6)** — generation budget 제약으로 단계화:
+
+| | Phase 1 (현재·배포) | Phase 2 (다음·budget 복구 후) |
+| --- | --- | --- |
+| tier status | 5종 전부 **T1 `available`** | T2·T3 (현재 `staged`) |
+| animation | T1 idle·active·roaming(8방향); mascot T1은 idle/roaming/active/waiting/stale/error 풀세트 | T2·T3 animation(T3 active 극단적 연출) + 전 캐릭터 waiting·stale·error 보강 |
+| gate | T1 IP 무관 | mascot/storm-shaman/iron-commander/unknown 고티어 **blocking IP 리뷰** |
+
+- T1에서 미생성 animation 상태(나머지 4종의 waiting·stale·error)는 그 tier의 **정지 rotation으로 표시**(`static_tier`, SPEC-302 §3.4)되고 base로 대체되지 않는다.
+- **런타임 소비는 forward(미구현)**: `Orc.usage`(누적 token/cost) 수집이 [[SPEC-005-data-contract]]에 없어 `web/src/assets/prestige.ts`의 `displayedTierForOrc()`가 **모든 orc에 0(base)을 반환**한다. 즉 자산은 준비됐으나 **현재 모든 orc는 base로 렌더**되며, tier 상승은 (1) `Orc.usage` 수집(transcript usage 읽기 — [[SPEC-006-privacy-redaction]] threat-model 리뷰 선행) + (2) `prestige.ts`의 SPEC-302 §3.2 임계 로직 구현 후 활성화된다. 두 작업 모두 generation budget과 무관하다.
 
 ## 패키징 · 배포 · 제거 (SPEC-700)
 

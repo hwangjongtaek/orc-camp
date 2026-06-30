@@ -2,10 +2,18 @@
  * SPEC-004 — status / confidence / summary inference.
  *
  * `inferStatus(input)` evaluates the precedence ladder (§3.1):
- *   stale → terminated → tail error → tail waiting → active(change) → idle → unknown
+ *   stale → terminated → tail error → active(working indicator) → tail waiting →
+ *   active(change) → waiting(agent at rest) → weak active(generic) → idle → unknown
  * and returns `StatusInference` with `statusConfidence` ALWAYS set. Deterministic:
  * the same `StatusInput` (same `prior`, injected ISO clocks) yields the same
  * output — no `Date.now`, no randomness.
+ *
+ * Working-vs-waiting (the "running ⇒ always active" fix): for a recognised agent we measure whether
+ * a turn is actually IN FLIGHT from the TUI's own affordance (`esc to interrupt` / a working verb…,
+ * `detectWorking`) rather than from raw pane-activity time — a running claude-code/codex keeps
+ * `pane_activity` fresh via cursor/animation even while idle at its prompt. A known agent that is
+ * alive but shows no working indicator and no meaningful change is `waiting` (at its input box), not
+ * active; only a working indicator or a real (non-volatile) content change yields `active`.
  *
  * Noise/false-positive suppression:
  *   - `active`  uses region fingerprint compare (./fingerprint): volatile-only
@@ -47,6 +55,8 @@ const CONF = {
   waitingAdapter: 0.85,
   waitingGeneric: 0.65,
   waitingSingleShotCap: 0.6,
+  waitingAgentIdle: 0.62, // S-IDLE-PROMPT: known agent alive, no working indicator → at its prompt
+  activeWorking: 0.9, // S-WORK: agent-aware "actually working" indicator in the tail (esc-to-interrupt …)
   activeChangeRecent: 0.85,
   activeChangeOnly: 0.65,
   activeWeakRecent: 0.4,
@@ -84,6 +94,40 @@ const ADAPTER_PROMPTS: Record<string, RegExp[]> = {
   'claude-code': [/do you want to proceed\?/i, /❯\s*\d+\.\s*(yes|no)\b/i, /\bclaude\b.*\?/i],
   codex: [/allow (this )?command\?/i, /approve( this command)?\?/i, /\[a\]llow.*\[d\]eny/i],
 };
+
+/**
+ * Agent "actively working" markers (§3.2 S-WORK — HYPOTHESES). These are the TUI's OWN
+ * "a turn is in flight" affordances: the canonical cross-agent one is the `esc to interrupt`
+ * hint shown ONLY while the agent is running a turn — when the turn finishes the TUI redraws its
+ * (idle) input box and the hint disappears. This is the single-cycle signal that separates a
+ * session that is REALLY working from one that is merely alive (a running TUI keeps `pane_activity`
+ * fresh via cursor/animation even while idle at its prompt — the root cause of "running ⇒ active").
+ * Spinner glyphs alone are intentionally NOT a marker here (volatile-only churn is suppressed by the
+ * fingerprint, §3.2 / AC-04); we require the explicit interrupt-hint or a working verb + ellipsis.
+ */
+const WORKING_MARKERS_GENERIC: RegExp[] = [
+  /esc to interrupt/i,
+  /press esc to (interrupt|cancel|stop)/i,
+  /ctrl\+c to (interrupt|stop|cancel)/i,
+];
+const WORKING_MARKERS: Record<string, RegExp[]> = {
+  'claude-code': [
+    /\b(thinking|working|brewing|forging|pondering|cooking|crunching|herding|distilling|simmering|noodling|churning|baking)…/i,
+  ],
+  codex: [/\b(thinking|working|running|generating|reasoning)…/i],
+};
+
+/**
+ * SOFT working sign (§3.2 S-CHG-V): a spinner glyph in the tail means the TUI is actively
+ * live-updating (a turn is rendering) — weaker than the explicit interrupt-hint above. It keeps a
+ * spinner-churn pane as WEAK `active` (LOW) rather than mislabelling it `waiting`, while a truly
+ * static idle input box (no spinner) is left to resolve as `waiting`. Braille + circle spinner
+ * classes only (the unambiguous CLI spinner glyphs); box-drawing borders are intentionally excluded.
+ */
+const SPINNER_GLYPH = /[⠀-⣿◐◑◒◓◴◵◶◷◜◝◞◟]/u;
+function detectSpinner(region: string[]): boolean {
+  return region.slice(-6).some((l) => SPINNER_GLYPH.test(l));
+}
 
 // --- small pure helpers -----------------------------------------------------
 
@@ -159,6 +203,18 @@ function detectError(region: string[]): { matched: boolean; multiline: boolean }
   const hasHeader = region.some((l) => TRACEBACK_HEADER.test(l));
   const frameCount = region.filter((l) => STACK_FRAME.test(l)).length;
   return { matched: true, multiline: hasHeader || frameCount >= 2 };
+}
+
+/**
+ * True when the tail shows the agent is ACTIVELY working a turn (§3.2 S-WORK). Checked against the
+ * last few non-empty lines (the live status line sits at the bottom of the TUI, just above/around
+ * the input box) so a stale interrupt-hint from earlier scrollback is not matched.
+ */
+function detectWorking(region: string[], agentType: string): boolean {
+  if (region.length === 0) return false;
+  const tail = region.slice(-6).join('\n');
+  if (WORKING_MARKERS_GENERIC.some((re) => re.test(tail))) return true;
+  return (WORKING_MARKERS[agentType] ?? []).some((re) => re.test(tail));
 }
 
 function detectPrompt(
@@ -286,6 +342,10 @@ export function inferStatus(input: StatusInput): StatusInference {
   const hasOutput = pane.recentOutput.some((l) => l.trim() !== '');
   const inactivityMs = toMs(scannedAt) - toMs(lifecycle.lastActivityAt);
   const recentActive = inactivityMs <= T_ACTIVE_MS;
+  const agentType = input.candidate.agentType;
+  const knownAgent = agentType !== 'unknown'; // a recognised TUI (claude-code/codex)
+  const working = detectWorking(region, agentType); // §3.2 S-WORK — actually working a turn
+  const softWorking = detectSpinner(region); // §3.2 S-CHG-V — spinner churn (weak working sign)
 
   // 3. tail states (require some output).
   if (region.length > 0) {
@@ -298,8 +358,20 @@ export function inferStatus(input: StatusInput): StatusInference {
       return finalize('error', conf, [{ signal: 'error', status: 'error', strength, ruleId }]);
     }
 
-    // 3b. waiting — tail prompt + (diff mode) no meaningful change (§3.3).
-    const prompt = detectPrompt(promptRegion, input.candidate.agentType);
+    // 3b. active — agent-aware "actually working" indicator in the tail (§3.2 S-WORK). This is the
+    //     PRIMARY active signal: it works single-cycle (no prior needed) and, unlike raw activity
+    //     time, fires ONLY while a turn is in flight ("esc to interrupt" / working verb…). It comes
+    //     BEFORE waiting so a leftover idle prompt does not mask a running turn.
+    if (working) {
+      let conf: number = CONF.activeWorking;
+      if (livenessUnproven) conf = Math.min(conf, LIVENESS_DEGRADE_CAP); // §3.8 degrade
+      return finalize('active', conf, [
+        { signal: 'change', status: 'active', strength: 'A', ruleId: 'active/working.indicator' },
+      ]);
+    }
+
+    // 3c. waiting — tail prompt + (diff mode) no meaningful change (§3.3).
+    const prompt = detectPrompt(promptRegion, agentType);
     const changeBlocksWaiting = meaningfulChange === true; // only blocks in diff mode
     if (prompt.matched && !changeBlocksWaiting) {
       const isAdapter = prompt.specificity === 'adapter';
@@ -310,7 +382,7 @@ export function inferStatus(input: StatusInput): StatusInference {
       return finalize('waiting', conf, [{ signal: 'prompt', status: 'waiting', strength, ruleId }]);
     }
 
-    // 3c. active — meaningful region change (diff mode) (§3.2).
+    // 3d. active — meaningful region change (diff mode) (§3.2).
     if (meaningfulChange === true) {
       const signals: StatusSignalMatch[] = [
         { signal: 'change', status: 'active', strength: 'A', ruleId: 'active/change.region' },
@@ -324,11 +396,26 @@ export function inferStatus(input: StatusInput): StatusInference {
       if (livenessUnproven) conf = Math.min(conf, LIVENESS_DEGRADE_CAP);
       return finalize('active', conf, signals);
     }
+
+    // 3e. waiting (agent at rest) — a KNOWN agent (claude-code/codex) that is alive and recently
+    //     touched its pane but shows NO working sign (no interrupt-hint, no spinner churn) and no
+    //     meaningful change is sitting at its (static) input/approval box: it has finished its turn
+    //     and is awaiting the user. Recent pane-activity here is TUI cursor/animation, NOT work — so
+    //     it must NOT become `active` (the fix for "running ⇒ always active"). A spinner-churn pane
+    //     (softWorking) is excluded here and falls through to the weak-active fallback (§3.2 S-CHG-V).
+    //     Less certain than an explicit prompt match → MEDIUM (§3.2 S-IDLE-PROMPT).
+    // (meaningfulChange === true already returned at 3d, so here it is false|null.)
+    if (knownAgent && recentActive && !softWorking) {
+      return finalize('waiting', CONF.waitingAgentIdle, [
+        { signal: 'idle_time', status: 'waiting', strength: 'B', ruleId: 'waiting/agent_idle' },
+      ]);
+    }
   }
 
   // 4. time-based.
-  // 4a. weak active — recent activity but change unprovable (single-shot, or
-  //     volatile-only churn): LOW only (§3.8 single-shot cap, §3.2 volatile).
+  // 4a. weak active — recent activity but change unprovable (single-shot, or volatile-only churn):
+  //     LOW only (§3.8 single-shot cap, §3.2 volatile). Reached for GENERIC/unknown candidates;
+  //     a known agent with recent activity but no working indicator resolved to `waiting` at 3e.
   if (recentActive && hasOutput) {
     return finalize('active', CONF.activeWeakRecent, [
       { signal: 'idle_time', status: 'active', strength: 'C', ruleId: 'active/recent.weak' },

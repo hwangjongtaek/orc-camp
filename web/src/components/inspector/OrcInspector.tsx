@@ -1,78 +1,51 @@
 /**
- * SPEC-201 §2.4 — Orc Inspector. Renders the selected orc's metadata, status+confidence
- * (never asserts status as fact), estimated-summary marker, cwd/command/activity, raw
- * tmuxTarget+paneId (always), a lazily-fetched terminal preview (exposure-gated), and the
- * control entry points (disabled placeholders; flow is owned by SPEC-400).
+ * SPEC-201 §2.4 — Orc Inspector (camp dock "Details" tab). Renders the selected orc's metadata,
+ * status+confidence (never asserts status as fact), estimated-summary marker, cwd/command/
+ * activity, raw tmuxTarget+paneId (always). The terminal preview AND the control dock live in
+ * the "Preview" dock tab (<PanePreview>), so Details is read-only metadata.
+ *
+ * SPEC-304 — a BG-style 2:3 bust portrait sits beside the metadata (2-col on a wide dock, stacked
+ * on a narrow dock). The portrait's character mirrors the on-map sprite (shared sequential
+ * `characterKey`); it is static, asserts no status, and degrades to a CSS placeholder when the
+ * asset is absent (zero-layout-shift — the 2:3 box is always reserved).
  */
-import { useEffect, useState, type ReactNode } from 'react';
-import { useServices } from '../../app/services';
-import { hasToken } from '../../api/token';
+import { useMemo, type ReactNode } from 'react';
 import { useStore } from '../../store/store';
-import { PREVIEW_LINE_MAX } from '../../config/constants';
 import { AGENT_BAND, STATUS_BAND, confidenceTier } from '../../types/domain';
 import { AGENT_LABEL } from '../status/statusMeta';
 import { StatusBadge } from '../status/StatusBadge';
-import { TerminalPreview, type PreviewMeta } from '../preview/TerminalPreview';
-import { CommandDock } from '../control/CommandDock';
 import { orcTmuxErrors } from '../../store/diagnostics';
 import { clockTime, relativeTime } from '../../util/time';
-
-interface PreviewState {
-  meta: PreviewMeta | null;
-  text: string[] | null;
-  loading: boolean;
-}
+import { useAssets } from '../../assets/AssetContext';
+import { characterKeyMap } from '../../assets/spriteResolver';
+import { campOrcIdsForOrc } from '../../store/serverData';
+import { resolvePortrait, type PortraitState } from '../../assets/portraitResolver';
+import { displayedTierForOrc } from '../../assets/prestige';
 
 export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
   const orc = useStore((s) => (orcId ? s.server.orcsById[orcId] : undefined));
-  const settings = useStore((s) => s.settings);
-  const wsStatus = useStore((s) => s.connection.wsStatus);
   const tmuxErrors = useStore((s) => s.server.diagnostics.tmuxErrors);
-  const { api } = useServices();
+  const server = useStore((s) => s.server);
+  const { manifest, assetBase } = useAssets();
 
-  const exposureEnabled = settings?.preview.exposureEnabled ?? false;
-  const lineCount = settings?.preview.lineCount ?? PREVIEW_LINE_MAX;
-
-  const [preview, setPreview] = useState<PreviewState>({ meta: null, text: null, loading: false });
-
-  // Lazy preview fetch: metadata always from the snapshot orc; text only when exposure on.
-  useEffect(() => {
-    if (!orc) {
-      setPreview({ meta: null, text: null, loading: false });
-      return;
-    }
-    const meta: PreviewMeta | null = orc.preview
-      ? { lines: orc.preview.lines, truncated: orc.preview.truncated, redacted: orc.preview.redacted }
-      : null;
-    if (!exposureEnabled || meta === null || meta.lines === 0) {
-      setPreview({ meta, text: null, loading: false });
-      return;
-    }
-    let cancelled = false;
-    setPreview({ meta, text: null, loading: true });
-    void api.getOrcPreview(orc.id).then((res) => {
-      if (cancelled) return;
-      if (res.ok && res.data.preview) {
-        const p = res.data.preview;
-        setPreview({
-          meta: { lines: p.lines, truncated: p.truncated, redacted: p.redacted },
-          text: p.text ?? null,
-          loading: false,
-        });
-      } else {
-        setPreview({ meta, text: null, loading: false });
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [orc, exposureEnabled, lineCount, api]);
-
-  const patchPreview = (patch: Record<string, unknown>): void => {
-    void api.patchSettings({ preview: patch }).then((res) => {
-      if (res.ok) useStore.getState().setSettings(res.data);
-    });
-  };
+  // SPEC-304 §2.2 — resolve the SAME sequential characterKey the map sprite uses, so the portrait
+  // matches the on-map orc.
+  const characterKey = useMemo(
+    () => (orcId ? characterKeyMap(campOrcIdsForOrc(server, orcId), manifest).get(orcId) : undefined),
+    [server, manifest, orcId],
+  );
+  // SPEC-302/SPEC-304 — the portrait follows the orc's prestige tier: when its tier rises, the
+  // matching tier portrait is shown (tier resolution is the SPEC-302 seam in `prestige.ts`).
+  const portrait = useMemo<PortraitState | null>(
+    () =>
+      orc
+        ? resolvePortrait(
+            { characterKey, agentType: orc.agentType, displayedTier: displayedTierForOrc(orc) },
+            { manifest, assetBasePath: assetBase },
+          )
+        : null,
+    [orc, characterKey, manifest, assetBase],
+  );
 
   if (!orc) {
     return (
@@ -82,125 +55,134 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
     );
   }
 
-  // SPEC-400 §2.11 entry-point enable predicate.
-  const disabledReason = !hasToken()
-    ? 'no token'
-    : wsStatus === 'disconnected' || wsStatus === 'reconnecting'
-      ? 'disconnected'
-      : orc.status === 'terminated'
-        ? 'orc terminated'
-        : orc.status === 'stale'
-          ? 'orc stale'
-          : null;
-  const controlDisabled = disabledReason !== null;
-
   // SPEC-201 AC-12 — tmux errors scoped to THIS orc (target === paneId) render locally.
   const orcErrors = orcTmuxErrors(tmuxErrors, orc.paneId);
 
   return (
     <aside className="oc-inspector" aria-label="Orc inspector">
-      <div className="oc-detail__header" style={{ marginBottom: 'var(--oc-space-2)' }}>
-        <StatusBadge status={orc.status} confidence={orc.statusConfidence} />
-        <span className="oc-muted oc-status__conf">
-          ({confidenceTier(orc.statusConfidence, STATUS_BAND)})
-        </span>
-      </div>
+      <div className="oc-inspector__grid">
+        <div className="oc-inspector__meta">
+          <div className="oc-detail__header" style={{ marginBottom: 'var(--oc-space-2)' }}>
+            <StatusBadge status={orc.status} confidence={orc.statusConfidence} />
+            <span className="oc-muted oc-status__conf">
+              ({confidenceTier(orc.statusConfidence, STATUS_BAND)})
+            </span>
+          </div>
 
-      {orcErrors.length > 0 && (
-        <div className="oc-banner oc-banner--error" role="status" style={{ marginBottom: 'var(--oc-space-2)' }}>
-          <span className="oc-banner__label">tmux error</span>
-          <span className="oc-muted">
-            {orcErrors[0]!.command} {orcErrors[0]!.kind} — this pane's data may be incomplete.
-          </span>
+          {orcErrors.length > 0 && (
+            <div
+              className="oc-banner oc-banner--error"
+              role="status"
+              style={{ marginBottom: 'var(--oc-space-2)' }}
+            >
+              <span className="oc-banner__label">tmux error</span>
+              <span className="oc-muted">
+                {orcErrors[0]!.command} {orcErrors[0]!.kind} — this pane's data may be incomplete.
+              </span>
+            </div>
+          )}
+
+          <Field label="Agent type">
+            {AGENT_LABEL[orc.agentType]}{' '}
+            <span className="oc-muted">
+              {orc.agentTypeConfidence.toFixed(2)} ({confidenceTier(orc.agentTypeConfidence, AGENT_BAND)})
+            </span>
+          </Field>
+
+          <Field label="tmux target" mono>
+            {orc.tmuxTarget} <span className="oc-muted">({orc.paneId})</span>
+          </Field>
+
+          <Field label="Location">
+            session {orc.sessionName} · win {orc.windowIndex} · pane {orc.paneIndex}
+          </Field>
+
+          <Field label="Working dir" mono>
+            {orc.cwd}
+          </Field>
+
+          <Field label="Command" mono>
+            {orc.command}
+          </Field>
+
+          <Field label="Current work summary">
+            {orc.currentWorkSummary ?? <span className="oc-muted">no summary</span>}
+            {orc.summaryIsEstimated && (
+              <span className="oc-estimated" title={`source: ${orc.summarySource}`}>
+                ~ estimated
+              </span>
+            )}
+            {!orc.summaryIsEstimated && orc.currentWorkSummary && (
+              <span className="oc-muted oc-status__conf"> ({orc.summarySource})</span>
+            )}
+          </Field>
+
+          <Field label="Last activity">
+            {relativeTime(orc.lastActivityAt)}{' '}
+            <span className="oc-muted">({clockTime(orc.lastActivityAt)})</span>
+          </Field>
+
+          {(orc.agentSignals.length > 0 || orc.statusSignals.length > 0) && (
+            <details className="oc-field">
+              <summary className="oc-field__label" style={{ cursor: 'pointer' }}>
+                Why (provenance)
+              </summary>
+              {orc.agentSignals.length > 0 && (
+                <div className="oc-field__value" style={{ fontSize: '12px' }}>
+                  agent:{' '}
+                  <span className="oc-mono">
+                    {orc.agentSignals.map((s) => `${s.ruleId}(${s.tier})`).join(', ')}
+                  </span>
+                </div>
+              )}
+              {orc.statusSignals.length > 0 && (
+                <div className="oc-field__value" style={{ fontSize: '12px' }}>
+                  status:{' '}
+                  <span className="oc-mono">
+                    {orc.statusSignals.map((s) => `${s.ruleId}(${s.strength})`).join(', ')}
+                  </span>
+                </div>
+              )}
+            </details>
+          )}
+
+          {orc.status === 'terminated' && (
+            <p className="oc-muted">This pane ended. Showing the last known metadata.</p>
+          )}
+          {orc.status === 'stale' && (
+            <p className="oc-muted">Data may be out of date. Refresh to re-check.</p>
+          )}
         </div>
-      )}
 
-      <Field label="Agent type">
-        {AGENT_LABEL[orc.agentType]}{' '}
-        <span className="oc-muted">
-          {orc.agentTypeConfidence.toFixed(2)} ({confidenceTier(orc.agentTypeConfidence, AGENT_BAND)})
-        </span>
-      </Field>
-
-      <Field label="tmux target" mono>
-        {orc.tmuxTarget} <span className="oc-muted">({orc.paneId})</span>
-      </Field>
-
-      <Field label="Location">
-        session {orc.sessionName} · win {orc.windowIndex} · pane {orc.paneIndex}
-      </Field>
-
-      <Field label="Working dir" mono>
-        {orc.cwd}
-      </Field>
-
-      <Field label="Command" mono>
-        {orc.command}
-      </Field>
-
-      <Field label="Current work summary">
-        {orc.currentWorkSummary ?? <span className="oc-muted">no summary</span>}
-        {orc.summaryIsEstimated && (
-          <span className="oc-estimated" title={`source: ${orc.summarySource}`}>
-            ~ estimated
-          </span>
-        )}
-        {!orc.summaryIsEstimated && orc.currentWorkSummary && (
-          <span className="oc-muted oc-status__conf"> ({orc.summarySource})</span>
-        )}
-      </Field>
-
-      <Field label="Last activity">
-        {relativeTime(orc.lastActivityAt)} <span className="oc-muted">({clockTime(orc.lastActivityAt)})</span>
-      </Field>
-
-      {(orc.agentSignals.length > 0 || orc.statusSignals.length > 0) && (
-        <details className="oc-field">
-          <summary className="oc-field__label" style={{ cursor: 'pointer' }}>
-            Why (provenance)
-          </summary>
-          {orc.agentSignals.length > 0 && (
-            <div className="oc-field__value" style={{ fontSize: '12px' }}>
-              agent:{' '}
-              <span className="oc-mono">
-                {orc.agentSignals.map((s) => `${s.ruleId}(${s.tier})`).join(', ')}
-              </span>
-            </div>
-          )}
-          {orc.statusSignals.length > 0 && (
-            <div className="oc-field__value" style={{ fontSize: '12px' }}>
-              status:{' '}
-              <span className="oc-mono">
-                {orc.statusSignals.map((s) => `${s.ruleId}(${s.strength})`).join(', ')}
-              </span>
-            </div>
-          )}
-        </details>
-      )}
-
-      {orc.status === 'terminated' && (
-        <p className="oc-muted">This pane ended. Showing the last known metadata.</p>
-      )}
-      {orc.status === 'stale' && (
-        <p className="oc-muted">Data may be out of date. Refresh to re-check.</p>
-      )}
-
-      <div className="oc-field__label">Terminal preview</div>
-      <TerminalPreview
-        meta={preview.meta}
-        text={preview.text}
-        loading={preview.loading}
-        exposureEnabled={exposureEnabled}
-        lineCount={lineCount}
-        disabled={settings === null}
-        onToggleExposure={(next) => patchPreview({ exposureEnabled: next })}
-        onChangeLineCount={(next) =>
-          patchPreview({ lineCount: Math.max(1, Math.min(PREVIEW_LINE_MAX, Math.round(next))) })
-        }
-      />
-
-      <CommandDock orc={orc} disabled={controlDisabled} disabledReason={disabledReason} />
+        {portrait && <OrcPortrait portrait={portrait} />}
+      </div>
     </aside>
+  );
+}
+
+/** SPEC-304 §2.3 — 2:3 bust portrait + name/role caption; CSS owns the decorative frame. */
+function OrcPortrait({ portrait }: { portrait: PortraitState }): JSX.Element {
+  return (
+    <div className="oc-portrait" data-testid="orc-portrait">
+      <div
+        className={`oc-portrait__frame oc-portrait__frame--${portrait.mode}`}
+        data-mode={portrait.mode}
+      >
+        {portrait.mode === 'asset' && portrait.src ? (
+          <img className="oc-portrait__img" src={portrait.src} alt="" />
+        ) : (
+          <div className="oc-portrait__placeholder" aria-hidden="true">
+            <span className="oc-portrait__placeholder-mark" />
+          </div>
+        )}
+      </div>
+      <div className="oc-portrait__caption">
+        <span className="oc-portrait__name">{portrait.caption.name}</span>
+        {portrait.caption.role && (
+          <span className="oc-portrait__role oc-muted">{portrait.caption.role}</span>
+        )}
+      </div>
+    </div>
   );
 }
 

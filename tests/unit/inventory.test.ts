@@ -63,6 +63,20 @@ describe('FMT_P parsing (SPEC-002-AC-02/03)', () => {
     expect(typeof f.paneIndex).toBe('number');
   });
 
+  it('falls back to window_activity when pane_activity is empty (tmux 3.6b, D-022)', () => {
+    const base = {
+      sessionName: 'work', windowIndex: 1, paneIndex: 0, paneId: '%1',
+      command: 'zsh', paneTitle: '', cwd: '/x', pid: 1, dead: false, active: true,
+    } as const;
+    // pane_activity empty, window_activity present → uses window_activity epoch.
+    const f = parsePaneLine(paneLine({ ...base, activity: '', windowActivity: '1750000000' }), now);
+    expect(f?.lastActivityAt).toBe(new Date(1750000000 * 1000).toISOString());
+    // both empty → epochToIso falls back to the injected clock (never throws / never blank).
+    const g = parsePaneLine(paneLine({ ...base, activity: '', windowActivity: '' }), now);
+    expect(typeof g?.lastActivityAt).toBe('string');
+    expect(g?.lastActivityAt).toBe(now().toISOString());
+  });
+
   it('derives tmuxTarget as sessionName:windowIndex.paneIndex', () => {
     const f = parsePaneLine(
       paneLine({
@@ -98,10 +112,10 @@ describe('FMT_P parsing (SPEC-002-AC-02/03)', () => {
   });
 
   it('skips a line whose field count != FMT_P token count (parse_error)', () => {
-    expect(FMT_P.split(US).length).toBe(11);
+    expect(FMT_P.split(US).length).toBe(12);
     expect(parsePaneLine(['work', '0', '1'].join(US), now)).toBeNull();
-    // 10 fields (one short)
-    const short = Array.from({ length: 10 }, (_, i) => String(i)).join(US);
+    // 11 fields (one short)
+    const short = Array.from({ length: 11 }, (_, i) => String(i)).join(US);
     expect(parsePaneLine(short, now)).toBeNull();
   });
 

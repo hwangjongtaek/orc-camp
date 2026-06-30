@@ -2,7 +2,7 @@
 spec: SPEC-007
 title: 테스트 전략·PoC 측정·수용 매트릭스
 status: approved
-updated: 2026-06-28
+updated: 2026-06-29
 requirements: [R-CLI-004, R-TMUX-001, R-TMUX-002, R-TMUX-004, R-TMUX-005, R-TMUX-006, R-ORC-001, R-ORC-002, R-ORC-003, R-ORC-004, R-ORC-005, R-ORC-006, R-ORC-007, R-PRIV-001, R-PRIV-002, R-PRIV-003, R-PRIV-004, R-PRIV-005, R-PRIV-006, R-OBS-003, R-UI-007]
 decisions: [D-012, D-014, D-020, D-021]
 tags:
@@ -508,6 +508,7 @@ interface LabeledPaneSample {
 - **C1 — 14-MVP 예시 JSON과 [[SPEC-005-data-contract]] 정합**: measurement/integration의 schema validate 대상은 [[SPEC-005-data-contract]](7키 statusSummary·`stale`/`lastGoodAt`·`summaryIsEstimated`·`agentSignals`/`statusSignals`·안정 camp id)다. [[14-MVP-PoC-Scope]] 예시 JSON은 이를 아직 반영하지 않았다(SPEC-005 C1~C6). 테스트는 SPEC-005를 SSOT로 따른다. 14-MVP 예시 보정은 orchestrator가 반영.
 - **C2 — `--watch` 결정 의존 (RESOLVED, [[08-Decisions|D-014]])**: `active`/status transition/사라짐 `terminated`의 정확도·calibration·latency(반복 cycle) 측정이 `--watch` 채택과 prior 보관 정책에 의존하던 부분은 **[[08-Decisions|D-014]](기본 single-shot + `--watch` opt-in)로 확정**됐다. 이에 따라 본 spec의 측정 절차를 갱신했다: prior 의존 신호는 합성 prior fixture(결정적 CI 게이트)와 `--watch` cycle-to-cycle prior 기반 **live pane 측정**(`TC-E-WATCH`/`TC-M-LATENCY`, e2e job, §3.2-2·§3.3 M2/M4) 양쪽으로 측정한다. last-good/prior 보관은 [[SPEC-002-tmux-discovery]] §2.7, prior 해석은 [[SPEC-004-status-inference]] §2.1이 소유한다. **잔여 조치 없음.**
 - **C3 — banner vs redaction coherence**: RP-10 generic redaction이 [[SPEC-003-agent-detection]] G-OUT banner 토큰을 가리면 detection recall과 false-redaction이 동시에 영향받는다([[SPEC-006-privacy-redaction]] C4, SPEC-003 §6 Q). `TC-M-BANNER`가 두 spec 공동 검증을 소유한다.
+- **C4 — C-layer(Epic 3/4 FE) 테스트 일부 실현(정보성·범위 밖)**: 본 spec 카탈로그(§2.5)는 **scan 슬라이스(Epic 1)** 전용이다(Epic 2~4 FE/dashboard 테스트는 §1 Out-of-scope, [[SPEC-900-traceability-rollup]] §0 layer **C** forward). 다만 dashboard/camp-map 구현으로 **C-layer 결정적 단위/컴포넌트 테스트가 일부 실현**됐다: `web/tests/ground.test.ts`(image-ground geometry·ratio 게이트·2× world placement → [[SPEC-301-camp-map-movement]] AC-22/23), `web/tests/panzoom.test.tsx`(no-zoom: 고정 스케일·zoom 컨트롤 부재 → SPEC-301 §2.7), `web/tests/campDetail.test.tsx`(단일 탭 dock·Preview 탭에 preview+control dock 동거 → [[SPEC-201-dashboard-screens]] AC-15/16). 이들은 Vitest(jsdom)로 결정적이며 SPEC-900 §0 C-layer로 추적된다. **본 spec의 scan 매트릭스(§5)는 불변**이고, Epic 2~9의 통합 `TC-*` 카탈로그·fixture는 여전히 후속 test spec(미작성, §6 Q-아래)이 소유한다.
 
 ### Open Questions (검토 필요 / PoC 운영)
 

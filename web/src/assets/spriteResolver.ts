@@ -19,6 +19,17 @@ export interface OrcRenderInput {
   direction?: string;
   /** SPEC-301 — 'roaming' selects the walk-cycle animation; undefined/'arrived' ⇒ status. */
   movementState?: 'roaming' | 'arrived';
+  /**
+   * SPEC-301 §3.1-11 — while being drag-and-dropped, the orc shows its IDLE animation facing the
+   * drag-start `direction` (not the walk-cycle and not the status animation), regardless of status.
+   */
+  dragging?: boolean;
+  /**
+   * SPEC-300 §2.3 — explicit character key (sequential per-orc assignment). When set and present
+   * in the manifest it WINS over the agentType→character map, so the visible orc is chosen by the
+   * orc's order on the map, not its agent type. Undefined ⇒ legacy agentType mapping.
+   */
+  characterKey?: string;
 }
 
 export interface RenderEnvironment {
@@ -53,14 +64,59 @@ export interface SpriteRenderState {
 
 const DEFAULT_FRAME_SIZE: [number, number] = [232, 232];
 const DEFAULT_ANCHOR: [number, number] = [116, 208];
-const MASCOT_KEY = 'orc-high-warchief-mascot';
+/** Mascot fallback character key (SPEC-300 §2.3 / SPEC-304 §2.2). */
+export const MASCOT_KEY = 'orc-high-warchief-mascot';
 const MVP_DIRECTION = 'south';
 
-const AGENT_TO_CHARACTER: Record<AgentType, string> = {
+/** agentType → character key (SPEC-300 §2.3 precedence step 2; shared by SPEC-304 portraits). */
+export const AGENT_TO_CHARACTER: Record<AgentType, string> = {
   'claude-code': 'orc-claude-storm-shaman',
   codex: 'orc-codex-field-engineer',
   unknown: 'orc-unknown',
 };
+
+/**
+ * SPEC-300 §2.3 — ordered character pool for SEQUENTIAL per-orc assignment (the camp's orcs cycle
+ * through it in reading order, so adjacent orcs look different regardless of agent type). Keep the
+ * curated order stable; `availableCharacterPool` filters it to what the active manifest actually
+ * ships (and degrades to whatever characters exist if none of these are present).
+ */
+export const CHARACTER_POOL = [
+  'orc-claude-storm-shaman',
+  'orc-codex-field-engineer',
+  'orc-iron-commander',
+  'orc-high-warchief-mascot',
+  'orc-unknown',
+] as const;
+
+/** The CHARACTER_POOL entries present in `manifest`, in pool order (empty when no manifest). */
+export function availableCharacterPool(manifest: AssetManifest | null): string[] {
+  if (!manifest) return [];
+  const present = CHARACTER_POOL.filter((k) => manifest.characters[k]);
+  return present.length > 0 ? present : Object.keys(manifest.characters);
+}
+
+/** Character key for the orc at sequential index `i`, cycling the pool (undefined ⇒ empty pool). */
+export function characterKeyForIndex(i: number, pool: readonly string[]): string | undefined {
+  if (pool.length === 0) return undefined;
+  return pool[((i % pool.length) + pool.length) % pool.length];
+}
+
+/**
+ * SPEC-300 §2.3 / SPEC-304 §2.2 — the SHARED sequential characterKey assignment that CampMap (map
+ * sprites) and OrcInspector (portrait) must agree on. `orderedOrcIds` MUST be the camp's orcs in
+ * reading order (windowIndex, paneIndex) filtered to existing orcs, so a given orc's portrait
+ * matches its on-map sprite. Returns orcId → characterKey (undefined entries ⇒ empty pool).
+ */
+export function characterKeyMap(
+  orderedOrcIds: string[],
+  manifest: AssetManifest | null,
+): Map<string, string | undefined> {
+  const pool = availableCharacterPool(manifest);
+  const m = new Map<string, string | undefined>();
+  orderedOrcIds.forEach((id, i) => m.set(id, characterKeyForIndex(i, pool)));
+  return m;
+}
 
 const STATUS_TO_STATE: Record<OrcStatus, string> = {
   active: 'active',
@@ -69,7 +125,7 @@ const STATUS_TO_STATE: Record<OrcStatus, string> = {
   error: 'error',
   stale: 'stale',
   unknown: 'idle', // no dedicated 'unknown' animation; overlay distinguishes it
-  terminated: 'idle', // static; uses reduced_motion fallback frame
+  terminated: 'idle', // #52 — animate the idle loop (was static); ghost overlay still marks it
 };
 
 const STATUS_TO_OVERLAY: Record<OrcStatus, string> = {
@@ -114,7 +170,7 @@ function placeholderState(
 ): CoreSpriteState {
   return {
     orcId: input.id,
-    characterKey: AGENT_TO_CHARACTER[input.agentType],
+    characterKey: input.characterKey ?? AGENT_TO_CHARACTER[input.agentType],
     frameSize,
     anchor,
     mode: 'placeholder',
@@ -129,12 +185,20 @@ function placeholderState(
   };
 }
 
-/** Resolve the character entry (agentType → character, mascot fallback). */
+/**
+ * Resolve the character entry. Precedence (SPEC-300 §2.3): explicit `characterKey` (sequential
+ * assignment) → agentType→character map → mascot fallback. Each step only wins if the key exists
+ * in the manifest, so a missing sequential/agent character degrades gracefully to the mascot.
+ */
 function resolveCharacter(
   manifest: AssetManifest,
-  agentType: AgentType,
+  input: OrcRenderInput,
 ): { key: string; def: CharacterDef } | null {
-  const primary = AGENT_TO_CHARACTER[agentType];
+  const requested = input.characterKey;
+  if (requested && manifest.characters[requested]) {
+    return { key: requested, def: manifest.characters[requested]! };
+  }
+  const primary = AGENT_TO_CHARACTER[input.agentType];
   if (manifest.characters[primary]) return { key: primary, def: manifest.characters[primary]! };
   if (manifest.characters[MASCOT_KEY]) {
     return { key: MASCOT_KEY, def: manifest.characters[MASCOT_KEY]! };
@@ -157,7 +221,7 @@ function resolveCore(input: OrcRenderInput, env: RenderEnvironment): CoreSpriteS
   }
   const manifest = env.manifest;
 
-  const resolved = resolveCharacter(manifest, input.agentType);
+  const resolved = resolveCharacter(manifest, input);
   if (!resolved) {
     // Character (and mascot) unresolvable → placeholder.
     return placeholderState(
@@ -176,26 +240,12 @@ function resolveCore(input: OrcRenderInput, env: RenderEnvironment): CoreSpriteS
 
   const reducedFrame = `${characterRoot}/${character.reduced_motion.fallback_frame}`;
 
-  // Terminated → static fallback frame + ghost overlay; NO death/fall animation.
-  if (input.status === 'terminated') {
-    return {
-      orcId: input.id,
-      characterKey,
-      frameSize,
-      anchor,
-      mode: 'static',
-      animationState: null,
-      direction: character.reduced_motion.fallback_direction,
-      framePaths: null,
-      frames: 1,
-      fps: null,
-      staticFramePath: reducedFrame,
-      overlayPath,
-      loop: false,
-    };
-  }
+  // Terminated → animate the IDLE loop (not a frozen frame), keeping the `terminated-ghost`
+  // overlay to mark it. Falls through to the normal animation path below where
+  // STATUS_TO_STATE['terminated'] resolves to the 'idle' state. (Reduced-motion still freezes
+  // it via the check just below; movement stays snapped/static in the controller, §3.1-5.)
 
-  // Reduced motion → freeze on the per-character fallback frame.
+  // Reduced motion → freeze on the per-character fallback frame (covers terminated too).
   if (env.prefersReducedMotion) {
     return {
       orcId: input.id,
@@ -214,9 +264,10 @@ function resolveCore(input: OrcRenderInput, env: RenderEnvironment): CoreSpriteS
     };
   }
 
-  // SPEC-301 — roaming selects the walk-cycle; otherwise status → state (MVP path).
+  // SPEC-301 — roaming selects the walk-cycle; otherwise status → state (MVP path). §3.1-11 — a
+  // dragged orc forces the IDLE animation (in its drag-start direction) over status/walk.
   const roaming = input.movementState === 'roaming';
-  let state = roaming ? 'roaming' : STATUS_TO_STATE[input.status];
+  let state = input.dragging ? 'idle' : roaming ? 'roaming' : STATUS_TO_STATE[input.status];
   let anim = character.animations[state];
   if (!anim || !anim.folders) {
     state = 'idle';
@@ -227,9 +278,11 @@ function resolveCore(input: OrcRenderInput, env: RenderEnvironment): CoreSpriteS
     return placeholderState(input, frameSize, anchor, overlayPath);
   }
 
-  // Direction: requested 8-dir (roaming) or south (MVP) → south fallback → first available
-  // (SPEC-300 §3.2-4 fallback delegation).
-  const requestedDir = roaming ? input.direction ?? MVP_DIRECTION : MVP_DIRECTION;
+  // Direction: honor the requested 8-dir for BOTH a roaming leg AND an arrived dwell (SPEC-301
+  // §3.1-10 #50 — active orcs dwell facing a random direction), falling back to south when none is
+  // requested or the folder is missing (SPEC-300 §3.2-4 fallback delegation). With no requested
+  // direction (the MVP/idle path) this stays south, unchanged.
+  const requestedDir = input.direction ?? MVP_DIRECTION;
   let direction = requestedDir;
   let folder = anim.folders[direction];
   if (!folder) {

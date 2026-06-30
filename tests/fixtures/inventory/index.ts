@@ -74,10 +74,11 @@ export interface PaneSpec {
   command: string;
   paneTitle: string;
   cwd: string;
-  activity: string; // epoch seconds
+  activity: string; // epoch seconds (#{pane_activity})
   pid: number | string | '';
   dead: boolean | string;
   active: boolean | string;
+  windowActivity?: string; // epoch seconds (#{window_activity}); defaults to `activity`
 }
 
 export function paneLine(p: PaneSpec): string {
@@ -93,6 +94,7 @@ export function paneLine(p: PaneSpec): string {
     p.pid === '' ? '' : String(p.pid),
     bool01(p.dead),
     bool01(p.active),
+    p.windowActivity ?? p.activity,
   ].join(US);
 }
 
