@@ -50,6 +50,7 @@ tags:
 | 누적 token/cost(`Orc.usage`) **수집·직렬화** 및 mascot tier 소비 | forward(미반영) — 제안 필드 | [[SPEC-302-mascot-prestige-tiers]] §2.2 (R-P2-008 proposed), 수집 privacy 계약 [[SPEC-008-usage-collection]] |
 
 > **forward(R-P2-008, 미반영)**: [[SPEC-302-mascot-prestige-tiers]]가 prestige tier 판정을 위해 `Orc`에 `usage: OrcUsage | null`(누적 tokens/cost) 추가를 **제안**한다. 본 spec의 현행 `Orc`에는 미포함이며, 채택 시 §2.1 인터페이스·envelope 예시를 함께 갱신한다(read-only/비저장 원칙 유지, best-effort·`null` 허용). `usage`의 출처는 **세션 로그 파일을 직접 읽는 새 read surface**이므로, 그 수집은 [[SPEC-008-usage-collection]]([[08-Decisions|D-039]], security-privacy 소유)이 **CONDITIONAL GO**로 게이트한다 — 직렬화되는 것은 그 계약이 산출한 **4개 집계 스칼라**(`cumulativeTokens`/`cumulativeCostUsd`/`source`/`measuredAt`)뿐이고 transcript 원문·경로·secret은 어떤 필드로도 직렬화되지 않는다(§3.5 privacy 불변식이 본 surface에도 적용). 채택 시 `usage`도 그 4개 스칼라만 wire에 싣는다.
+> **forward(D-040)**: tier의 **토큰 폴백 신호**로 `Orc`에 `uptimeSec: number | null`(agent 런타임 프로세스 경과 초; [[SPEC-002-tmux-discovery]] ps `etimes`로 산출)도 추가 제안한다([[SPEC-302-mascot-prestige-tiers]] §3.7). uptime은 **비민감**(프로세스 시작시각 — transcript 아님)이라 SPEC-008 게이트와 무관하며 wire에 그대로 직렬화 가능하다(측정 불가/terminated → `null`).
 
 ## 2. Contract
 

@@ -70,14 +70,18 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
   // SPEC-201 AC-12 — tmux errors scoped to THIS orc (target === paneId) render locally.
   const orcErrors = orcTmuxErrors(tmuxErrors, orc.paneId);
 
-  // SPEC-302 — usage context behind the tier grade (why this grade); null usage = unmeasured.
+  // SPEC-302 §3.7 — the BASIS behind the tier grade: which signal drove it (precedence tokens →
+  // cost → uptime → unmeasured, mirroring rawTierForUsage). Surfaced because the tier can now be a
+  // mix of signals — e.g. an uptime-tiered orc reads "T1 … · 2.3h uptime".
   const u = orc.usage;
-  const usageNote =
+  const basisNote =
     u?.cumulativeTokens != null
       ? `${fmtTokens(u.cumulativeTokens)} tok`
       : u?.cumulativeCostUsd != null
         ? `$${u.cumulativeCostUsd.toFixed(2)}`
-        : 'usage unmeasured';
+        : orc.uptimeSec != null
+          ? `${fmtUptime(orc.uptimeSec)} uptime`
+          : 'usage unmeasured';
 
   return (
     <aside className="oc-inspector" aria-label="Orc inspector">
@@ -123,7 +127,7 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
                 Base (tier 0)
               </span>
             )}
-            <span className="oc-muted oc-status__conf"> · {usageNote}</span>
+            <span className="oc-muted oc-status__conf"> · {basisNote}</span>
           </Field>
 
           <Field label="tmux target" mono>
@@ -240,9 +244,16 @@ function Field({
   );
 }
 
-/** Compact token count for the tier usage note (e.g. 115734 → "116k", 2_300_000 → "2.3M"). */
+/** Compact token count for the tier basis note (e.g. 115734 → "116k", 2_300_000 → "2.3M"). */
 function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1000) return `${Math.round(n / 1000)}k`;
   return String(n);
+}
+
+/** Compact uptime for the tier basis note (SPEC-302 §3.7): 8000 → "2.2h", 2700 → "45m", 30 → "30s". */
+function fmtUptime(sec: number): string {
+  if (sec >= 3600) return `${(sec / 3600).toFixed(1)}h`;
+  if (sec >= 60) return `${Math.round(sec / 60)}m`;
+  return `${Math.round(sec)}s`;
 }

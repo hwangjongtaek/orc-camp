@@ -252,6 +252,7 @@ export function CampMap({
           characterKey: resolvedKey,
           hasPrestige: !!def?.prestige,
           usage: o.usage,
+          uptimeSec: o.uptimeSec, // §3.7 uptime fallback axis (used only when usage axes are null)
           thresholds: thresholdsForCharacter(def),
         };
       }),

@@ -87,6 +87,22 @@ describe('TC-I-SCAN-NORMAL (SPEC-001-AC-01, SPEC-002-AC-01, SPEC-005-AC-02/03)',
     // stdout must be ONE line of JSON (NDJSON-safe), nothing else
     expect(out.trim().split('\n')).toHaveLength(1);
   });
+
+  it('agent uptime (SPEC-302 §3.7) flows from the ps `etimes` column through to the serialized orc', async () => {
+    // Full pipeline: psSnapshotArgs(etimes) → parsePsSnapshot → buildSubtree → inventory → assemble.
+    const { result } = await runJson(
+      normalScenario({
+        ps: undefined,
+        processTable: [
+          { pid: 1001, ppid: 1, command: 'claude', etimeSec: 5400 }, // pane_pid of %10 (claude orc)
+          { pid: 1002, ppid: 1, command: '-zsh', etimeSec: 9000 }, // shell pane (non-orc)
+        ],
+      }),
+    );
+    const orc = result.camps[0]!.orcs[0]!;
+    expect(orc.paneId).toBe('%10');
+    expect(orc.uptimeSec).toBe(5400);
+  });
 });
 
 describe('TC-I-JSON-HYGIENE (SPEC-001-AC-02/04)', () => {
@@ -175,8 +191,8 @@ describe('TC-I-READONLY (SPEC-002-AC-13, SPEC-006-AC-12b)', () => {
     const psCalls = log.filter((e) => e.file === 'ps');
     expect(psCalls.length).toBe(1);
     const READONLY_PS_ARGV = [
-      ['-axo', 'pid=,ppid=,command='], // darwin/bsd
-      ['-eo', 'pid=,ppid=,args='], // linux
+      ['-axo', 'pid=,ppid=,etime=,command='], // darwin/bsd (etime, formatted)
+      ['-eo', 'pid=,ppid=,etimes=,args='], // linux (etimes, seconds)
     ];
     for (const call of psCalls) {
       expect(READONLY_PS_ARGV.some((v) => JSON.stringify(v) === JSON.stringify(call.args))).toBe(true);

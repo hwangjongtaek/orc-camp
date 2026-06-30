@@ -15,6 +15,7 @@ import {
   SCHEMA_VERSION,
   type AgentDetector,
   type AgentSignal,
+  type AgentType,
   type Camp,
   type DetectOrcFn,
   type InferStatusFn,
@@ -154,6 +155,46 @@ function buildUsageHint(rec: PaneRawRecord, agentType: Orc['agentType']): UsageL
   };
 }
 
+/**
+ * SPEC-302 §3.7 / D-040 — agent-runtime argv signatures used to locate the orc's agent
+ * runtime process within its subtree (mirrors the SPEC-003 adapters' signature, kept minimal
+ * because uptime is a SOFT longevity proxy on an ALREADY-confirmed agent pane). `unknown`
+ * agents have no reliable runtime token → no uptime (null → tier 0, SPEC-302 §2.6).
+ */
+const AGENT_RUNTIME_SIGNATURE: Record<AgentType, RegExp | null> = {
+  'claude-code': /@anthropic-ai\/claude-code|claude-code|\bclaude\b/i,
+  codex: /@openai\/codex|codex-cli|\bcodex\b/i,
+  unknown: null,
+};
+
+/**
+ * SPEC-302 §3.7 — the agent runtime process's elapsed seconds (uptime), best-effort.
+ *
+ * The detection candidate does not carry the matched node's pid, so we select the
+ * **longest-lived** (max `etimeSec`) live subtree node whose redacted argv matches the agent
+ * runtime for this orc's agentType — the agent process's start anchor. Returns null when:
+ *   - paneDead (terminated pane), OR
+ *   - processTree is null/undefined/empty (introspection unavailable, or no live process — ps
+ *     lists ONLY live processes, so a terminated agent simply isn't present), OR
+ *   - no live node matches the agent runtime / has a usable `etimeSec`.
+ * Pure & total: any doubt → null (never throws, never blocks assembly).
+ */
+function selectAgentUptimeSec(rec: PaneRawRecord, agentType: AgentType): number | null {
+  if (rec.paneDead) return null;
+  const tree = rec.processTree;
+  if (!tree || tree.length === 0) return null;
+  const sig = AGENT_RUNTIME_SIGNATURE[agentType];
+  if (!sig) return null;
+  let best: number | null = null;
+  for (const node of tree) {
+    const e = node.etimeSec;
+    if (typeof e !== 'number' || !Number.isFinite(e) || e < 0) continue;
+    if (!sig.test(node.command)) continue;
+    if (best === null || e > best) best = e; // longest-lived = largest elapsed seconds
+  }
+  return best;
+}
+
 /** Build an Orc from a candidate pane (detection already ran). */
 async function buildOrc(
   rec: PaneRawRecord,
@@ -204,6 +245,12 @@ async function buildOrc(
     usage = null;
   }
 
+  // SPEC-302 §3.7 / D-040 — agent-process uptime (token-fallback tier signal). Per-orc isolated,
+  // best-effort. A terminated orc has no live agent process → null (the agent node is absent from
+  // the ps snapshot; selectAgentUptimeSec also null-guards paneDead and the inferred terminated state).
+  const uptimeSec =
+    inference.status === 'terminated' ? null : selectAgentUptimeSec(rec, candidate.agentType);
+
   const orc: Orc = {
     id: `pane:${rec.paneId}`,
     paneId: rec.paneId,
@@ -225,6 +272,7 @@ async function buildOrc(
     lastActivityAt: rec.lastActivityAt,
     preview: buildPreview(rec),
     usage,
+    uptimeSec,
   };
 
   const fingerprint = computeFingerprint(rec.capture ? rec.capture.lines : []);

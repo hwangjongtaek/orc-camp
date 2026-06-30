@@ -122,6 +122,14 @@ export interface Orc {
   // surface; serialization exposes ONLY OrcUsage's 4 scalars — no raw transcript content,
   // no per-message data, no session paths (G1/G2, SPEC-008-AC-01/02).
   usage: OrcUsage | null;
+
+  // uptime axis (SPEC-302 §3.7 / D-040 — tier token-fallback signal)
+  // The agent **runtime process's** elapsed seconds (process start time, NOT transcript) —
+  // a longevity proxy when token correlation is unavailable. Derived from the SPEC-002 §2.9 ps
+  // snapshot `etimes` column (the longest-lived subtree node matching the agent runtime).
+  // NON-SENSITIVE: process start time only, so it is OUTSIDE the SPEC-008 usage-privacy gate.
+  // null = no live agent process (terminated/paneDead) or introspection unavailable/unsupported.
+  uptimeSec: number | null;
 }
 
 /**
@@ -260,6 +268,9 @@ export interface ProcessNode {
   ppid: number;
   depth: number; // pane_pid = 0, direct child = 1, … (foreground-proximity ordering)
   command: string; // node argv, redacted (SPEC-006 §2.7 chokepoint)
+  // SPEC-002 §2.9 / SPEC-302 §3.7 — elapsed seconds since this process started (ps `etimes`).
+  // NON-SENSITIVE (start time, not content). Absent when the snapshot lacked/garbled the column.
+  etimeSec?: number;
 }
 
 /** SPEC-002 §2.9 — raw process-table snapshot entry (pre-redaction, pre-depth). */
@@ -267,6 +278,9 @@ export interface ProcessSnapshotEntry {
   pid: number;
   ppid: number;
   command: string; // RAW argv (collector applies redact at the boundary)
+  // SPEC-002 §2.9 / SPEC-302 §3.7 — elapsed seconds since start (ps `etimes`, integer ≥0).
+  // Absent when the column was missing or malformed (fail-safe: never throws; powers uptime).
+  etimeSec?: number;
 }
 
 /** Output of the inventory collection step (SPEC-002). */

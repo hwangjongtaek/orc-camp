@@ -63,9 +63,10 @@ export interface OrcSyncEntry {
   /** §3.1-10 walkable bound (zone inner rect / ground safe area) — patrol/rest clamp inside it. */
   bound?: Rect;
   /**
-   * §3.1-11 — a user drag-drop placement. A pinned orc rests EXACTLY at `target` (the drop): no
-   * patrol/rest/wander offset and no bound-clamp (those would pull it off the chosen spot / back to
-   * its old cell), while its status animation still plays in place.
+   * §3.1-11 — a user drag-drop placement. A pinned orc carries no `bound` (no cell-clamp that would
+   * pull it back toward its old cell). An ACTIVE pinned orc patrols around the drop `target` itself;
+   * a NON-active pinned orc rests EXACTLY at `target` (no rest/wander offset) — its status animation
+   * still plays in place.
    */
   pinned?: boolean;
 }
@@ -80,7 +81,7 @@ interface MotionDescriptor {
   roamDir: string;
   paneId: string; // §3.1-9 wander seed
   bound?: Rect; // §3.1-10 patrol/rest clamp bound
-  pinned?: boolean; // §3.1-11 user-placed → rests exactly at target (no patrol/rest/wander)
+  pinned?: boolean; // §3.1-11 user-placed → no cell-bound; active patrols around target, else rests on it
 }
 
 const ZERO: Vec2 = { x: 0, y: 0 };
@@ -230,24 +231,12 @@ export class RoamingController {
       };
     }
 
-    // §3.1-11 — a PINNED (user drag-dropped) orc rests EXACTLY at its drop point: skip the
-    // patrol/rest/wander offsets AND the bound-clamp (which would pull it off the chosen spot or
-    // back toward its old cell — the drop-revert/offset bug). Its status animation still plays in
-    // place (active = active anim, waiting/idle = their loops). Direction is the MVP facing.
-    if (d.pinned) {
-      return {
-        renderedPos: d.target,
-        movementState: 'arrived',
-        displayedState: d.status,
-        direction: MVP_DIRECTION,
-        tEnter: arrivalT,
-        status: d.status,
-      };
-    }
-
-    // §3.1-10 — ACTIVE patrol: once arrived at its post, an active orc never just stands —
-    // it runs an endless roam ↔ active-dwell loop anchored at the arrival instant (so it walks
-    // to the post, then patrols). Pure function of (paneId, t); disabled under reduced-motion.
+    // §3.1-10/§3.1-11 — ACTIVE patrol: once arrived an active orc never just stands — it runs an
+    // endless roam ↔ active-dwell loop anchored at the arrival instant (so it walks to the post,
+    // THEN patrols). This runs whether the orc is auto-placed OR pinned (a user drop): a pinned orc
+    // has no `bound`, so it patrols around the DROP point itself (no revert toward its old cell —
+    // §3.1-11), while an auto-placed orc patrols within its cell (adaptive-clamped, §2.4b). Pure
+    // function of (paneId, t); disabled under reduced-motion.
     if (this.patrol && !this.reducedMotion && d.status === 'active') {
       const f = patrolAt(d.target, d.paneId, arrivalT, t, d.bound, PATROL_MARGIN);
       return {
@@ -256,6 +245,21 @@ export class RoamingController {
         displayedState: f.moving ? 'roaming' : d.status,
         direction: f.direction,
         tEnter: f.tEnter,
+        status: d.status,
+      };
+    }
+
+    // §3.1-11 — a PINNED, NON-active (user drag-dropped) orc rests EXACTLY at its drop point: skip
+    // the rest/wander offset AND the bound-clamp (which would pull it off the chosen spot or back
+    // toward its old cell — the drop-revert/offset bug). Its status animation still plays in place
+    // (waiting/idle = their loops). Direction is the MVP facing.
+    if (d.pinned) {
+      return {
+        renderedPos: d.target,
+        movementState: 'arrived',
+        displayedState: d.status,
+        direction: MVP_DIRECTION,
+        tEnter: arrivalT,
         status: d.status,
       };
     }
@@ -288,10 +292,10 @@ export class RoamingController {
 
   /**
    * §3.1-11 — instantly PLACE an orc at `pos` (user drag-drop drop). Snaps the descriptor (no walk)
-   * and marks it PINNED so it rests EXACTLY at `pos` (no patrol/rest/wander offset, no bound-clamp —
-   * which previously pulled the orc back toward its old cell / off the drop). Its status animation
-   * keeps playing in place. Status/paneId are preserved; the bound is dropped (unused while pinned).
-   * The subsequent `sync()` (with the same home + `pinned`) is a no-op, so the placement sticks.
+   * and marks it PINNED. The bound is dropped (so the orc never reverts toward its old cell — the
+   * drop-revert bug): an ACTIVE orc then patrols around the drop `pos`, while a NON-active orc rests
+   * EXACTLY at it (no rest/wander offset). Status/paneId are preserved. The subsequent `sync()`
+   * (with the same home + `pinned`) is a no-op, so the placement sticks.
    */
   place(id: string, pos: Vec2, t: number): void {
     const prev = this.motions.get(id);

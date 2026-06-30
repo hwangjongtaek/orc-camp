@@ -313,3 +313,13 @@
 - **근거**: 필요한 데이터는 순수 집계 숫자뿐이고 그것을 얻는 데 content 보유가 불필요하다(provider가 usage를 이미 emit). 따라서 content 누출 표면을 **구조적으로 제거**할 수 있고, 본 계약이 그 구조를 강제한다. schema-first로 두면 자산/데이터 미구현 동안 `usage=null`→tier 0으로 안전 동작([[SPEC-302-mascot-prestige-tiers]] §3.2)하며 read-only/privacy/비저장 불변식을 건드리지 않는다.
 - **영향**: R-PRIV-007(proposed) 신설([[02-Requirements]] privacy 절). [[SPEC-008-usage-collection]] 신규(수집 privacy 계약·threat model·file-access 경계·provider·AC 소유), [[SPEC-302-mascot-prestige-tiers]] §2.2·[[SPEC-005-data-contract]] `Orc.usage` forward note가 본 계약·판정을 참조. server 직렬화 경계는 후속 Epic 2([[SPEC-101-snapshot-api]], [[08-Decisions|D-024]])에서 PF-U01로 pre-flag. 구현은 R-P2-008 채택 시 착수.
 - **근거 spec**: [[SPEC-008-usage-collection]], [[SPEC-302-mascot-prestige-tiers]], [[SPEC-005-data-contract]], [[SPEC-006-privacy-redaction]].
+
+## D-040: tier 판정은 토큰 우선·프로세스 uptime 폴백의 다중 신호로 한다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-06-30
+- **맥락**: [[SPEC-008-usage-collection]] 구현 후 라이브 측정 결과 누적 토큰은 28 orc 중 **3개만** 상관됨(대부분 프로젝트 디렉터리에 세션 `.jsonl`이 여럿이라 명시 session-id/open-fd 없이는 모호→`null`; misattribution 금지로 추측 불가). 토큰은 또한 transcript read surface(SPEC-008 게이트) 부담이 있다. 더 넓게·안전하게 측정 가능한 **폴백 신호**가 필요하다.
+- **결정**: tier 판정 axis를 **다중 신호 우선순위 폴백**으로 확장한다 — `usage.cumulativeTokens`(있으면) → `usage.cumulativeCostUsd`(있으면) → **agent 프로세스 uptime(초)**(있으면) → 0. uptime은 pane subtree의 **agent 런타임 프로세스 경과시간**으로, 기존 [[SPEC-002-tmux-discovery]] ps 스냅샷에 `etimes` 컬럼을 더해 측정한다(**비민감** — transcript가 아니므로 SPEC-008 게이트 무관). 임계(초, 튜닝 대상): **T1 3,600(1h) / T2 14,400(4h) / T3 43,200(12h)**. uptime은 *강도*가 아닌 **수명(longevity) proxy**(idle 포함)임을 명시한다. terminated orc는 프로세스가 없어 uptime=`null`(단 세션 로그가 남아 있으면 토큰으로 커버). 단조 latch·하향 폴백·게이트(prestige 블록 유무)·합성은 불변. Details 표기는 tier **근거(basis: tokens or uptime)**를 함께 보인다.
+- **근거**: 토큰은 정밀하나 커버리지 3/28. uptime은 **alive 16/28을 즉시·비민감·저비용**(ps 한 컬럼)으로 커버해 "더 오래 캠핑한 orc일수록 전설적"이라는 게임화 의도에 부합한다. 신호 혼합으로 "T1의 의미"가 composite가 되는 trade-off(coverage↔precision)는 coverage 우선으로 수용하고, 근거를 UI에 노출해 모호함을 보완한다.
+- **영향**: [[SPEC-302-mascot-prestige-tiers]] §3.7(uptime 폴백 axis) 신규 + §3.1 uptime 임계 + §3.2 precedence + AC, [[SPEC-005-data-contract]] `Orc.uptimeSec` 추가, [[SPEC-002-tmux-discovery]] ps `etimes` 캡처. privacy: uptime은 비민감(프로세스 시작시각)이라 SPEC-008/SPEC-006 transcript 게이트와 무관. R-P2-008 범위 확장.
+- **근거 spec**: [[SPEC-302-mascot-prestige-tiers]], [[SPEC-005-data-contract]], [[SPEC-002-tmux-discovery]].

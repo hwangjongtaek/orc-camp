@@ -79,6 +79,8 @@ function terminatedClone(orc: Orc): Orc {
     statusSignals: [
       { signal: 'lifecycle', status: 'terminated', strength: 'A', ruleId: 'terminated/gone' },
     ],
+    // SPEC-302 §3.7 / D-040 — a terminated orc has no live agent process → uptime null.
+    uptimeSec: null,
   };
 }
 

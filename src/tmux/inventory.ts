@@ -460,6 +460,9 @@ export async function collectInventory(
         ppid: n.ppid,
         depth: n.depth,
         command: redact(n.command).text,
+        // etimeSec is NON-SENSITIVE (process start time) — carried through verbatim (no redaction),
+        // powers SPEC-302 §3.7 uptime. Absent stays absent.
+        ...(n.etimeSec !== undefined ? { etimeSec: n.etimeSec } : {}),
       }));
       const depth0 = processTree.find((n) => n.depth === 0) ?? null;
       cmdline = depth0 ? depth0.command : null; // pane_pid node argv (redacted)

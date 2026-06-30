@@ -114,6 +114,13 @@ export const REST_R = 0.4 * SCALED_FOOTPRINT; // ≈84
 // Half-footprint inset used to clamp patrol/rest positions inside the walkable bound (so the
 // whole sprite, not just its anchor, stays in-bounds — parity with layout's GROUND_MARGIN).
 export const PATROL_MARGIN = SCALED_FOOTPRINT / 2; // ≈104
+// §2.4b/§3.1-10 cell-collapse floor — the MINIMUM reachable patrol band (± from cell center) that
+// is preserved even when a cell is smaller than a full sprite (crowded camp / narrowed layout). The
+// half-footprint PATROL_MARGIN clamp alone collapses every waypoint onto the center once a cell
+// drops below 2×PATROL_MARGIN ≈ 209px in a dimension, freezing the active orc in place; flooring the
+// band at this radius keeps a visible patrol at the cost of a small, bounded overlap (accepted only
+// where the cell can't hold a full sprite anyway). Comfortable cells are unaffected (natural ring).
+export const PATROL_MIN_BAND = 0.16 * SCALED_FOOTPRINT; // ≈33
 // §2.4b (#51) — personal-space bubble. Each orc owns one cell of a grid laid over the walkable map
 // (scene/spacing.ts); patrol/rest clamp to that cell with PATROL_MARGIN, so the whole sprite box
 // stays inside its cell and adjacent orcs never overlap. The grid ALSO gives the map-wide spread

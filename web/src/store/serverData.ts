@@ -86,9 +86,13 @@ export function fromSnapshot(data: ScanResult, snapshotVersion: number): ServerD
     campsById[camp.id] = campMeta(camp);
     const orcIds: string[] = [];
     for (const orc of camp.orcs) {
-      // SPEC-302 §2.2 — normalize the (forward, often absent) usage axis to null so the prestige
-      // tier seam (SPEC-302 §3.2) sees a stable `OrcUsage | null` regardless of wire omission.
-      orcsById[orc.id] = orc.usage === undefined ? { ...orc, usage: null } : orc;
+      // SPEC-302 §2.2/§3.7 — normalize the (forward, often absent) usage AND uptime axes to null so
+      // the prestige tier seam (SPEC-302 §3.2/§3.7) sees a stable `OrcUsage | null` / `number | null`
+      // regardless of wire omission (the server adds `uptimeSec` in parallel — code defensively).
+      const needsNormalize = orc.usage === undefined || orc.uptimeSec === undefined;
+      orcsById[orc.id] = needsNormalize
+        ? { ...orc, usage: orc.usage ?? null, uptimeSec: orc.uptimeSec ?? null }
+        : orc;
       orcIds.push(orc.id);
     }
     orcIdsByCamp[camp.id] = sortOrcIds(orcsById, orcIds);

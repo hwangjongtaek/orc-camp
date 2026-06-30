@@ -111,9 +111,28 @@ describe('SPEC-302 §3.1/§3.2 rawTierForUsage', () => {
     const th = thresholdsForCharacter(c);
     expect(th.tier1.minTokens).toBe(300_000);
     expect(th.tier2.minTokens).toBe(DEFAULT_TIER_THRESHOLDS.tier2.minTokens);
-    expect(rawTierForUsage(usage({ cumulativeTokens: 300_000 }), th)).toBe(1);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 300_000 }), null, th)).toBe(1);
     expect(thresholdsForCharacter(plainCharacter('r'))).toBe(DEFAULT_TIER_THRESHOLDS);
     expect(thresholdsForCharacter(undefined)).toBe(DEFAULT_TIER_THRESHOLDS);
+  });
+
+  it('AC-14: uptime fallback tiers + token/cost precedence (D-040 §3.7)', () => {
+    const both = usage({ cumulativeTokens: null, cumulativeCostUsd: null });
+    // uptime tiers, boundaries inclusive (3600/14400/43200s); null uptime → 0
+    expect(rawTierForUsage(both, 1800)).toBe(0);
+    expect(rawTierForUsage(both, 3600)).toBe(1);
+    expect(rawTierForUsage(both, 14_400)).toBe(2);
+    expect(rawTierForUsage(both, 43_200)).toBe(3);
+    expect(rawTierForUsage(both, null)).toBe(0);
+    // usage entirely null also falls through to the uptime axis
+    expect(rawTierForUsage(null, 43_200)).toBe(3);
+    expect(rawTierForUsage(null, null)).toBe(0);
+    // precedence: a present token count beats a higher uptime tier (uptime ignored)
+    expect(rawTierForUsage(usage({ cumulativeTokens: 150_000 }), 43_200)).toBe(1);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 0 }), 43_200)).toBe(0);
+    // precedence: present cost (even below tier 1) wins over uptime → 0, uptime never consulted
+    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 1 }), 43_200)).toBe(0);
+    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 60 }), 0)).toBe(3);
   });
 });
 
@@ -123,6 +142,7 @@ describe('SPEC-302 §3.2 monotonic composite-key latch', () => {
     characterKey,
     hasPrestige: true,
     usage: tokens === null ? null : usage({ cumulativeTokens: tokens }),
+    uptimeSec: null,
   });
 
   it('AC-03: latch is non-decreasing; ids are independent', () => {
@@ -137,8 +157,8 @@ describe('SPEC-302 §3.2 monotonic composite-key latch', () => {
 
   it('AC-05: non-target (no prestige block / unresolved key) → tier 0 at 25M, NO latch stored', () => {
     const r = reconcilePrestigeLatch({}, [
-      { id: 'a', characterKey: 'orc-plain', hasPrestige: false, usage: usage({ cumulativeTokens: 25_000_000 }) },
-      { id: 'b', characterKey: null, hasPrestige: false, usage: usage({ cumulativeTokens: 25_000_000 }) },
+      { id: 'a', characterKey: 'orc-plain', hasPrestige: false, usage: usage({ cumulativeTokens: 25_000_000 }), uptimeSec: null },
+      { id: 'b', characterKey: null, hasPrestige: false, usage: usage({ cumulativeTokens: 25_000_000 }), uptimeSec: null },
     ]);
     expect(r.displayedTierById.a).toBe(0);
     expect(r.displayedTierById.b).toBe(0);
@@ -166,7 +186,7 @@ describe('SPEC-302 §3.2 monotonic composite-key latch', () => {
     expect(r2.next[latchKey('pane:%5', 'orc-claude-storm-shaman')]).toBeUndefined();
     // %5 reassigned to a NON-prestige character → gate → 0, no latch
     const r3 = reconcilePrestigeLatch(r1.next, [
-      { id: 'pane:%5', characterKey: 'orc-plain', hasPrestige: false, usage: usage({ cumulativeTokens: 25_000_000 }) },
+      { id: 'pane:%5', characterKey: 'orc-plain', hasPrestige: false, usage: usage({ cumulativeTokens: 25_000_000 }), uptimeSec: null },
     ]);
     expect(r3.displayedTierById['pane:%5']).toBe(0);
     expect(Object.keys(r3.next)).toHaveLength(0);

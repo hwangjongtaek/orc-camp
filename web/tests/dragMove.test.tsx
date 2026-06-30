@@ -10,6 +10,7 @@ import { AssetProvider } from '../src/assets/AssetContext';
 import { CampMap } from '../src/components/scene/CampMap';
 import { useStore } from '../src/store/store';
 import { __setClockDriverForTest } from '../src/scene/clock';
+import { PATROL_R_MAX } from '../src/scene/stations';
 import { makeCamp, makeOrc, makeScan } from './fixtures';
 import type { Orc } from '../src/types/domain';
 
@@ -42,6 +43,11 @@ function renderMap(campId: string, onSelect: (id: string) => void): HTMLElement 
 const transformX = (el: HTMLElement): number => {
   const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(el.style.transform);
   return m ? Number(m[1]) : NaN;
+};
+
+const transformXY = (el: HTMLElement): { x: number; y: number } => {
+  const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(el.style.transform);
+  return { x: m ? Number(m[1]) : NaN, y: m ? Number(m[2]) : NaN };
 };
 
 beforeEach(() => {
@@ -112,7 +118,7 @@ describe('§3.1-11 drag-and-drop move', () => {
     expect(useStore.getState().ui.orcPositions['pane:%1']).toEqual(placed);
   });
 
-  it('holds its dropped position across clock ticks — no revert to pre-drag, no patrol/rest drift', () => {
+  it('a dropped ACTIVE orc patrols AROUND the drop across clock ticks — never reverts to pre-drag', () => {
     setupClock();
     const campId = seed([makeOrc({ paneId: '%1', windowIndex: 0, status: 'active', tmuxTarget: 'w:0.0' })]);
     const c = renderMap(campId, () => {});
@@ -123,11 +129,19 @@ describe('§3.1-11 drag-and-drop move', () => {
     fireEvent.pointerMove(orc, { pointerId: 1, clientX: 300, clientY: 260 }); // drag far (+200,+160)
     fireEvent.pointerUp(orc, { pointerId: 1, clientX: 300, clientY: 260 });
 
-    act(() => pump!(50)); // first post-drop tick settles the transform (pinned → exact drop)
-    const settled = orc.style.transform;
-    // advance the shared clock well past any patrol leg / rest period
-    for (let t = 500; t <= 30000; t += 500) act(() => pump!(t));
-    expect(orc.style.transform).toBe(settled); // identical every frame → no drift, no revert
+    act(() => pump!(50)); // first post-drop tick settles on the drop (pinned dwells there first)
+    const settled = transformXY(orc);
+    // advance the shared clock well past a patrol leg / dwell: the active orc patrols around the
+    // DROP (position varies) but stays within the patrol ring of it — it never reverts toward its
+    // pre-drag home (≈256px away). PATROL_R_MAX(≈125) + a margin for the sprite anchor bounds it.
+    let moved = false;
+    for (let t = 500; t <= 30000; t += 250) {
+      act(() => pump!(t));
+      const p = transformXY(orc);
+      expect(Math.hypot(p.x - settled.x, p.y - settled.y)).toBeLessThanOrEqual(PATROL_R_MAX + 1);
+      if (p.x !== settled.x || p.y !== settled.y) moved = true;
+    }
+    expect(moved).toBe(true); // patrols (does not freeze) — the cell-collapse / pinned-freeze fix
   });
 
   it('prunes a placement when its orc disappears from the snapshot', () => {

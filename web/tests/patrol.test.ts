@@ -5,6 +5,8 @@ import { describe, it, expect } from 'vitest';
 import { patrolAt, patrolWaypoint, restOffset } from '../src/scene/patrol';
 import { dist } from '../src/scene/layout';
 import {
+  PATROL_MARGIN,
+  PATROL_MIN_BAND,
   PATROL_R_MAX,
   PATROL_R_MIN,
   REST_R,
@@ -41,6 +43,39 @@ describe('patrolWaypoint', () => {
       expect(wp.x).toBeLessThanOrEqual(bound.x + bound.w + 1e-6);
       expect(wp.y).toBeGreaterThanOrEqual(bound.y - 1e-6);
       expect(wp.y).toBeLessThanOrEqual(bound.y + bound.h + 1e-6);
+    }
+  });
+
+  it('§2.4b cell-collapse fix — a sub-footprint cell still yields a VISIBLE patrol span', () => {
+    // A crowded/narrowed camp gives each orc a cell smaller than 2×PATROL_MARGIN (≈209). With the
+    // old fixed-margin clamp every waypoint collapsed onto the cell centre → the orc froze. The
+    // adaptive clamp floors the reachable band at ±PATROL_MIN_BAND, so motion stays visible.
+    const cellW = 200; // < 2×PATROL_MARGIN ⇒ the old clamp would invert and collapse
+    const cellH = 200;
+    const center: Vec2 = { x: 1000, y: 600 };
+    const bound: Rect = { x: center.x - cellW / 2, y: center.y - cellH / 2, w: cellW, h: cellH };
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (let k = 1; k < 24; k += 1) {
+      const wp = patrolWaypoint(center, 7, k, bound, PATROL_MARGIN);
+      minX = Math.min(minX, wp.x); maxX = Math.max(maxX, wp.x);
+      minY = Math.min(minY, wp.y); maxY = Math.max(maxY, wp.y);
+    }
+    // The reachable band is at least ±PATROL_MIN_BAND on each axis (not a frozen point).
+    expect(maxX - minX).toBeGreaterThanOrEqual(PATROL_MIN_BAND);
+    expect(maxY - minY).toBeGreaterThanOrEqual(PATROL_MIN_BAND);
+  });
+
+  it('a COMFORTABLE cell keeps the strict half-footprint clamp (no overlap, unchanged)', () => {
+    // Cell big enough to hold the full ring + footprint inset → identical to the natural ring,
+    // clamped to [margin, w-margin]: the no-overlap contract for spacious camps is untouched.
+    const bound: Rect = { x: 500, y: 500, w: 900, h: 900 };
+    const center: Vec2 = { x: 950, y: 950 };
+    for (let k = 1; k < 12; k += 1) {
+      const wp = patrolWaypoint(center, 99, k, bound, PATROL_MARGIN);
+      expect(wp.x).toBeGreaterThanOrEqual(bound.x + PATROL_MARGIN - 1e-6);
+      expect(wp.x).toBeLessThanOrEqual(bound.x + bound.w - PATROL_MARGIN + 1e-6);
+      expect(wp.y).toBeGreaterThanOrEqual(bound.y + PATROL_MARGIN - 1e-6);
+      expect(wp.y).toBeLessThanOrEqual(bound.y + bound.h - PATROL_MARGIN + 1e-6);
     }
   });
 });

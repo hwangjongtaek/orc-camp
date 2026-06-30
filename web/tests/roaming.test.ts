@@ -4,6 +4,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { RoamingController } from '../src/scene/roaming';
 import { quantizeVector } from '../src/scene/direction';
+import { dist } from '../src/scene/layout';
+import { PATROL_R_MAX } from '../src/scene/stations';
 import {
   __setClockDriverForTest,
   frameAt,
@@ -203,9 +205,9 @@ describe('SPEC-301 §3.1-11 place() — drag-drop drop snaps the orc + resumes s
     expect(c.snapshot('a', 1000)!.movementState).toBe('arrived');
   });
 
-  it('a dropped orc stays EXACTLY at the drop under patrol/wander (no drift, no cell-clamp revert)', () => {
+  it('a dropped ACTIVE orc patrols AROUND the drop (never reverts toward its old cell)', () => {
     // patrol + wander ON, and the orc had a SMALL old cell bound far from the drop — the previous
-    // bug clamped patrol/rest into that old cell, reverting the orc toward its pre-drag home.
+    // bug clamped patrol into that old cell, reverting the orc toward its pre-drag home.
     const c = new RoamingController({ patrol: true, ambientWander: true });
     c.sync(
       [{ id: 'a', status: 'active', target: posIdle, bound: { x: 80, y: 80, w: 60, h: 60 } }],
@@ -213,14 +215,22 @@ describe('SPEC-301 §3.1-11 place() — drag-drop drop snaps the orc + resumes s
       { reducedMotion: false },
     );
     c.place('a', drop, 0);
+    // At the drop instant it dwells exactly on the drop (the active anim plays there).
+    const s0 = c.snapshot('a', 0)!;
+    expect(s0.renderedPos).toEqual(drop);
+    expect(s0.displayedState).toBe('active');
+    // Across the patrol window it both roams and stays clustered around the DROP — within the
+    // natural patrol ring (no `bound`), never drifting back toward the old cell at {80,80}.
+    let roamed = false;
     for (let t = 0; t <= 20000; t += 250) {
       const s = c.snapshot('a', t)!;
-      expect(s.renderedPos).toEqual(drop); // pinned → exact drop, every frame (no drift / no revert)
-      expect(s.displayedState).toBe('active'); // …and the active animation plays in place
+      expect(dist(s.renderedPos, drop)).toBeLessThanOrEqual(PATROL_R_MAX + 1e-6);
+      if (s.movementState === 'roaming') roamed = true;
     }
-    // a same-home sync (e.g. live refresh) keeps it pinned at the drop
+    expect(roamed).toBe(true);
+    // a same-home sync (e.g. live refresh) keeps it pinned (still patrolling around the drop)
     c.sync([{ id: 'a', status: 'active', target: drop, pinned: true }], 5000, { reducedMotion: false });
-    expect(c.snapshot('a', 5000)!.renderedPos).toEqual(drop);
+    expect(dist(c.snapshot('a', 5000)!.renderedPos, drop)).toBeLessThanOrEqual(PATROL_R_MAX + 1e-6);
   });
 
   it('a waiting dropped orc rests at the EXACT drop even with the rest-offset spread on', () => {

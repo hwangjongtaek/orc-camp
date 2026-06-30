@@ -44,9 +44,9 @@ export interface Scenario {
   captures?: Record<string, string>; // paneId → raw capture text
   captureFail?: string[]; // paneIds whose capture-pane fails
   inventoryFail?: boolean; // list-panes exits non-zero on a running server
-  ps?: Record<string, string>; // pid → cmdline argv (snapshot synthesized as `<pid> 1 <cmdline>`)
+  ps?: Record<string, string>; // pid → cmdline argv (snapshot synthesized as `<pid> 1 <etimes> <cmdline>`)
   /** Full process-table snapshot (SPEC-002 §2.9) for subtree tests. Overrides `ps`. */
-  processTable?: Array<{ pid: number; ppid: number; command: string }>;
+  processTable?: Array<{ pid: number; ppid: number; command: string; etimeSec?: number }>;
 }
 
 const DEFAULT_EPOCH = Math.floor(Date.parse('2026-06-27T10:00:00.000Z') / 1000);
@@ -128,14 +128,16 @@ export function makeScenarioSpawn(scenario: Scenario): {
     }
 
     if (file === 'ps') {
-      // SPEC-002 §2.9 single read-only snapshot: `ps -axo pid=,ppid=,command=` (or -eo … args=).
-      // Build a `<pid> <ppid> <argv>` table from processTable (preferred) or the `ps` pid→cmdline
-      // map (ppid synthesized = 1). No process info → empty stdout → snapshot null (fail-closed).
+      // SPEC-002 §2.9 single read-only snapshot: `ps -axo pid=,ppid=,etimes=,command=` (or -eo …
+      // etimes=,args=). Build a `<pid> <ppid> <etimes> <argv>` table from processTable (preferred)
+      // or the `ps` pid→cmdline map (ppid synthesized = 1). etimes (elapsed seconds, SPEC-302 §3.7)
+      // defaults to 0 when unspecified — ps always emits it for a live process. No process info →
+      // empty stdout → snapshot null (fail-closed).
       const rows: string[] = [];
       if (scenario.processTable) {
-        for (const n of scenario.processTable) rows.push(`${n.pid} ${n.ppid} ${n.command}`);
+        for (const n of scenario.processTable) rows.push(`${n.pid} ${n.ppid} ${n.etimeSec ?? 0} ${n.command}`);
       } else if (scenario.ps) {
-        for (const [pid, cmd] of Object.entries(scenario.ps)) rows.push(`${pid} 1 ${cmd}`);
+        for (const [pid, cmd] of Object.entries(scenario.ps)) rows.push(`${pid} 1 0 ${cmd}`);
       }
       return rows.length > 0 ? ok(rows.join('\n') + '\n') : fail('ps: no process info');
     }

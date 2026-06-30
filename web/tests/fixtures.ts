@@ -28,6 +28,7 @@ export function makeOrc(p: Partial<Orc> & { paneId: string }): Orc {
     lastActivityAt: p.lastActivityAt ?? '2026-06-27T00:00:00.000Z',
     preview: p.preview ?? null,
     usage: p.usage ?? null,
+    uptimeSec: p.uptimeSec ?? null,
   };
 }
 

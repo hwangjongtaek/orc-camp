@@ -16,7 +16,7 @@ import {
   parseSessionLine,
   parseVersion,
 } from '../../src/tmux/inventory';
-import { makeProcessSnapshot, parsePsSnapshot, buildSubtree } from '../../src/tmux/introspect';
+import { makeProcessSnapshot, parsePsSnapshot, buildSubtree, parseElapsedSec } from '../../src/tmux/introspect';
 import {
   mkSpawnResult,
   enoent,
@@ -269,54 +269,74 @@ describe('availability classifiers (SPEC-002-AC-08/09/10)', () => {
 });
 
 describe('process snapshot (SPEC-002 §2.9 — AC-15/16/17/18/21)', () => {
-  it('parsePsSnapshot parses `<pid> <ppid> <argv>` rows, skips garbled lines, keeps raw argv', () => {
+  it('parsePsSnapshot parses `<pid> <ppid> <etimes> <argv>` rows, skips garbled lines, keeps raw argv', () => {
     const entries = parsePsSnapshot(
-      '  1001  1 node /x/cli.js --foo\n 1002 1001 npm exec\nhdr garbage\n\n',
+      '  1001  1 3600 node /x/cli.js --foo\n 1002 1001 12 npm exec\nhdr garbage\n\n',
     );
     expect(entries).toEqual([
-      { pid: 1001, ppid: 1, command: 'node /x/cli.js --foo' },
-      { pid: 1002, ppid: 1001, command: 'npm exec' },
+      { pid: 1001, ppid: 1, command: 'node /x/cli.js --foo', etimeSec: 3600 },
+      { pid: 1002, ppid: 1001, command: 'npm exec', etimeSec: 12 },
     ]);
   });
 
-  it('buildSubtree walks descendants from pane_pid with depth (deterministic depth→pid order)', () => {
+  it('parsePsSnapshot treats a malformed etimes as ABSENT (row kept, no etimeSec) — never throws', () => {
+    const entries = parsePsSnapshot('  1001 1 - claude\n 1002 1 0 node x\n');
+    expect(entries).toEqual([
+      { pid: 1001, ppid: 1, command: 'claude' }, // etimes '-' → absent
+      { pid: 1002, ppid: 1, command: 'node x', etimeSec: 0 }, // 0 seconds is valid
+    ]);
+  });
+
+  it('buildSubtree walks descendants from pane_pid with depth (deterministic depth→pid order) + carries etimeSec', () => {
     const entries = [
-      { pid: 1000, ppid: 1, command: '-zsh' },
-      { pid: 2000, ppid: 1000, command: 'claude' },
-      { pid: 2001, ppid: 2000, command: 'node x' },
-      { pid: 9999, ppid: 1, command: 'unrelated' },
+      { pid: 1000, ppid: 1, command: '-zsh', etimeSec: 7200 },
+      { pid: 2000, ppid: 1000, command: 'claude', etimeSec: 3600 },
+      { pid: 2001, ppid: 2000, command: 'node x' }, // no etimes → stays absent
+      { pid: 9999, ppid: 1, command: 'unrelated', etimeSec: 1 },
     ];
-    expect(buildSubtree(entries, 1000).map((n) => [n.pid, n.depth])).toEqual([
+    const sub = buildSubtree(entries, 1000);
+    expect(sub.map((n) => [n.pid, n.depth])).toEqual([
       [1000, 0],
       [2000, 1],
       [2001, 2],
     ]);
+    expect(sub.map((n) => n.etimeSec)).toEqual([7200, 3600, undefined]);
   });
 
   it('buildSubtree returns [] for an absent / invalid pane_pid (vs null snapshot)', () => {
-    const entries = [{ pid: 1000, ppid: 1, command: '-zsh' }];
+    const entries = [{ pid: 1000, ppid: 1, command: '-zsh', etimeSec: 5 }];
     expect(buildSubtree(entries, 4242)).toEqual([]);
     expect(buildSubtree(entries, null)).toEqual([]);
     expect(buildSubtree(entries, 0)).toEqual([]);
   });
 
-  it('makeProcessSnapshot issues ONE fixed read-only `ps` argv with a per-call timeout', async () => {
-    const { spawn, calls } = makeFakeSpawn(() => ({ stdout: '1001 1 node /x/cli.js\n' }));
+  it('makeProcessSnapshot issues ONE fixed read-only `ps` argv (darwin `etime`) and parses [[dd-]hh:]mm:ss', async () => {
+    // macOS/BSD ps has `etime` (formatted), NOT `etimes` — 01:30:00 = 5400s.
+    const { spawn, calls } = makeFakeSpawn(() => ({ stdout: '1001 1 01:30:00 node /x/cli.js\n' }));
     const entries = await makeProcessSnapshot(spawn, 1234, 'darwin')();
-    expect(entries).toEqual([{ pid: 1001, ppid: 1, command: 'node /x/cli.js' }]);
+    expect(entries).toEqual([{ pid: 1001, ppid: 1, command: 'node /x/cli.js', etimeSec: 5400 }]);
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toEqual({ file: 'ps', args: ['-axo', 'pid=,ppid=,command='], timeoutMs: 1234 });
+    expect(calls[0]).toEqual({ file: 'ps', args: ['-axo', 'pid=,ppid=,etime=,command='], timeoutMs: 1234 });
   });
 
-  it('selects the Linux argv projection on linux', async () => {
-    const { spawn, calls } = makeFakeSpawn(() => ({ stdout: '1 0 /sbin/init\n' }));
+  it('parseElapsedSec handles both linux seconds and darwin [[dd-]hh:]mm:ss (else null)', () => {
+    expect(parseElapsedSec('3600')).toBe(3600); // linux etimes (raw seconds)
+    expect(parseElapsedSec('45:23')).toBe(45 * 60 + 23); // mm:ss
+    expect(parseElapsedSec('01:02:03')).toBe(3723); // hh:mm:ss
+    expect(parseElapsedSec('2-03:04:05')).toBe(((2 * 24 + 3) * 60 + 4) * 60 + 5); // dd-hh:mm:ss
+    expect(parseElapsedSec('-')).toBeNull();
+    expect(parseElapsedSec('abc')).toBeNull();
+  });
+
+  it('selects the Linux argv projection (with etimes) on linux', async () => {
+    const { spawn, calls } = makeFakeSpawn(() => ({ stdout: '1 0 99 /sbin/init\n' }));
     await makeProcessSnapshot(spawn, 1000, 'linux')();
-    expect(calls[0]?.args).toEqual(['-eo', 'pid=,ppid=,args=']);
+    expect(calls[0]?.args).toEqual(['-eo', 'pid=,ppid=,etimes=,args=']);
   });
 
   it('returns RAW argv (collector applies redact, not the snapshot)', async () => {
     const { spawn } = makeFakeSpawn(() => ({
-      stdout: '10 1 node /x/cli.js --token=ghp_PLACEHOLDER0123\n',
+      stdout: '10 1 42 node /x/cli.js --token=ghp_PLACEHOLDER0123\n',
     }));
     const entries = await makeProcessSnapshot(spawn)();
     expect(entries?.[0]?.command).toBe('node /x/cli.js --token=ghp_PLACEHOLDER0123');

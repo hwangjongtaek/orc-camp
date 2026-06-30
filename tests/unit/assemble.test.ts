@@ -11,6 +11,7 @@ import {
   type InventoryResult,
   type PaneRawRecord,
   type PriorOrcState,
+  type ProcessNode,
   type SanitizedCapture,
   type SessionRawRecord,
 } from '../../src/types';
@@ -148,5 +149,89 @@ describe('preview metadata (SPEC-005-AC-10, §2.7)', () => {
     const orc = result.camps[0]!.orcs[0]!;
     expect(orc.preview?.redacted).toBe(true);
     expect(JSON.stringify(result)).not.toContain(secret);
+  });
+});
+
+describe('agent uptime axis (SPEC-302 §3.7 / D-040)', () => {
+  const node = (p: Partial<ProcessNode> & Pick<ProcessNode, 'pid' | 'depth' | 'command'>): ProcessNode => ({
+    ppid: 1,
+    ...p,
+  });
+
+  async function orcOf(p: Partial<PaneRawRecord> & Pick<PaneRawRecord, 'paneId' | 'command'>) {
+    const inv = inventory(
+      [{ sessionId: '$1', sessionName: 'work', windows: 1, attached: true, activityAt: SCANNED_AT }],
+      [rec({ sessionName: 'work', windowIndex: 1, paneIndex: 0, ...p })],
+    );
+    const { result } = await assemble(inv);
+    return result.camps[0]!.orcs[0]!;
+  }
+
+  it('sets uptimeSec to the LONGEST-LIVED matching agent-runtime node and serializes it', async () => {
+    const orc = await orcOf({
+      paneId: '%10',
+      command: 'node', // wrapper foreground; subtree carries the agent argv
+      processTree: [
+        node({ pid: 1000, depth: 0, command: '-zsh', etimeSec: 9000 }), // not an agent node
+        node({ pid: 1001, ppid: 1000, depth: 1, command: 'claude', etimeSec: 3600 }),
+        node({ pid: 1002, ppid: 1001, depth: 2, command: 'node /usr/lib/@anthropic-ai/claude-code/cli.js', etimeSec: 4200 }),
+      ],
+    });
+    expect(orc.agentType).toBe('claude-code');
+    // longest-lived AGENT node = the @anthropic-ai/claude-code wrapper (4200), NOT the 9000 shell.
+    expect(orc.uptimeSec).toBe(4200);
+    // flows to the serialized wire Orc
+    const round = JSON.parse(JSON.stringify(orc)) as { uptimeSec: number | null };
+    expect(round.uptimeSec).toBe(4200);
+  });
+
+  it('selects the codex runtime node for a codex orc', async () => {
+    const orc = await orcOf({
+      paneId: '%11',
+      command: 'codex',
+      processTree: [node({ pid: 2000, depth: 0, command: 'codex', etimeSec: 1800 })],
+    });
+    expect(orc.agentType).toBe('codex');
+    expect(orc.uptimeSec).toBe(1800);
+  });
+
+  it('uptimeSec is null when introspection is unavailable (no processTree)', async () => {
+    const orc = await orcOf({ paneId: '%12', command: 'claude' }); // rec() leaves processTree absent
+    expect(orc.agentType).toBe('claude-code');
+    expect(orc.uptimeSec).toBeNull();
+  });
+
+  it('uptimeSec is null when the subtree has no live agent-runtime node', async () => {
+    const orc = await orcOf({
+      paneId: '%13',
+      command: 'claude', // G-CMD still makes this a candidate
+      processTree: [node({ pid: 3000, depth: 0, command: '-zsh', etimeSec: 5000 })], // no claude/codex node
+    });
+    expect(orc.agentType).toBe('claude-code');
+    expect(orc.uptimeSec).toBeNull();
+  });
+
+  it('uptimeSec is null for a terminated (paneDead) orc even if a matching node lingers', async () => {
+    const orc = await orcOf({
+      paneId: '%14',
+      command: 'claude',
+      paneDead: true,
+      capture: null,
+      processTree: [node({ pid: 4000, depth: 0, command: 'claude', etimeSec: 7200 })],
+    });
+    expect(orc.status).toBe('terminated');
+    expect(orc.uptimeSec).toBeNull();
+  });
+
+  it('ignores nodes with a missing/garbled etimeSec', async () => {
+    const orc = await orcOf({
+      paneId: '%15',
+      command: 'claude',
+      processTree: [
+        node({ pid: 5000, depth: 0, command: 'claude' }), // no etimeSec → skipped
+        node({ pid: 5001, ppid: 5000, depth: 1, command: 'claude wrapper', etimeSec: 600 }),
+      ],
+    });
+    expect(orc.uptimeSec).toBe(600);
   });
 });

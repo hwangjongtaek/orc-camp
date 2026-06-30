@@ -104,6 +104,13 @@ export interface Orc {
 
   // usage axis (SPEC-302 §2.2 / SPEC-008) — best-effort cumulative tokens/cost. null = unmeasured.
   usage: OrcUsage | null;
+
+  // uptime axis (SPEC-302 §3.7 / D-040) — agent runtime process elapsed seconds (ps `etimes`).
+  // Non-sensitive (a process start time, not transcript) → no SPEC-008 gate. null = unmeasured
+  // (process absent / terminated / platform unsupported). Drives the prestige tier ONLY when both
+  // usage axes are null (precedence tokens → cost → uptime, §3.7). May be absent on the wire (the
+  // server emits it in parallel) → normalized to null in serverData.
+  uptimeSec: number | null;
 }
 
 export interface Camp {

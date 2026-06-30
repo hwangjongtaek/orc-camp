@@ -14,7 +14,6 @@
  * logical target/slot is untouched → zero layout shift, no AC outcome changes).
  */
 import { DIRECTIONS, quantizeVector } from './direction';
-import { clampToRect } from './ground';
 import { add, lerp } from './layout';
 import { paneHash } from './wander';
 import {
@@ -23,6 +22,7 @@ import {
   PATROL_DWELL_MIN_MS,
   PATROL_LEG_MAX_MS,
   PATROL_LEG_MIN_MS,
+  PATROL_MIN_BAND,
   PATROL_R_MAX,
   PATROL_R_MIN,
   REST_R,
@@ -44,8 +44,28 @@ function mix(h: number, k: number): number {
 /** Map a 32-bit hash to a fraction in [0, 1). */
 const frac = (h: number): number => (h >>> 8) / 0x1000000;
 
+/**
+ * §2.4b/§3.1-10 — clamp a patrol waypoint into the orc's cell, ADAPTIVELY. A comfortable cell uses
+ * the full half-footprint inset (`margin`) so the whole sprite stays inside its cell and adjacent
+ * orcs never overlap (strict no-overlap preserved). But once a cell is smaller than a sprite
+ * (crowded camp / narrowed 50:50·30:70 layout), the fixed-margin inset inverts and collapses every
+ * waypoint onto the center — the active orc freezes in place. So the reachable band is FLOORED at
+ * ±PATROL_MIN_BAND from the cell center: the orc keeps a visible patrol radius at the cost of a
+ * small, bounded overlap (accepted only where the cell can't hold a full sprite anyway). No bound
+ * (e.g. a pinned drop, §3.1-11) ⇒ the natural ring, unclamped.
+ */
+const clampAxis = (v: number, start: number, extent: number, margin: number): number => {
+  const center = start + extent / 2;
+  // Normal half-footprint inset, floored at PATROL_MIN_BAND so a sub-footprint cell still roams,
+  // but never wider than the cell half-extent so the anchor stays inside its own cell.
+  const half = Math.min(Math.max(extent / 2 - margin, PATROL_MIN_BAND), extent / 2);
+  return Math.min(Math.max(v, center - half), center + half);
+};
+
 const clamp = (p: Vec2, bound: Rect | undefined, margin: number): Vec2 =>
-  bound ? clampToRect(p, bound, margin) : p;
+  bound
+    ? { x: clampAxis(p.x, bound.x, bound.w, margin), y: clampAxis(p.y, bound.y, bound.h, margin) }
+    : p;
 
 /**
  * Seeded patrol waypoint `k` around `home`. Waypoint 0 IS the home post (so the cycle's first
