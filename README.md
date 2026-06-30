@@ -16,6 +16,8 @@
 
 ---
 
+<img width="1796" height="1252" alt="image" src="https://github.com/user-attachments/assets/6a419f45-9c8c-413d-870c-5773f7f7c59c" />
+
 # Orc Camp
 
 **Orc Camp**는 여러 개의 AI 코딩 에이전트를 한눈에 관찰하기 위한 **local-first CLI 대시보드**다.
