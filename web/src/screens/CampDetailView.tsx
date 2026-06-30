@@ -12,6 +12,7 @@ import { STATUS_KEYS } from '../types/domain';
 import { relativeTime } from '../util/time';
 import { CampMap } from '../components/scene/CampMap';
 import { BackgroundSwitcher } from '../components/scene/BackgroundSwitcher';
+import { LayoutModeSwitcher } from '../components/inspector/LayoutModeSwitcher';
 import { CampDock } from '../components/inspector/CampDock';
 import { StatusCountChip } from '../components/status/StatusBadge';
 
@@ -27,6 +28,7 @@ export function CampDetailView(): JSX.Element {
   );
   const setSelectedCamp = useStore((s) => s.setSelectedCamp);
   const setSelectedOrc = useStore((s) => s.setSelectedOrc);
+  const layoutMode = useStore((s) => s.ui.layoutMode);
 
   // Mirror URL → ui slice (URL is the source of truth for selection).
   useEffect(() => {
@@ -95,8 +97,9 @@ export function CampDetailView(): JSX.Element {
         ))}
       </div>
 
-      <div className="oc-detail">
+      <div className="oc-detail" data-layout={layoutMode}>
         <div className="oc-detail__toolbar">
+          <LayoutModeSwitcher />
           <BackgroundSwitcher />
         </div>
         <CampMap

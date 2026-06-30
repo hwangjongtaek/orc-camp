@@ -27,6 +27,29 @@ export type WsStatus = 'idle' | 'connecting' | 'open' | 'disconnected' | 'reconn
 export type BootstrapPhase = 'pending' | 'ws-open' | 'snapshot-applied' | 'live';
 export type RefreshState = 'idle' | 'refreshing' | 'throttled';
 
+/**
+ * Camp-detail layout split between the camp MAP and the tabbed dock. 'full' stacks them (map at
+ * full width, dock below); 'split' and 'dock' place them SIDE BY SIDE and divide the WIDTH (map
+ * left, dock right):
+ *   - 'full'  : map at full width, dock below it — the original layout.
+ *   - 'split' : map | dock side by side, 50 / 50 width.
+ *   - 'dock'  : map 30 % | dock 70 % width (dock-dominant, for reading the panel).
+ * Persisted to localStorage so the choice survives reloads (a pure UI preference).
+ */
+export type LayoutMode = 'full' | 'split' | 'dock';
+const LAYOUT_MODE_KEY = 'oc.layoutMode';
+const LAYOUT_MODES: readonly LayoutMode[] = ['full', 'split', 'dock'];
+
+function readLayoutMode(): LayoutMode {
+  try {
+    const v = localStorage.getItem(LAYOUT_MODE_KEY);
+    if (v && (LAYOUT_MODES as readonly string[]).includes(v)) return v as LayoutMode;
+  } catch {
+    /* localStorage unavailable (SSR / private mode) → fall through to default */
+  }
+  return 'full';
+}
+
 export interface ConnectionSlice {
   wsStatus: WsStatus;
   bootstrapPhase: BootstrapPhase;
@@ -44,6 +67,8 @@ export interface UiSlice {
   inspectorOpen: boolean;
   /** Active camp background ref override (manifest backgrounds key); null = manifest scene default. */
   backgroundRef: string | null;
+  /** Camp-detail map/dock split mode (persisted). See {@link LayoutMode}. */
+  layoutMode: LayoutMode;
   /**
    * SPEC-301 §3.1-11 — user drag-and-drop placements, by orcId, in logical WORLD coordinates.
    * A dropped orc re-anchors here (overriding its computed cell home) and resumes active/waiting
@@ -87,6 +112,7 @@ export interface StoreState {
   setSelectedOrc: (orcId: string | null) => void;
   setInspectorOpen: (open: boolean) => void;
   setBackgroundRef: (ref: string | null) => void;
+  setLayoutMode: (mode: LayoutMode) => void;
   /** SPEC-301 §3.1-11 — set (or clear, with null) a user drag-drop placement for an orc. */
   setOrcPosition: (orcId: string, pos: { x: number; y: number } | null) => void;
 
@@ -115,6 +141,7 @@ const initialUi: UiSlice = {
   selectedOrcId: null,
   inspectorOpen: false,
   backgroundRef: null,
+  layoutMode: readLayoutMode(),
   orcPositions: {},
 };
 
@@ -242,6 +269,14 @@ export const useStore = create<StoreState>()((set, get) => ({
   },
   setBackgroundRef: (backgroundRef) => {
     set((state) => ({ ui: { ...state.ui, backgroundRef } }));
+  },
+  setLayoutMode: (layoutMode) => {
+    try {
+      localStorage.setItem(LAYOUT_MODE_KEY, layoutMode);
+    } catch {
+      /* localStorage unavailable → keep the in-memory preference only */
+    }
+    set((state) => ({ ui: { ...state.ui, layoutMode } }));
   },
   setOrcPosition: (orcId, pos) => {
     set((state) => {

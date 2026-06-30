@@ -83,4 +83,8 @@
   --oc-map-viewport-h: 72vh;
   --oc-map-viewport-min-h: 460px;
   --oc-map-tile-size: 64px;
+  /* Camp-detail split layout (50/50 & 30/70 modes): the height of the side-by-side map|dock row
+     (they divide the WIDTH). Offset leaves room for the sticky header + detail header + chips. */
+  --oc-detail-split-h: calc(100dvh - 210px);
+  --oc-detail-split-min-h: 540px;
 }

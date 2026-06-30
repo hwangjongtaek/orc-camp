@@ -287,12 +287,132 @@ img {
   flex-direction: column;
   gap: var(--oc-space-3);
 }
-/* SPEC-301 §2.1a — scene toolbar (background switcher), right-aligned above the map. */
+/* SPEC-301 §2.1a — scene toolbar above the map: layout switcher (left) + background switcher
+   (right). Wraps on narrow viewports so neither control is clipped. */
 .oc-detail__toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: var(--oc-space-2);
   min-height: 0;
+}
+
+/* Split layout modes — the map and the dock sit SIDE BY SIDE (map left, dock right) and divide a
+   fixed-height row's WIDTH, so both are visible at once. A grid spans the toolbar across the top;
+   the second row holds map | dock. 'full' keeps the original stacked behavior (map at its 72vh,
+   dock below). 'split' = 50/50 width; 'dock' = 30/70 width (map shrinks, dock grows). */
+.oc-detail[data-layout='split'],
+.oc-detail[data-layout='dock'] {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'toolbar toolbar'
+    'map dock';
+  height: var(--oc-detail-split-h);
+  min-height: var(--oc-detail-split-min-h);
+}
+.oc-detail[data-layout='split'] {
+  grid-template-columns: 1fr 1fr; /* 50 / 50 */
+}
+.oc-detail[data-layout='dock'] {
+  grid-template-columns: 3fr 7fr; /* 30 / 70 */
+}
+.oc-detail[data-layout='split'] > .oc-detail__toolbar,
+.oc-detail[data-layout='dock'] > .oc-detail__toolbar {
+  grid-area: toolbar;
+}
+/* The map fills its grid cell (height: auto + min-height:0 let it shrink to the row); its internal
+   scroller is absolutely positioned, so it adopts whatever size the cell assigns. */
+.oc-detail[data-layout='split'] > .oc-map,
+.oc-detail[data-layout='dock'] > .oc-map {
+  grid-area: map;
+  height: auto;
+  min-height: 0;
+}
+/* The dock becomes a flex column in its cell: the tablist stays pinned and the tabpanel scrolls
+   within the dock's height (instead of growing the page). */
+.oc-detail[data-layout='split'] > .oc-dock,
+.oc-detail[data-layout='dock'] > .oc-dock {
+  grid-area: dock;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.oc-detail[data-layout='split'] > .oc-dock .oc-tabpanel,
+.oc-detail[data-layout='dock'] > .oc-dock .oc-tabpanel {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Narrow viewports: side-by-side would be cramped, so the split modes fall back to the natural
+   stacked column (like 'full') — the toolbar switcher still works, the panes just stack. */
+@media (max-width: 720px) {
+  .oc-detail[data-layout='split'],
+  .oc-detail[data-layout='dock'] {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+  .oc-detail[data-layout='split'] > .oc-map,
+  .oc-detail[data-layout='dock'] > .oc-map {
+    height: var(--oc-map-viewport-h);
+    min-height: var(--oc-map-viewport-min-h);
+  }
+  .oc-detail[data-layout='split'] > .oc-dock,
+  .oc-detail[data-layout='dock'] > .oc-dock {
+    display: block;
+  }
+  .oc-detail[data-layout='split'] > .oc-dock .oc-tabpanel,
+  .oc-detail[data-layout='dock'] > .oc-dock .oc-tabpanel {
+    overflow: visible;
+  }
+}
+
+/* Layout switcher — segmented 3-way control (Full / 50:50 / 30:70). */
+.oc-layoutswitch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-2);
+}
+.oc-layoutswitch__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--oc-color-text-muted);
+}
+.oc-layoutswitch__btn {
+  appearance: none;
+  border: 1px solid var(--oc-color-border);
+  border-right-width: 0;
+  background: var(--oc-color-surface-raised);
+  color: var(--oc-color-text-muted);
+  padding: var(--oc-space-1) var(--oc-space-2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.oc-layoutswitch__btn:first-of-type {
+  border-radius: var(--oc-radius-pixel) 0 0 var(--oc-radius-pixel);
+}
+.oc-layoutswitch__btn:last-of-type {
+  border-right-width: 1px;
+  border-radius: 0 var(--oc-radius-pixel) var(--oc-radius-pixel) 0;
+}
+.oc-layoutswitch__btn:hover {
+  color: var(--oc-color-text);
+}
+.oc-layoutswitch__btn[aria-pressed='true'] {
+  color: var(--oc-color-surface-base); /* dark ink on the blue accent → strong contrast */
+  background: var(--oc-color-accent);
+  border-color: var(--oc-color-accent);
+}
+.oc-layoutswitch__btn:focus-visible {
+  outline: var(--oc-focus-ring);
+  outline-offset: -1px;
+  z-index: 1;
 }
 .oc-bgswitch {
   display: inline-flex;
