@@ -267,9 +267,9 @@
         "note": "Design SSOT docs/assets/15-Character-State-Model.md §2.2; runtime resolution SSOT docs/specs/SPEC-302-mascot-prestige-tiers.md. thresholds = manifest copy of SPEC-302 §3.1. Phased rollout (SPEC-302 §3.6): T1=available (introduced first; 8-frame v3 animations in progress 2026-06-29), T2/T3=staged (rotations generated + owner-IP-approved but rollout held — excluded from resolution, downward-fallback to highest available tier; flip to available progressively as their animations land). All 3 rotation sets exist; runtime uses static_tier (SPEC-302 §3.4) for an available tier until its animations are wired, and falls back to base (tier 0) for any non-available tier (SPEC-302 §3.3).",
         "axis": "cumulative_tokens",
         "thresholds": {
-          "tier1": { "min_tokens": 1000000, "min_cost_usd": 5 },
-          "tier2": { "min_tokens": 5000000, "min_cost_usd": 25 },
-          "tier3": { "min_tokens": 20000000, "min_cost_usd": 100 }
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
         },
         "tiers": [
           {
@@ -594,9 +594,9 @@
         "note": "Prestige tiers for orc-claude-storm-shaman. SSOT docs/assets/15-Character-State-Model.md + docs/specs/SPEC-302-mascot-prestige-tiers.md. Phase 1 (2026-06-30): T1=available (8-dir rotation + idle/active/roaming v3 animations; waiting/stale/error -> static_tier per SPEC-302 §3.4). T2/T3=staged = Phase 2 (T2/T3 animations + T3 extreme active + blocking IP review; deferred on generation budget; SPEC-302 §3.6). thresholds = copy of SPEC-302 §3.1.",
         "axis": "cumulative_tokens",
         "thresholds": {
-          "tier1": { "min_tokens": 1000000, "min_cost_usd": 5 },
-          "tier2": { "min_tokens": 5000000, "min_cost_usd": 25 },
-          "tier3": { "min_tokens": 20000000, "min_cost_usd": 100 }
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
         },
         "tiers": [
           {
@@ -877,9 +877,9 @@
         "note": "Prestige tiers for orc-codex-field-engineer. SSOT docs/assets/15-Character-State-Model.md + docs/specs/SPEC-302-mascot-prestige-tiers.md. Phase 1 (2026-06-30): T1=available (8-dir rotation + idle/active/roaming v3 animations; waiting/stale/error -> static_tier per SPEC-302 §3.4). T2/T3=staged = Phase 2 (T2/T3 animations + T3 extreme active + blocking IP review; deferred on generation budget; SPEC-302 §3.6). thresholds = copy of SPEC-302 §3.1.",
         "axis": "cumulative_tokens",
         "thresholds": {
-          "tier1": { "min_tokens": 1000000, "min_cost_usd": 5 },
-          "tier2": { "min_tokens": 5000000, "min_cost_usd": 25 },
-          "tier3": { "min_tokens": 20000000, "min_cost_usd": 100 }
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
         },
         "tiers": [
           {
@@ -1159,9 +1159,9 @@
         "note": "Prestige tiers for orc-unknown. SSOT docs/assets/15-Character-State-Model.md + docs/specs/SPEC-302-mascot-prestige-tiers.md. Phase 1 (2026-06-30): T1=available (8-dir rotation + idle/active/roaming v3 animations; waiting/stale/error -> static_tier per SPEC-302 §3.4). T2/T3=staged = Phase 2 (T2/T3 animations + T3 extreme active + blocking IP review; deferred on generation budget; SPEC-302 §3.6). thresholds = copy of SPEC-302 §3.1.",
         "axis": "cumulative_tokens",
         "thresholds": {
-          "tier1": { "min_tokens": 1000000, "min_cost_usd": 5 },
-          "tier2": { "min_tokens": 5000000, "min_cost_usd": 25 },
-          "tier3": { "min_tokens": 20000000, "min_cost_usd": 100 }
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
         },
         "tiers": [
           {
@@ -1443,9 +1443,9 @@
         "note": "Prestige tiers for orc-iron-commander. SSOT docs/assets/15-Character-State-Model.md + docs/specs/SPEC-302-mascot-prestige-tiers.md. Phase 1 (2026-06-30): T1=available (8-dir rotation + idle/active/roaming v3 animations; waiting/stale/error -> static_tier per SPEC-302 §3.4). T2/T3=staged = Phase 2 (T2/T3 animations + T3 extreme active + blocking IP review; deferred on generation budget; SPEC-302 §3.6). thresholds = copy of SPEC-302 §3.1.",
         "axis": "cumulative_tokens",
         "thresholds": {
-          "tier1": { "min_tokens": 1000000, "min_cost_usd": 5 },
-          "tier2": { "min_tokens": 5000000, "min_cost_usd": 25 },
-          "tier3": { "min_tokens": 20000000, "min_cost_usd": 100 }
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
         },
         "tiers": [
           {

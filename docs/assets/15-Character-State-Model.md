@@ -121,9 +121,11 @@ base 정체성(유지): blackened iron armor, 뿔 투구, 붉은 망토, generic
 
 | 상수(SPEC-302 §3.1) | 값(tokens) | 보조(cost USD) | 근거 |
 | --- | --- | --- | --- |
-| `PRESTIGE_TIER1_MIN_TOKENS` / `PRESTIGE_TIER1_MIN_COST_USD` | 1,000,000 | $5 | "한 작업 세션을 충분히 돌린" 수준 |
-| `PRESTIGE_TIER2_MIN_TOKENS` / `PRESTIGE_TIER2_MIN_COST_USD` | 5,000,000 | $25 | "여러 세션에 걸친 묵직한 누적" |
-| `PRESTIGE_TIER3_MIN_TOKENS` / `PRESTIGE_TIER3_MIN_COST_USD` | 20,000,000 | $100 | "장기 캠프 운영급 누적" |
+| `PRESTIGE_TIER1_MIN_TOKENS` / `PRESTIGE_TIER1_MIN_COST_USD` | 100,000 | $3 | "충분히 돌린 한 세션" |
+| `PRESTIGE_TIER2_MIN_TOKENS` / `PRESTIGE_TIER2_MIN_COST_USD` | 500,000 | $15 | "묵직한 세션" |
+| `PRESTIGE_TIER3_MIN_TOKENS` / `PRESTIGE_TIER3_MIN_COST_USD` | 2,000,000 | $60 | "마라톤 세션" |
+
+> **튜닝 이력(2026-06-30, [[08-Decisions|D-036]])**: 초기값 1M/5M/20M·$5/$25/$100은 실측 대비 과대(SPEC-008 collector가 읽는 값은 **per-session-file 누적**이고 라이브 관측은 세션당 ~45k–116k tok)라 tier가 사실상 안 보였음 → 위 값으로 하향. axis는 여전히 **per-session-file 누적**(cross-session 합산 아님)이며 PoC-tunable. (SPEC-302 §3.1 canonical과 동기화.)
 
 - 데이터 출처: orc agent 세션의 transcript/usage(예: Claude Code/Codex 세션 JSONL의 누적 usage). **현재 scan 데이터 계약(`Orc`)에는 token/cost 필드가 없다** → 신규 수집 능력이 선행되어야 한다([[SPEC-302-mascot-prestige-tiers]] §2 데이터 의존성, [[SPEC-005-data-contract]]/[[SPEC-002-tmux-discovery]] forward). 데이터가 없으면 tier 0.
 

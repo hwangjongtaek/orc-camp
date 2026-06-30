@@ -85,21 +85,21 @@ function plainCharacter(root: string): CharacterDef {
 describe('SPEC-302 §3.1/§3.2 rawTierForUsage', () => {
   it('AC-01: token thresholds, boundaries inclusive (≥)', () => {
     expect(rawTierForUsage(usage({ cumulativeTokens: 0 }))).toBe(0);
-    expect(rawTierForUsage(usage({ cumulativeTokens: 1_200_000 }))).toBe(1);
-    expect(rawTierForUsage(usage({ cumulativeTokens: 6_000_000 }))).toBe(2);
-    expect(rawTierForUsage(usage({ cumulativeTokens: 25_000_000 }))).toBe(3);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 150_000 }))).toBe(1);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 800_000 }))).toBe(2);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 3_000_000 }))).toBe(3);
     // exact boundaries round UP into the tier
-    expect(rawTierForUsage(usage({ cumulativeTokens: 1_000_000 }))).toBe(1);
-    expect(rawTierForUsage(usage({ cumulativeTokens: 5_000_000 }))).toBe(2);
-    expect(rawTierForUsage(usage({ cumulativeTokens: 20_000_000 }))).toBe(3);
-    expect(rawTierForUsage(usage({ cumulativeTokens: 999_999 }))).toBe(0);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 100_000 }))).toBe(1);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 500_000 }))).toBe(2);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 2_000_000 }))).toBe(3);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 99_999 }))).toBe(0);
   });
 
   it('AC-02: cost axis used only when tokens null (inclusive); both/usage null → 0', () => {
-    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 4.99 }))).toBe(0);
-    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 5 }))).toBe(1);
-    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 30 }))).toBe(2);
-    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 100 }))).toBe(3);
+    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 2.99 }))).toBe(0);
+    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 3 }))).toBe(1);
+    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 20 }))).toBe(2);
+    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 60 }))).toBe(3);
     expect(rawTierForUsage(null)).toBe(0);
     expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: null }))).toBe(0);
     // tokens present → cost axis is NOT consulted (even if cost would score higher)
@@ -107,11 +107,11 @@ describe('SPEC-302 §3.1/§3.2 rawTierForUsage', () => {
   });
 
   it('thresholdsForCharacter: manifest override beats the default seed per-field', () => {
-    const c = tieredCharacter('r', [tierDef(1, 'available')], { tier1: { min_tokens: 500_000 } });
+    const c = tieredCharacter('r', [tierDef(1, 'available')], { tier1: { min_tokens: 300_000 } });
     const th = thresholdsForCharacter(c);
-    expect(th.tier1.minTokens).toBe(500_000);
+    expect(th.tier1.minTokens).toBe(300_000);
     expect(th.tier2.minTokens).toBe(DEFAULT_TIER_THRESHOLDS.tier2.minTokens);
-    expect(rawTierForUsage(usage({ cumulativeTokens: 500_000 }), th)).toBe(1);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 300_000 }), th)).toBe(1);
     expect(thresholdsForCharacter(plainCharacter('r'))).toBe(DEFAULT_TIER_THRESHOLDS);
     expect(thresholdsForCharacter(undefined)).toBe(DEFAULT_TIER_THRESHOLDS);
   });
@@ -126,11 +126,11 @@ describe('SPEC-302 §3.2 monotonic composite-key latch', () => {
   });
 
   it('AC-03: latch is non-decreasing; ids are independent', () => {
-    const r1 = reconcilePrestigeLatch({}, [tiered('a', 'orc-x', 6_000_000), tiered('b', 'orc-x', 1_200_000)]);
+    const r1 = reconcilePrestigeLatch({}, [tiered('a', 'orc-x', 800_000), tiered('b', 'orc-x', 150_000)]);
     expect(r1.displayedTierById.a).toBe(2);
     expect(r1.displayedTierById.b).toBe(1);
     // a drops to tier-1-equiv usage, b drops to null → both HELD at their peak
-    const r2 = reconcilePrestigeLatch(r1.next, [tiered('a', 'orc-x', 1_200_000), tiered('b', 'orc-x', null)]);
+    const r2 = reconcilePrestigeLatch(r1.next, [tiered('a', 'orc-x', 150_000), tiered('b', 'orc-x', null)]);
     expect(r2.displayedTierById.a).toBe(2);
     expect(r2.displayedTierById.b).toBe(1);
   });
@@ -146,14 +146,14 @@ describe('SPEC-302 §3.2 monotonic composite-key latch', () => {
   });
 
   it('AC-08: latch resets when an id disappears, then recomputes from raw on re-entry', () => {
-    const r1 = reconcilePrestigeLatch({}, [tiered('pane:%7', 'orc-x', 6_000_000), tiered('pane:%8', 'orc-x', 6_000_000)]);
+    const r1 = reconcilePrestigeLatch({}, [tiered('pane:%7', 'orc-x', 800_000), tiered('pane:%8', 'orc-x', 800_000)]);
     expect(r1.displayedTierById['pane:%7']).toBe(2);
     // %7 leaves the snapshot; %8 stays (and is unaffected)
-    const r2 = reconcilePrestigeLatch(r1.next, [tiered('pane:%8', 'orc-x', 1_200_000)]);
+    const r2 = reconcilePrestigeLatch(r1.next, [tiered('pane:%8', 'orc-x', 150_000)]);
     expect(r2.next[latchKey('pane:%7', 'orc-x')]).toBeUndefined();
     expect(r2.displayedTierById['pane:%8']).toBe(2);
     // %7 re-enters at tier-0 usage → starts from 0 (no carry-over)
-    const r3 = reconcilePrestigeLatch(r2.next, [tiered('pane:%8', 'orc-x', 1_200_000), tiered('pane:%7', 'orc-x', 0)]);
+    const r3 = reconcilePrestigeLatch(r2.next, [tiered('pane:%8', 'orc-x', 150_000), tiered('pane:%7', 'orc-x', 0)]);
     expect(r3.displayedTierById['pane:%7']).toBe(0);
   });
 
@@ -209,7 +209,7 @@ describe('SPEC-302 §3.3 variant resolution + downward fallback', () => {
         tierDef(2, 'available', { suffix: '-t2', root: `tiers/t2/${key}` }), // animations empty → static_tier
         tierDef(3, 'staged'),
       ]);
-      const displayedTier = rawTierForUsage(usage({ cumulativeTokens: 6_000_000 }));
+      const displayedTier = rawTierForUsage(usage({ cumulativeTokens: 800_000 }));
       expect(displayedTier).toBe(2);
       const r = resolveCharacterTier(key, c, displayedTier, 'active');
       expect(r.characterKey).toBe(key);
