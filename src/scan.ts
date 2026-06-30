@@ -28,6 +28,7 @@ import {
   type SanitizeFn,
   type ScanResult,
   type TmuxExecFn,
+  type UsageCollectFn,
 } from './types';
 import { collectInventory } from './tmux/inventory';
 import { assembleScanResult } from './assemble';
@@ -36,6 +37,7 @@ import { makeProcessSnapshot } from './tmux/introspect';
 import { redact, sanitizeCapture } from './redaction/redact';
 import { detectOrc as defaultDetectOrc, defaultDetectors } from './detection/detect';
 import { inferStatus as defaultInferStatus } from './status/infer';
+import { defaultUsageCollector } from './usage/collect';
 
 export interface ScanRuntimeDeps {
   tmuxExec: TmuxExecFn;
@@ -45,6 +47,8 @@ export interface ScanRuntimeDeps {
   detectOrc: DetectOrcFn;
   inferStatus: InferStatusFn;
   detectors: AgentDetector[];
+  /** SPEC-008 best-effort usage collector (read-only, bounded, per-orc isolated). */
+  collectUsage: UsageCollectFn;
   now: () => Date;
   timeoutMs?: number;
   captureLines?: number;
@@ -60,6 +64,7 @@ export function createDefaultDeps(spawn: ProcessSpawn = safeSpawn): ScanRuntimeD
     detectOrc: defaultDetectOrc,
     inferStatus: defaultInferStatus,
     detectors: defaultDetectors,
+    collectUsage: defaultUsageCollector,
     now: () => new Date(),
   };
 }
@@ -131,7 +136,7 @@ export class ScanRunner {
     const retainedTerminated = this.reconcileRetained(inventory, stale);
     const scanDurationMs = Math.max(0, this.deps.now().getTime() - start);
 
-    const { result, nextPriors, liveOrcsByPaneId } = assembleScanResult({
+    const { result, nextPriors, liveOrcsByPaneId } = await assembleScanResult({
       inventory,
       scannedAt,
       stale,
@@ -140,6 +145,7 @@ export class ScanRunner {
       detectOrc: this.deps.detectOrc,
       inferStatus: this.deps.inferStatus,
       detectors: this.deps.detectors,
+      collectUsage: this.deps.collectUsage,
       priors: this.priors,
       retainedTerminated,
     });

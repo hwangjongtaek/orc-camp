@@ -22,6 +22,12 @@ import {
   type ServerData,
 } from './serverData';
 import { deriveViewState, totalOrcCount, type ViewState } from './viewStatus';
+import {
+  reconcilePrestigeLatch,
+  type DisplayedTier,
+  type OrcTierObservation,
+  type PrestigeLatch,
+} from '../assets/prestige';
 
 export type WsStatus = 'idle' | 'connecting' | 'open' | 'disconnected' | 'reconnecting';
 export type BootstrapPhase = 'pending' | 'ws-open' | 'snapshot-applied' | 'live';
@@ -84,6 +90,17 @@ export interface Toast {
   message: string;
 }
 
+/**
+ * SPEC-302 §3.2 — prestige tier display state (CLIENT state; never written into scan/snapshot data).
+ * `latch` holds the monotonic judged tier per composite (orc id, resolvedCharacterKey); the scene
+ * (CampMap) reconciles it each snapshot via {@link StoreState.reconcilePrestige}, and consumers read
+ * `displayedTierById[orcId]` (defaulting to 0 = base). Recomputed from scratch on reload/restart.
+ */
+export interface PrestigeSlice {
+  latch: PrestigeLatch;
+  displayedTierById: Record<string, DisplayedTier>;
+}
+
 export interface StoreState {
   server: ServerData;
   connection: ConnectionSlice;
@@ -92,6 +109,7 @@ export interface StoreState {
   settings: SettingsResponse | null;
   reducedMotion: boolean;
   toasts: Toast[];
+  prestige: PrestigeSlice;
 
   // --- server-state writers (reconcile only) ---
   applySnapshot: (res: SnapshotResponse) => void;
@@ -115,6 +133,10 @@ export interface StoreState {
   setLayoutMode: (mode: LayoutMode) => void;
   /** SPEC-301 §3.1-11 — set (or clear, with null) a user drag-drop placement for an orc. */
   setOrcPosition: (orcId: string, pos: { x: number; y: number } | null) => void;
+
+  // --- prestige (SPEC-302 §3.2) ---
+  /** Reconcile the monotonic tier latch against the camp's currently-rendered orcs (composite-keyed). */
+  reconcilePrestige: (observations: OrcTierObservation[]) => void;
 
   // --- misc ---
   setSettings: (settings: SettingsResponse | null) => void;
@@ -179,6 +201,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   settings: null,
   reducedMotion: false,
   toasts: [],
+  prestige: { latch: {}, displayedTierById: {} },
 
   applySnapshot: (res) => {
     set((state) => {
@@ -284,6 +307,13 @@ export const useStore = create<StoreState>()((set, get) => ({
       if (pos) orcPositions[orcId] = pos;
       else delete orcPositions[orcId];
       return { ui: { ...state.ui, orcPositions } };
+    });
+  },
+
+  reconcilePrestige: (observations) => {
+    set((state) => {
+      const { next, displayedTierById } = reconcilePrestigeLatch(state.prestige.latch, observations);
+      return { prestige: { latch: next, displayedTierById } };
     });
   },
 

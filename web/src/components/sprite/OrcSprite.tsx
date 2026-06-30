@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useAssets } from '../../assets/AssetContext';
 import { resolveSprite, type OrcRenderInput } from '../../assets/spriteResolver';
+import type { DisplayedTier } from '../../assets/prestige';
 import { useStore } from '../../store/store';
 import { frameAt, getTime, subscribe } from '../../scene/clock';
 import type { MovementState, RoamingController } from '../../scene/roaming';
@@ -36,6 +37,8 @@ export interface OrcSpriteProps {
   agentType: AgentType;
   /** SPEC-300 §2.3 — sequential character key (chosen by the orc's order on the map). */
   characterKey?: string;
+  /** SPEC-302 §3.2 — latched prestige tier (0 = base) from the scene store. */
+  displayedTier?: DisplayedTier;
   status: OrcStatus;
   statusConfidence: number;
   tmuxTarget: string;
@@ -68,6 +71,7 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
     orcId,
     agentType,
     characterKey,
+    displayedTier,
     status,
     statusConfidence,
     tmuxTarget,
@@ -139,6 +143,7 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
       id: orcId,
       agentType,
       characterKey,
+      displayedTier,
       status,
       statusConfidence,
       tmuxTarget,
@@ -151,6 +156,7 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
       orcId,
       agentType,
       characterKey,
+      displayedTier,
       status,
       statusConfidence,
       tmuxTarget,

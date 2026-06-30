@@ -89,6 +89,7 @@
 - **R-PRIV-004**: terminal output 전체 저장은 기본 비활성화해야 한다.
 - **R-PRIV-005**: debug log에는 captured terminal output 원문을 기본 저장하지 않아야 한다.
 - **R-PRIV-006**: 사용자는 terminal preview 노출 여부와 preview line count를 조정할 수 있어야 한다.
+- **R-PRIV-007** (proposed, 미승인): agent 세션 transcript/usage 로그 파일(Claude Code/Codex 세션 JSONL 등)에서 누적 token/cost를 수집할 때, 시스템은 **집계 스칼라(cumulative tokens/cost·source·measuredAt)만** 추출해야 하며 transcript 원문(대화 본문·tool 입출력·코드·파일 경로·secret)을 저장·log·직렬화·반환·캐시하면 안 된다. 파일 접근은 고정 allowlist root에 confine되고(디스크 광범위 스캔 금지), symlink escape·타 사용자 소유 파일을 거부하며, byte/line/time bounded read로 read-only로만 수행하고, 부재·불가·모호 시 추측 없이 `usage=null`로 degrade해야 한다(misattribution 금지). 이는 tmux capture를 넘어서는 새 read surface이므로 [[SPEC-006-privacy-redaction]] 불변식의 확장으로 [[SPEC-008-usage-collection]]([[08-Decisions|D-039]], CONDITIONAL GO)이 1차 소유한다. R-P2-008(prestige tier)의 데이터 의존이며 그 채택 시 착수하는 forward다.
 
 #### Control Action
 

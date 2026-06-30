@@ -45,7 +45,7 @@ function scan(over: Partial<ScanResult> = {}): ScanResult {
           cwd: '/x', command: 'claude', agentType: 'claude-code', agentTypeConfidence: 0.95,
           agentSignals: [{ signal: 'command', tier: 'A', matchedType: 'claude-code', ruleId: 'r' }],
           status: 'active', statusConfidence: 0.85, statusSignals: [], currentWorkSummary: 'editing', summarySource: 'recent_output', summaryIsEstimated: true,
-          lastActivityAt: '2026-06-27T10:00:00.000Z', preview: { lines: 2, truncated: false, redacted: false },
+          lastActivityAt: '2026-06-27T10:00:00.000Z', preview: { lines: 2, truncated: false, redacted: false }, usage: null,
         }],
       },
     ],

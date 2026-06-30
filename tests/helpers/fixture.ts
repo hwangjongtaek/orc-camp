@@ -151,6 +151,7 @@ export const FIXED_CLOCK = '2026-06-27T10:00:00.000Z';
 export function makeDeps(
   scenario: Scenario,
   clockIso: string = FIXED_CLOCK,
+  usageCollect?: ScanRuntimeDeps['collectUsage'],
 ): { deps: ScanRuntimeDeps; log: SpawnLogEntry[] } {
   const { spawn, log } = makeScenarioSpawn(scenario);
   const deps: ScanRuntimeDeps = {
@@ -161,6 +162,9 @@ export function makeDeps(
     detectOrc,
     inferStatus,
     detectors: defaultDetectors,
+    // Deterministic + offline by default: emit usage=null (no live ~/.claude dependency).
+    // Tests that exercise SPEC-008 inject a temp-root collector via the third arg.
+    collectUsage: usageCollect ?? (async () => null),
     now: () => new Date(clockIso),
   };
   return { deps, log };

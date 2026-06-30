@@ -64,7 +64,7 @@ function assemble(inv: InventoryResult, priors = new Map<string, PriorOrcState>(
 }
 
 describe('assembly ordering + ids (SPEC-005-AC-04/13)', () => {
-  it('sorts camps by name and orcs by window→pane; derives stable ids', () => {
+  it('sorts camps by name and orcs by window→pane; derives stable ids', async () => {
     const inv = inventory(
       [
         { sessionId: '$2', sessionName: 'zeta', windows: 1, attached: false, activityAt: SCANNED_AT },
@@ -76,7 +76,7 @@ describe('assembly ordering + ids (SPEC-005-AC-04/13)', () => {
         rec({ paneId: '%30', sessionName: 'zeta', windowIndex: 2, paneIndex: 0, command: 'codex' }),
       ],
     );
-    const { result } = assemble(inv);
+    const { result } = await assemble(inv);
     expect(result.camps.map((c) => c.tmuxSessionName)).toEqual(['alpha', 'zeta']);
     const alpha = result.camps[0]!;
     expect(alpha.id).toBe('session:$1');
@@ -88,7 +88,7 @@ describe('assembly ordering + ids (SPEC-005-AC-04/13)', () => {
 });
 
 describe('aggregation (SPEC-005-AC-12)', () => {
-  it('orcCount/paneCount/statusSummary roll up consistently', () => {
+  it('orcCount/paneCount/statusSummary roll up consistently', async () => {
     const inv = inventory(
       [{ sessionId: '$1', sessionName: 'work', windows: 1, attached: true, activityAt: SCANNED_AT }],
       [
@@ -97,7 +97,7 @@ describe('aggregation (SPEC-005-AC-12)', () => {
         rec({ paneId: '%12', sessionName: 'work', windowIndex: 1, paneIndex: 2, command: 'zsh' }), // non-candidate
       ],
     );
-    const { result } = assemble(inv);
+    const { result } = await assemble(inv);
     const camp = result.camps[0]!;
     expect(camp.orcCount).toBe(camp.orcs.length);
     expect(camp.orcCount).toBe(2);
@@ -109,19 +109,19 @@ describe('aggregation (SPEC-005-AC-12)', () => {
     expect(topSum).toBe(camp.orcCount);
   });
 
-  it('a session with no detected agents yields a camp with orcCount 0 (no-agent state)', () => {
+  it('a session with no detected agents yields a camp with orcCount 0 (no-agent state)', async () => {
     const inv = inventory(
       [{ sessionId: '$1', sessionName: 'work', windows: 1, attached: true, activityAt: SCANNED_AT }],
       [rec({ paneId: '%10', sessionName: 'work', windowIndex: 1, paneIndex: 0, command: 'zsh' })],
     );
-    const { result } = assemble(inv);
+    const { result } = await assemble(inv);
     expect(result.camps).toHaveLength(1);
     expect(result.camps[0]!.orcCount).toBe(0);
   });
 });
 
 describe('preview metadata (SPEC-005-AC-10, §2.7)', () => {
-  it('long capture truncates to PREVIEW_LINES; short does not; failed capture → null', () => {
+  it('long capture truncates to PREVIEW_LINES; short does not; failed capture → null', async () => {
     const longRaw = Array.from({ length: 20 }, (_, i) => `line ${i}`).join('\n');
     const inv = inventory(
       [{ sessionId: '$1', sessionName: 'work', windows: 1, attached: true, activityAt: SCANNED_AT }],
@@ -131,20 +131,20 @@ describe('preview metadata (SPEC-005-AC-10, §2.7)', () => {
         rec({ paneId: '%12', sessionName: 'work', windowIndex: 1, paneIndex: 2, command: 'claude', capture: null }),
       ],
     );
-    const { result } = assemble(inv);
+    const { result } = await assemble(inv);
     const orcs = Object.fromEntries(result.camps[0]!.orcs.map((o) => [o.paneId, o]));
     expect(orcs['%10']!.preview).toEqual({ lines: 12, truncated: true, redacted: false });
     expect(orcs['%11']!.preview).toEqual({ lines: 2, truncated: false, redacted: false });
     expect(orcs['%12']!.preview).toBeNull();
   });
 
-  it('a capture containing a placeholder secret sets redacted=true and never leaks the literal', () => {
+  it('a capture containing a placeholder secret sets redacted=true and never leaks the literal', async () => {
     const secret = 'ghp_BBBBBBBBBBBBBBBBBBBB9999';
     const inv = inventory(
       [{ sessionId: '$1', sessionName: 'work', windows: 1, attached: true, activityAt: SCANNED_AT }],
       [rec({ paneId: '%10', sessionName: 'work', windowIndex: 1, paneIndex: 0, command: 'claude', capture: cap(`push ${secret}`) })],
     );
-    const { result } = assemble(inv);
+    const { result } = await assemble(inv);
     const orc = result.camps[0]!.orcs[0]!;
     expect(orc.preview?.redacted).toBe(true);
     expect(JSON.stringify(result)).not.toContain(secret);

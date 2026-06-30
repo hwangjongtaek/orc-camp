@@ -115,6 +115,25 @@ export interface Orc {
   // time / preview
   lastActivityAt: string; // ISO 8601
   preview: Preview | null; // null if capture failed; never raw text
+
+  // usage axis (SPEC-302 §2.2 / SPEC-008 — usage-collection privacy contract)
+  // Best-effort cumulative LLM token/cost for this orc's session. null = unmeasured /
+  // uncollectable (NEVER asserted). Produced ONLY by the SPEC-008 data-minimization read
+  // surface; serialization exposes ONLY OrcUsage's 4 scalars — no raw transcript content,
+  // no per-message data, no session paths (G1/G2, SPEC-008-AC-01/02).
+  usage: OrcUsage | null;
+}
+
+/**
+ * SPEC-302 §2.2 / SPEC-005 (forward) / SPEC-008 §2 — the ONLY thing the usage parser may
+ * emit. A closed set of aggregate scalars: numbers, a closed enum, and an ISO timestamp.
+ * No free text (paths/model names/messages) ever lives here (SPEC-008-AC-01).
+ */
+export interface OrcUsage {
+  cumulativeTokens: number | null; // session cumulative billable tokens (input+output). null if unavailable
+  cumulativeCostUsd: number | null; // cumulative estimated cost (USD). null if unavailable
+  source: 'transcript' | 'estimated' | 'unknown'; // provenance/trust label
+  measuredAt: string | null; // ISO 8601 — last event ts or file mtime. NEVER a path/content
 }
 
 /** SPEC-005 §2.1 — serialized form of SPEC-003 SignalMatch (matchedSignals→agentSignals). */
@@ -390,6 +409,27 @@ export type DetectOrcFn = (
 
 export type InferStatusFn = (input: StatusInput) => StatusInference;
 
+/**
+ * SPEC-008 §4.4 — redaction-bound hint a usage collector locates a session log from.
+ * Every field is already past the SPEC-006 redaction chokepoint (cwd/processTree argv are
+ * redacted; agentType/lastActivityAt are structural). The collector reads ONLY from fixed
+ * provider roots derived from this hint — it never receives or touches raw tmux data.
+ */
+export interface UsageLocateHint {
+  paneId: string; // authoritative identity (D-017); provenance/debug only
+  agentType: AgentType; // selects the provider; 'unknown' → null
+  cwd: string; // redacted #{pane_current_path} (SPEC-006 §2.3) — encoded-dir derivation
+  processTreeCommands: string[]; // redacted subtree node argv (SPEC-002 §2.9) — explicit session-id source
+  lastActivityAt: string; // ISO 8601 — recency correlation signal
+}
+
+/**
+ * SPEC-008 — best-effort usage collector (injected like the other *Fn collaborators).
+ * MUST never reject/throw: any doubt/error/absence resolves to `null` so a single orc's
+ * collection can never abort the scan (SPEC-008-AC-10, per-orc isolation).
+ */
+export type UsageCollectFn = (hint: UsageLocateHint) => Promise<OrcUsage | null>;
+
 /** Injected dependencies for the inventory collector (SPEC-002). */
 export interface CollectDeps {
   tmuxExec: TmuxExecFn;
@@ -456,6 +496,16 @@ export const RP10_MIN_LEN = 32; // generic high-entropy token min length
 
 /** tmux per-command timeout (SPEC-002 §2.6) — hypothesis. */
 export const TMUX_TIMEOUT_MS = 2000;
+
+/**
+ * SPEC-008 §4.2/§5.2 — usage read-surface bounds (PoC-tunable hypotheses). A session log is
+ * read streaming with a hard byte/line/time cap; the whole file is NEVER loaded (AC-06), and
+ * a single pathological line is bounded so it cannot blow up memory.
+ */
+export const USAGE_MAX_BYTES = 8 * 1024 * 1024; // per-file read ceiling (8 MiB)
+export const USAGE_MAX_LINES = 100_000; // per-file parsed-line ceiling
+export const USAGE_MAX_LINE_BYTES = 1 * 1024 * 1024; // single-line accumulator ceiling (skip beyond)
+export const USAGE_TIME_BUDGET_MS = 250; // per-file wall-clock ceiling
 
 /** Status thresholds (SPEC-004 §3.9) — hypotheses. */
 export const T_ACTIVE_MS = 5_000; // active recent-activity ceiling

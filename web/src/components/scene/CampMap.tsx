@@ -21,7 +21,8 @@ import { getTime } from '../../scene/clock';
 import { RoamingController } from '../../scene/roaming';
 import { computeCells, type Cell } from '../../scene/spacing';
 import { buildSpeechPool } from '../../scene/speech';
-import { characterKeyMap } from '../../assets/spriteResolver';
+import { characterKeyMap, resolveCharacterKey } from '../../assets/spriteResolver';
+import { thresholdsForCharacter, type OrcTierObservation } from '../../assets/prestige';
 import {
   BASE_SCALE,
   GROUND_SPRITE_SCALE,
@@ -219,6 +220,32 @@ export function CampMap({
     () => characterKeyMap(orcs.map((o) => o.id), manifest),
     [orcs, manifest],
   );
+
+  // SPEC-302 §3.2 — reconcile the monotonic prestige-tier latch against the orcs currently on this
+  // map. Each observation is keyed on the SAME resolved character the sprite renders (composite
+  // (id, resolvedCharacterKey) parity) and gated on that character carrying a `prestige` block; an
+  // id leaving `orcs` (or a pool reassignment changing its key) resets its latch (§3.2 reset i/ii).
+  // The latch lives in the store (client display state); OrcSprite reads `displayedTierById`.
+  const reconcilePrestige = useStore((s) => s.reconcilePrestige);
+  const displayedTierById = useStore((s) => s.prestige.displayedTierById);
+  const prestigeObservations = useMemo<OrcTierObservation[]>(
+    () =>
+      orcs.map((o) => {
+        const resolvedKey = resolveCharacterKey(manifest, characterByOrc.get(o.id), o.agentType);
+        const def = resolvedKey ? manifest?.characters[resolvedKey] : undefined;
+        return {
+          id: o.id,
+          characterKey: resolvedKey,
+          hasPrestige: !!def?.prestige,
+          usage: o.usage,
+          thresholds: thresholdsForCharacter(def),
+        };
+      }),
+    [orcs, characterByOrc, manifest],
+  );
+  useEffect(() => {
+    reconcilePrestige(prestigeObservations);
+  }, [prestigeObservations, reconcilePrestige]);
 
   // §2.6b (#50) — per-orc word pool for intermittent ambient speech: built from the orc's
   // preview/summary text (the "preview words" the bubbles randomly combine), plus command/cwd as
@@ -457,6 +484,7 @@ export function CampMap({
                 orcId={o.id}
                 agentType={o.agentType}
                 characterKey={characterByOrc.get(o.id)}
+                displayedTier={displayedTierById[o.id] ?? 0}
                 status={o.status}
                 statusConfidence={o.statusConfidence}
                 tmuxTarget={o.tmuxTarget}

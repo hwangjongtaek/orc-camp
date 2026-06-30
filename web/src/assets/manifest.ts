@@ -22,14 +22,63 @@ export interface ReducedMotionDef {
   fallback_frame: string; // relative to characterRoot
 }
 
+/**
+ * SPEC-302 §2.1 — one prestige tier variant (tier 1..3) of a character. Geometry mirrors
+ * CharacterDef (root/frame_size/anchor/animations/reduced_motion). `rotations` (dir → static frame
+ * file, relative to the variant `root`) backs the §3.4 `static_tier` fallback when the variant has
+ * no animation for the requested state. `animations` may be empty (current pack: T1 ships a partial
+ * set, T2/T3 rotation-only). All fields beyond status/pixellab_character_id are optional so the
+ * loader stays permissive.
+ */
+export interface PrestigeTierDef {
+  tier: 1 | 2 | 3;
+  label?: string;
+  suffix?: string; // appearance-key suffix (e.g. '-veteran'); SPEC-302 §3.3 appearanceKey source
+  status: 'planned' | 'staged' | 'available' | 'deprecated';
+  pixellab_character_id: string | null;
+  root?: string; // relative to packRoot
+  frame_size?: [number, number];
+  scale?: number;
+  anchor?: [number, number];
+  directions?: string[];
+  rotations?: Record<string, string>; // dir → static frame file, relative to `root`
+  animations?: Record<string, AnimationDef>;
+  reduced_motion?: ReducedMotionDef;
+}
+
+/** SPEC-302 §2.1 — per-tier threshold override (manifest beats the §3.1 default seed when present). */
+export interface PrestigeThresholdDef {
+  min_tokens?: number;
+  min_cost_usd?: number;
+}
+
+/**
+ * SPEC-302 §2.1 — a character's usage-driven prestige block. Presence of this block is the
+ * DATA-DRIVEN gate (SPEC-302 §3.2): only characters that carry it are eligible for a tier > 0.
+ */
+export interface PrestigeDef {
+  note?: string;
+  axis?: string; // 'cumulative_tokens'
+  thresholds?: {
+    tier1?: PrestigeThresholdDef;
+    tier2?: PrestigeThresholdDef;
+    tier3?: PrestigeThresholdDef;
+  };
+  tiers: PrestigeTierDef[];
+}
+
 export interface CharacterDef {
   root: string; // relative to packRoot
   frame_size: [number, number];
   scale: number;
   anchor: [number, number];
   directions: string[];
+  /** Base static rotations (dir → file relative to `root`); optional, base path uses animations. */
+  rotations?: Record<string, string>;
   animations: Record<string, AnimationDef>;
   reduced_motion: ReducedMotionDef;
+  /** SPEC-302 §2.1 — usage-driven prestige tiers (absent ⇒ character is never tiered). */
+  prestige?: PrestigeDef;
 }
 
 export interface StatusUiDef {

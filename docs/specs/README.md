@@ -36,6 +36,7 @@ Epic은 [[07-Roadmap]] Milestone과 [[02-Requirements]] `R-*`를 따라 분해�
 | [[SPEC-005-data-contract]] | scan 출력 데이터 계약 | R-CLI-004, R-TMUX-005/006, R-ORC-003/004/005 | spec-author + backend | approved |
 | [[SPEC-006-privacy-redaction]] | Privacy·redaction·read-only | R-PRIV-001~005, R-TMUX-001(enforce)/004, R-OBS-003 | security-privacy-eng | approved |
 | [[SPEC-007-test-validation]] | 테스트 전략·PoC 측정 | (slice 수용 기준 + PoC 지표) | qa-test-strategist | approved |
+| [[SPEC-008-usage-collection]] | 세션 로그 usage 수집 privacy 계약(token/cost 집계, SPEC-006 자매·확장; R-P2-008 forward 게이트) | R-PRIV-007(proposed), R-PRIV-002/004/005, R-OBS-003, R-P2-008 | security-privacy-eng | draft |
 
 ### Epic 2 — Local Server & API
 

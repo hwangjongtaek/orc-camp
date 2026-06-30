@@ -27,8 +27,13 @@ import {
   type ScanResult,
   type StatusSignal,
   type StatusSummary,
+  type UsageCollectFn,
+  type UsageLocateHint,
 } from './types';
 import { computeFingerprint } from './status/fingerprint';
+
+/** Default usage collector: emit `usage=null` (forward-safe; SPEC-302 §3.2 → tier 0). */
+const NULL_USAGE_COLLECT: UsageCollectFn = async () => null;
 
 export interface AssembleInput {
   inventory: InventoryResult;
@@ -42,6 +47,12 @@ export interface AssembleInput {
   priors: Map<string, PriorOrcState>; // by paneId (prior cycle); empty on first/single-shot
   /** Retained terminated orcs (S-GONE, SPEC-004 §3.7) to fold into matching camps by sessionId. */
   retainedTerminated?: Orc[];
+  /**
+   * SPEC-008 — best-effort, never-throwing per-orc usage collector. Injected (testable,
+   * swappable). Defaults to a null-emitter so the pipeline is forward-safe when usage is
+   * unconfigured (`usage=null` → SPEC-302 tier 0).
+   */
+  collectUsage?: UsageCollectFn;
 }
 
 export interface AssembleOutput {
@@ -117,11 +128,30 @@ function buildPreview(rec: PaneRawRecord): Preview | null {
   };
 }
 
+/**
+ * Build the redaction-bound usage hint for a candidate pane (SPEC-008 §4.4). Carries ONLY
+ * already-redacted/structural fields: the redacted cwd, the redacted subtree argv strings, the
+ * agentType (provider selector), paneId (authority), and lastActivityAt. No raw tmux data.
+ */
+function buildUsageHint(rec: PaneRawRecord, agentType: Orc['agentType']): UsageLocateHint {
+  const processTreeCommands = (rec.processTree ?? []).map((n) => n.command);
+  if (rec.cmdline && !processTreeCommands.includes(rec.cmdline)) {
+    processTreeCommands.push(rec.cmdline); // depth-0 argv (redacted) as a fallback id source
+  }
+  return {
+    paneId: rec.paneId,
+    agentType,
+    cwd: rec.cwd, // redacted (SPEC-006 §2.3)
+    processTreeCommands,
+    lastActivityAt: rec.lastActivityAt,
+  };
+}
+
 /** Build an Orc from a candidate pane (detection already ran). */
-function buildOrc(
+async function buildOrc(
   rec: PaneRawRecord,
   input: AssembleInput,
-): { orc: Orc; fingerprint: string[] } | null {
+): Promise<{ orc: Orc; fingerprint: string[] } | null> {
   const signal = paneToSignal(rec);
   const candidate = input.detectOrc(signal, input.detectors);
   if (!candidate) return null; // non-candidate
@@ -157,6 +187,16 @@ function buildOrc(
     ruleId: s.ruleId,
   }));
 
+  // SPEC-008 best-effort usage. The injected collector never throws; if it somehow rejects we
+  // still degrade to null so one orc's collection can't abort assembly (AC-10).
+  const collectUsage = input.collectUsage ?? NULL_USAGE_COLLECT;
+  let usage = null as Orc['usage'];
+  try {
+    usage = await collectUsage(buildUsageHint(rec, candidate.agentType));
+  } catch {
+    usage = null;
+  }
+
   const orc: Orc = {
     id: `pane:${rec.paneId}`,
     paneId: rec.paneId,
@@ -177,6 +217,7 @@ function buildOrc(
     summaryIsEstimated: inference.summaryIsEstimated,
     lastActivityAt: rec.lastActivityAt,
     preview: buildPreview(rec),
+    usage,
   };
 
   const fingerprint = computeFingerprint(rec.capture ? rec.capture.lines : []);
@@ -192,7 +233,7 @@ function maxActivity(values: (string | null)[]): string | null {
   return max;
 }
 
-export function assembleScanResult(input: AssembleInput): AssembleOutput {
+export async function assembleScanResult(input: AssembleInput): Promise<AssembleOutput> {
   const { inventory } = input;
   const nextPriors = new Map<string, PriorOrcState>();
   const liveOrcsByPaneId = new Map<string, Orc>();
@@ -223,15 +264,19 @@ export function assembleScanResult(input: AssembleInput): AssembleOutput {
     const panes = panesBySession.get(session.sessionName) ?? [];
     const orcs: Orc[] = [];
 
-    for (const rec of panes) {
-      const built = buildOrc(rec, input);
-      if (!built) continue;
-      orcs.push(built.orc);
-      liveOrcsByPaneId.set(rec.paneId, built.orc);
+    // Build orcs concurrently within the session so the bounded usage I/O of independent panes
+    // overlaps (latency); Promise.all preserves input order → deterministic orcs array.
+    const built = await Promise.all(panes.map((rec) => buildOrc(rec, input)));
+    for (let i = 0; i < panes.length; i++) {
+      const b = built[i];
+      if (!b) continue;
+      const rec = panes[i]!;
+      orcs.push(b.orc);
+      liveOrcsByPaneId.set(rec.paneId, b.orc);
       nextPriors.set(rec.paneId, {
         paneId: rec.paneId,
-        captureFingerprint: built.fingerprint,
-        status: built.orc.status,
+        captureFingerprint: b.fingerprint,
+        status: b.orc.status,
         lastActivityAt: rec.lastActivityAt,
         observedAt: input.scannedAt,
       });

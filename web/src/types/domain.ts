@@ -65,6 +65,19 @@ export interface Preview {
   text?: string[];
 }
 
+/**
+ * SPEC-302 §2.2 / SPEC-008 §2 — best-effort cumulative LLM usage for an orc's session. A CLOSED set
+ * of 4 aggregate scalars (mirrors the server `OrcUsage` in src/types.ts). `null` (the field or the
+ * whole object) = unmeasured / uncollectable — NEVER asserted, and drives prestige tier 0 (SPEC-302
+ * §3.2). No raw transcript content / paths ever live here.
+ */
+export interface OrcUsage {
+  cumulativeTokens: number | null;
+  cumulativeCostUsd: number | null;
+  source: 'transcript' | 'estimated' | 'unknown';
+  measuredAt: string | null;
+}
+
 export interface Orc {
   id: string; // "pane:" + paneId
   paneId: string;
@@ -88,6 +101,9 @@ export interface Orc {
 
   lastActivityAt: string;
   preview: Preview | null;
+
+  // usage axis (SPEC-302 §2.2 / SPEC-008) — best-effort cumulative tokens/cost. null = unmeasured.
+  usage: OrcUsage | null;
 }
 
 export interface Camp {

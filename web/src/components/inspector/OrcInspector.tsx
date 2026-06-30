@@ -20,7 +20,6 @@ import { useAssets } from '../../assets/AssetContext';
 import { characterKeyMap } from '../../assets/spriteResolver';
 import { campOrcIdsForOrc } from '../../store/serverData';
 import { resolvePortrait, type PortraitState } from '../../assets/portraitResolver';
-import { displayedTierForOrc } from '../../assets/prestige';
 
 export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
   const orc = useStore((s) => (orcId ? s.server.orcsById[orcId] : undefined));
@@ -35,16 +34,18 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
     [server, manifest, orcId],
   );
   // SPEC-302/SPEC-304 — the portrait follows the orc's prestige tier: when its tier rises, the
-  // matching tier portrait is shown (tier resolution is the SPEC-302 seam in `prestige.ts`).
+  // matching tier portrait is shown. The displayed tier is the SPEC-302 latch held in the store
+  // (reconciled by CampMap for this camp's orcs); defaults to 0 (base) when not yet reconciled.
+  const displayedTier = useStore((s) => (orcId ? s.prestige.displayedTierById[orcId] ?? 0 : 0));
   const portrait = useMemo<PortraitState | null>(
     () =>
       orc
         ? resolvePortrait(
-            { characterKey, agentType: orc.agentType, displayedTier: displayedTierForOrc(orc) },
+            { characterKey, agentType: orc.agentType, displayedTier },
             { manifest, assetBasePath: assetBase },
           )
         : null,
-    [orc, characterKey, manifest, assetBase],
+    [orc, characterKey, manifest, assetBase, displayedTier],
   );
 
   if (!orc) {
