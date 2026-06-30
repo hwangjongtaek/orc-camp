@@ -200,6 +200,32 @@ img {
 .oc-status--zero {
   opacity: 0.45;
 }
+/* --- Prestige tier badge (SPEC-302) --- */
+.oc-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-1);
+}
+.oc-tier-badge {
+  display: inline-block;
+  padding: 1px var(--oc-space-2);
+  border-radius: var(--oc-radius-pixel);
+  font-size: var(--oc-font-size-label);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--oc-color-text);
+  border: 2px solid var(--oc-color-border);
+  background: var(--oc-color-surface-raised); /* fallback; data-tier overrides */
+}
+.oc-tier-badge[data-tier='1'] {
+  background: var(--oc-color-tier-1);
+}
+.oc-tier-badge[data-tier='2'] {
+  background: var(--oc-color-tier-2);
+}
+.oc-tier-badge[data-tier='3'] {
+  background: var(--oc-color-tier-3);
+}
 /* status-specific accent color (boosted by border-style; never the sole signal) */
 .oc-status--active {
   border-color: var(--oc-color-accent);

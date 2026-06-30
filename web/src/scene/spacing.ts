@@ -24,6 +24,24 @@ export function gridCols(count: number, w: number, h: number): number {
 }
 
 /**
+ * Shrink a walkable `area` to the slice that's actually visible in the map viewport, keeping it
+ * CENTERED on the area's center (so it stays over the walkable ground). When the viewport is at
+ * least as large as the area in a dimension, that dimension is left unchanged. Used so that when
+ * the camp map is narrowed (the 50/50 & 30/70 layout modes), the orc cells re-pack into the
+ * visible band and the orcs "gather" on-screen instead of being pushed off the right edge.
+ *
+ * PURE & deterministic (no Date.now / Math.random). `viewport` is in the same logical px as `area`
+ * (BASE_SCALE = 1). `pad` insets the slice from the viewport edges so edge sprites keep some
+ * breathing room. A zero/empty viewport (not yet measured) returns the area unchanged.
+ */
+export function gatherArea(area: Rect, viewport: { w: number; h: number }, pad = 0): Rect {
+  if (viewport.w <= 0 || viewport.h <= 0) return area;
+  const w = Math.min(area.w, Math.max(1, viewport.w - 2 * pad));
+  const h = Math.min(area.h, Math.max(1, viewport.h - 2 * pad));
+  return { x: area.x + (area.w - w) / 2, y: area.y + (area.h - h) / 2, w, h };
+}
+
+/**
  * Lay `count` non-overlapping cells over `area`, row-major. cells[i] is the home of the orc at
  * sequential index `i`. Returns [] for count ≤ 0; count === 1 yields the whole area as one cell.
  */

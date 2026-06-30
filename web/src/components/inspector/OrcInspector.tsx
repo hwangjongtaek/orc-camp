@@ -47,6 +47,17 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
         : null,
     [orc, characterKey, manifest, assetBase, displayedTier],
   );
+  // SPEC-302 — the orc's earned prestige tier grade + its character-specific label (from the
+  // manifest `prestige` block). Tier 0 (base) / no prestige block ⇒ no label.
+  const tierLabel = useMemo(
+    () =>
+      characterKey && displayedTier >= 1
+        ? (manifest?.characters?.[characterKey]?.prestige?.tiers?.find(
+            (t) => t.tier === displayedTier,
+          )?.label ?? null)
+        : null,
+    [manifest, characterKey, displayedTier],
+  );
 
   if (!orc) {
     return (
@@ -58,6 +69,15 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
 
   // SPEC-201 AC-12 — tmux errors scoped to THIS orc (target === paneId) render locally.
   const orcErrors = orcTmuxErrors(tmuxErrors, orc.paneId);
+
+  // SPEC-302 — usage context behind the tier grade (why this grade); null usage = unmeasured.
+  const u = orc.usage;
+  const usageNote =
+    u?.cumulativeTokens != null
+      ? `${fmtTokens(u.cumulativeTokens)} tok`
+      : u?.cumulativeCostUsd != null
+        ? `$${u.cumulativeCostUsd.toFixed(2)}`
+        : 'usage unmeasured';
 
   return (
     <aside className="oc-inspector" aria-label="Orc inspector">
@@ -88,6 +108,22 @@ export function OrcInspector({ orcId }: { orcId: string | null }): JSX.Element {
             <span className="oc-muted">
               {orc.agentTypeConfidence.toFixed(2)} ({confidenceTier(orc.agentTypeConfidence, AGENT_BAND)})
             </span>
+          </Field>
+
+          <Field label="Prestige tier">
+            {displayedTier >= 1 ? (
+              <span className="oc-tier" data-testid="orc-tier">
+                <span className="oc-tier-badge" data-tier={displayedTier}>
+                  T{displayedTier}
+                </span>
+                {tierLabel && <span className="oc-tier__label"> {tierLabel}</span>}
+              </span>
+            ) : (
+              <span className="oc-muted" data-testid="orc-tier">
+                Base (tier 0)
+              </span>
+            )}
+            <span className="oc-muted oc-status__conf"> · {usageNote}</span>
           </Field>
 
           <Field label="tmux target" mono>
@@ -202,4 +238,11 @@ function Field({
       <div className={`oc-field__value${mono ? ' oc-field__value--mono' : ''}`}>{children}</div>
     </div>
   );
+}
+
+/** Compact token count for the tier usage note (e.g. 115734 → "116k", 2_300_000 → "2.3M"). */
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1000) return `${Math.round(n / 1000)}k`;
+  return String(n);
 }
