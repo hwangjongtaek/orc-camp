@@ -5,7 +5,15 @@
  * a live ~/.claude. Symlink-escape and ownership refusals are exercised with real fs primitives.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { rmSync, mkdirSync, writeFileSync, symlinkSync, statSync, readFileSync } from 'node:fs';
+import {
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+  symlinkSync,
+  statSync,
+  readFileSync,
+  realpathSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { makeConfinedReader } from '../../src/usage/reader';
@@ -17,7 +25,8 @@ import {
 import { makeCodexProvider } from '../../src/usage/providers/codex';
 import { estimateCostUsd } from '../../src/usage/cost';
 import { makeUsageCollector, type UsageDebugEntry } from '../../src/usage/collect';
-import type { UsageLocateHint, AgentType } from '../../src/types';
+import { makeOpenHandleLocator } from '../../src/usage/openhandle';
+import type { UsageLocateHint, AgentType, ProcessSpawn, SpawnResult } from '../../src/types';
 import type { UsageProvider } from '../../src/usage/provider';
 import {
   claudeLine,
@@ -62,6 +71,7 @@ function hint(over: Partial<UsageLocateHint> = {}): UsageLocateHint {
     agentType: 'claude-code',
     cwd: CWD,
     processTreeCommands: [`claude --resume ${SID}`],
+    agentPids: [4242],
     lastActivityAt: '2026-06-29T12:00:00.000Z',
     ...over,
   };
@@ -71,9 +81,35 @@ function collector(root: string, over: Parameters<typeof makeUsageCollector>[0] 
   return makeUsageCollector({
     roots: { claudeProjects: root },
     getUid: () => CURRENT_UID,
+    // Offline default: no open handles → no live lsof. The §4.2a fd tests below override this
+    // (with a mock locator or a mock spawn) to exercise open-handle correlation deterministically.
+    openHandle: async () => [],
     ...over,
   });
 }
+
+// --- open-handle (fd) locator test doubles (no live lsof ever runs) ---------
+function okSpawn(stdout: string): SpawnResult {
+  return { stdout, stderr: '', exitCode: 0, timedOut: false, spawnError: null, durationMs: 1 };
+}
+
+/** Mock `lsof` spawn: per-pid canned `-F n` stdout, keyed by the trailing `-p <pid>` arg. */
+function mockLsof(byPid: Record<number, string>): ProcessSpawn {
+  return async (_file, args) => okSpawn(byPid[Number(args[args.length - 1])] ?? '');
+}
+
+/** A spawn reporting a spawn error (e.g. lsof not installed) → locator must skip → []. */
+const erroringSpawn: ProcessSpawn = async () => ({
+  stdout: '',
+  stderr: '',
+  exitCode: null,
+  timedOut: false,
+  spawnError: Object.assign(new Error('ENOENT'), { code: 'ENOENT' }) as NodeJS.ErrnoException,
+  durationMs: 0,
+});
+
+/** A spawn that always succeeds with empty output (used where spawn output is irrelevant). */
+const okOnlySpawn: ProcessSpawn = async () => okSpawn('');
 
 // ---------------------------------------------------------------------------
 // SPEC-008-AC-01 — data minimization: only the 4 scalars escape the parser
@@ -361,5 +397,239 @@ describe('pure helpers', () => {
     expect(encodeCwd('/Users/me/app.v2')).toBe('-Users-me-app-v2');
     expect(encodeCwd('/a/../b')).toBe('-a----b'); // no real ".." segment survives
     expect(encodeCwd('/a/../b')).not.toContain('..');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SPEC-008-AC-12 — open-handle (fd) correlation: deterministic, confined, precedence
+// ---------------------------------------------------------------------------
+describe('SPEC-008-AC-12 — open-handle (fd) correlation', () => {
+  it('exactly one in-root .jsonl open handle (no explicit id) → that file is parsed', async () => {
+    const root = tmp(makeClaudeRoot);
+    // Two sessions in the dir → the single-`*.jsonl` fallback alone would be ambiguous (null).
+    const fileA = writeSession(root, CWD, SID, [claudeLine({ input: 1234, output: 0 })]);
+    writeSession(root, CWD, 'bbbbbbbb-2222-2222-2222-222222222222', [claudeLine({ input: 9, output: 9 })]);
+    const usage = await collector(root, { openHandle: async () => [fileA] })(
+      hint({ processTreeCommands: ['zsh', 'node'] }),
+    );
+    expect(usage!.cumulativeTokens).toBe(1234); // deterministically the open handle, not a guess
+  });
+
+  it('explicit session-id still WINS over an open handle (id is the strongest signal)', async () => {
+    const root = tmp(makeClaudeRoot);
+    const sidA = SID;
+    const fileB = writeSession(root, CWD, 'ffffffff-9999-9999-9999-999999999999', [
+      claudeLine({ input: 7777, output: 7777 }),
+    ]);
+    writeSession(root, CWD, sidA, [claudeLine({ input: 1000, output: 0 })]); // A → 1000
+    // openHandle would point at B, but the explicit --resume id must take precedence.
+    const usage = await collector(root, { openHandle: async () => [fileB] })(
+      hint({ processTreeCommands: [`claude --resume ${sidA}`] }),
+    );
+    expect(usage!.cumulativeTokens).toBe(1000); // A's file via explicit id, NOT B via fd
+  });
+
+  it('open handle WINS over the single-dir-file fallback when present', async () => {
+    const root = tmp(makeClaudeRoot);
+    // CWD's dir has exactly ONE jsonl (the single-file fallback would pick it → 111).
+    writeSession(root, CWD, SID, [claudeLine({ input: 111, output: 0 })]);
+    // A DIFFERENT in-root file (different cwd dir) → only reachable via the fd handle → 222.
+    const other = writeSession(root, '/Users/agent/project-beta', 'cccccccc-3333-3333-3333-333333333333', [
+      claudeLine({ input: 222, output: 0 }),
+    ]);
+    const usage = await collector(root, { openHandle: async () => [other] })(
+      hint({ processTreeCommands: ['zsh', 'node'] }),
+    );
+    expect(usage!.cumulativeTokens).toBe(222); // fd is consulted BEFORE the dir-listing fallback
+  });
+
+  it('two in-root .jsonl handles → no guess; falls through to the (ambiguous) dir → null', async () => {
+    const root = tmp(makeClaudeRoot);
+    const a = writeSession(root, CWD, SID, [claudeLine({ input: 1 })]);
+    const b = writeSession(root, CWD, 'bbbbbbbb-2222-2222-2222-222222222222', [claudeLine({ input: 2 })]);
+    const usage = await collector(root, { openHandle: async () => [a, b] })(
+      hint({ processTreeCommands: ['zsh', 'node'] }),
+    );
+    expect(usage).toBeNull(); // 2 handles → ambiguous → never picks one
+  });
+
+  it('two handles but a single dir file → falls through to that single file (proves no fd guess)', async () => {
+    const root = tmp(makeClaudeRoot);
+    const a = writeSession(root, CWD, SID, [claudeLine({ input: 500, output: 0 })]);
+    const b = writeSession(root, '/Users/agent/project-beta', 'cccccccc-3333-3333-3333-333333333333', [
+      claudeLine({ input: 9 }),
+    ]);
+    // CWD dir has exactly one jsonl; 2 handles are ambiguous so step (2) is skipped → step (3) used.
+    const usage = await collector(root, { openHandle: async () => [a, b] })(
+      hint({ processTreeCommands: ['zsh', 'node'] }),
+    );
+    expect(usage!.cumulativeTokens).toBe(500); // the single dir file, not handle[0]
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SPEC-008-AC-12/AC-10 — degradable: locator throws / spawn errors → [] → usage null, scan ok
+// ---------------------------------------------------------------------------
+describe('SPEC-008-AC-12 — open-handle correlation is degradable', () => {
+  it('a locator that throws is swallowed → [] → falls through → resolves to null (never rejects)', async () => {
+    const root = tmp(makeClaudeRoot);
+    writeSession(root, CWD, SID, [claudeLine({ input: 1 })]);
+    writeSession(root, CWD, 'bbbbbbbb-2222-2222-2222-222222222222', [claudeLine({ input: 2 })]);
+    const c = collector(root, {
+      openHandle: async () => {
+        throw new Error('lsof exploded');
+      },
+    });
+    await expect(c(hint({ processTreeCommands: ['zsh', 'node'] }))).resolves.toBeNull();
+  });
+
+  it('a spawn that errors (lsof missing) → locator yields [] (skip), scan unaffected', async () => {
+    const root = tmp(makeClaudeRoot);
+    const rootReal = realpathSync(root);
+    writeSession(root, CWD, SID, [claudeLine({ input: 1 })]);
+    const locator = makeOpenHandleLocator(erroringSpawn, { platform: 'darwin' });
+    await expect(locator([4242], rootReal)).resolves.toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SPEC-008-AC-13 — open-handle non-over-disclosure: only in-root .jsonl is kept (darwin lsof)
+// ---------------------------------------------------------------------------
+describe('SPEC-008-AC-13 — lsof -F n parsing keeps ONLY in-root .jsonl handles', () => {
+  it('non-root / non-.jsonl / secret-sibling / socket fd paths are filtered out (never read)', async () => {
+    const root = tmp(makeClaudeRoot);
+    const rootReal = realpathSync(root);
+    const wanted = writeSession(root, CWD, SID, [claudeLine({ input: 1 })]); // the ONE we keep
+    // A non-.jsonl file inside the root (extension filter must drop it).
+    const inRootTxt = join(root, encodeCwd(CWD), 'notes.txt');
+    writeFileSync(inRootTxt, 'x');
+    // A real .jsonl OUTSIDE the root (containment filter must drop it even though ext matches).
+    const outside = tmp(makeTmpDir);
+    const outsideSecret = join(outside, 'secret.jsonl');
+    writeFileSync(outsideSecret, claudeLine({ input: 9999, content: `LEAK ${MARKER_BODY}` }) + '\n');
+
+    // lsof -F n emits one field per line: `p<pid>` (process), `f<fd>`, `n<name>`. We read ONLY `n`.
+    const stdout = [
+      'p4242',
+      'fcwd',
+      `n${join(root, encodeCwd(CWD))}`, // a directory (ext filter drops it)
+      'f3',
+      `n${wanted}`, // KEEP
+      'f4',
+      `n${inRootTxt}`, // drop: not .jsonl
+      'f5',
+      `n${outsideSecret}`, // drop: outside root
+      'f6',
+      'n/etc/passwd', // drop: outside root + not .jsonl
+      'f7',
+      `n${join(process.env.HOME ?? '/nonexistent', '.codex', 'auth.json')}`, // drop: secret sibling
+      'f8',
+      'n[::1]:443->[::1]:51000 (ESTABLISHED)', // drop: socket (realpath throws)
+      '',
+    ].join('\n');
+
+    const locator = makeOpenHandleLocator(mockLsof({ 4242: stdout }), { platform: 'darwin' });
+    const result = await locator([4242], rootReal);
+    expect(result).toEqual([realpathSync(wanted)]); // exactly the one in-root .jsonl
+    expect(result).not.toContain(outsideSecret);
+    expect(result.join('|')).not.toContain('passwd');
+    expect(result.join('|')).not.toContain('auth.json');
+    expect(result.join('|')).not.toContain(MARKER_BODY); // content of the secret was never read
+  });
+
+  it('lsof -F n: ignores p/f lines, merges multiple pids, dedupes the same handle', async () => {
+    const root = tmp(makeClaudeRoot);
+    const rootReal = realpathSync(root);
+    const a = writeSession(root, CWD, SID, [claudeLine({ input: 1 })]);
+    const b = writeSession(root, CWD, 'bbbbbbbb-2222-2222-2222-222222222222', [claudeLine({ input: 2 })]);
+    const locator = makeOpenHandleLocator(
+      mockLsof({
+        4242: ['p4242', `n${a}`, ''].join('\n'),
+        4243: ['p4243', `n${b}`, `n${a}`, ''].join('\n'), // also holds `a` → must dedupe
+      }),
+      { platform: 'darwin' },
+    );
+    const result = await locator([4242, 4243], rootReal);
+    expect(result.slice().sort()).toEqual([realpathSync(a), realpathSync(b)].sort());
+  });
+
+  it('only positive-integer pids are passed to lsof (numeric pid contract, AC-13)', async () => {
+    const root = tmp(makeClaudeRoot);
+    const rootReal = realpathSync(root);
+    const seen: string[] = [];
+    const spy: ProcessSpawn = async (file, args) => {
+      seen.push(`${file} ${args.join(' ')}`);
+      return okSpawn('');
+    };
+    const locator = makeOpenHandleLocator(spy, { platform: 'darwin' });
+    await locator([4242, -1, 0, 1.5 as number, NaN], rootReal);
+    expect(seen).toEqual(['lsof -n -P -b -w -F n -p 4242']); // -1/0/1.5/NaN dropped; -n -P present
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SPEC-008 §4.2a — linux /proc/<pid>/fd path (subprocess-free; injected fakes)
+// ---------------------------------------------------------------------------
+describe('SPEC-008 §4.2a — linux /proc path (no spawn, readlink target string only)', () => {
+  it('reads /proc/<pid>/fd via readdir+readlink, keeps only the in-root .jsonl', async () => {
+    const root = tmp(makeClaudeRoot);
+    const rootReal = realpathSync(root);
+    const wanted = writeSession(root, CWD, SID, [claudeLine({ input: 1 })]);
+    const fdTargets: Record<string, string> = {
+      '/proc/4242/fd/0': '/dev/pts/3',
+      '/proc/4242/fd/1': '/dev/null',
+      '/proc/4242/fd/7': wanted, // the session log held open
+      '/proc/4242/fd/9': '/etc/passwd', // outside root → dropped
+    };
+    let spawned = false;
+    const spawnSpy: ProcessSpawn = async () => {
+      spawned = true;
+      return okSpawn('');
+    };
+    const locator = makeOpenHandleLocator(spawnSpy, {
+      platform: 'linux',
+      readdirSync: (p) => (p === '/proc/4242/fd' ? ['0', '1', '7', '9'] : []),
+      readlinkSync: (p) => {
+        const t = fdTargets[p];
+        if (t === undefined) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+        return t;
+      },
+    });
+    const result = await locator([4242], rootReal);
+    expect(result).toEqual([realpathSync(wanted)]);
+    expect(spawned).toBe(false); // linux path NEVER spawns lsof
+  });
+
+  it('EACCES on another-uid /proc/<pid>/fd is fail-closed → skipped (→ [])', async () => {
+    const root = tmp(makeClaudeRoot);
+    const rootReal = realpathSync(root);
+    const locator = makeOpenHandleLocator(okOnlySpawn, {
+      platform: 'linux',
+      readdirSync: () => {
+        throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+      },
+      readlinkSync: () => '/should/not/be/called',
+    });
+    await expect(locator([4242], rootReal)).resolves.toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SPEC-008 §4.2a — locator guards: empty pids / unsupported platform → []
+// ---------------------------------------------------------------------------
+describe('SPEC-008 §4.2a — locator guards', () => {
+  it('empty pid list → [] (no spawn, no fs)', async () => {
+    const locator = makeOpenHandleLocator(okOnlySpawn, { platform: 'darwin' });
+    await expect(locator([], '/tmp')).resolves.toEqual([]);
+  });
+
+  it('unsupported platform (e.g. win32) → [] (degrade, never throws)', async () => {
+    const locator = makeOpenHandleLocator(okOnlySpawn, { platform: 'win32' });
+    await expect(locator([4242], '/tmp')).resolves.toEqual([]);
+  });
+
+  it('falsy rootReal → [] (reader root did not resolve)', async () => {
+    const locator = makeOpenHandleLocator(okOnlySpawn, { platform: 'darwin' });
+    await expect(locator([4242], '')).resolves.toEqual([]);
   });
 });

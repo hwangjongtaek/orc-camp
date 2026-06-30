@@ -79,7 +79,11 @@ export interface ConfinedReader {
 
 const READ_CHUNK = 64 * 1024;
 
-function isUnderRoot(rootReal: string, candidateReal: string): boolean {
+/**
+ * The single under-root containment test. Exported so the open-handle locator (openhandle.ts)
+ * applies the SAME confinement semantics to fd-derived candidate paths (SPEC-008 §4.2a).
+ */
+export function isUnderRoot(rootReal: string, candidateReal: string): boolean {
   return candidateReal === rootReal || candidateReal.startsWith(rootReal + sep);
 }
 

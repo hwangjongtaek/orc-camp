@@ -10,9 +10,11 @@
  * `gitBranch` are never read into a variable, returned, logged, cached, or serialized
  * (G1/AC-01, AC-02). The transient parsed object is discarded per line (non-storage, AC-03).
  *
- * Correlation (§4.2/§4.3, AC-07/AC-08): explicit session-id from the redaction-bound processTree
- * argv first (exact file → no ambiguity); else the single `*.jsonl` in the cwd-encoded directory;
- * else null. Multiple candidates with no explicit id → null (never guess → no misattribution).
+ * Correlation (§4.2/§4.3, AC-07/AC-08/AC-12): explicit session-id from the redaction-bound
+ * processTree argv first (exact file → no ambiguity); else exactly one in-root `.jsonl` the pane's
+ * own agent process holds OPEN (open-handle/fd correlation, §4.2a — deterministic, pre-resolved by
+ * the collector); else the single `*.jsonl` in the cwd-encoded directory; else null. Multiple
+ * candidates with no explicit id and no single open handle → null (never guess → no misattribution).
  */
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -121,7 +123,11 @@ export function makeClaudeCodeProvider(root: string = defaultClaudeRoot()): Usag
   return {
     id: 'claude-code',
     root,
-    collect(hint: UsageLocateHint, reader: ConfinedReader): OrcUsage | null {
+    collect(
+      hint: UsageLocateHint,
+      reader: ConfinedReader,
+      openHandlePaths: string[],
+    ): OrcUsage | null {
       // Single directory under the fixed root, derived from the (redacted) cwd. No $HOME walk.
       const dir = join(reader.root, encodeCwd(hint.cwd));
 
@@ -131,7 +137,15 @@ export function makeClaudeCodeProvider(root: string = defaultClaudeRoot()): Usag
         return parseSessionFile(join(dir, `${explicitId}.jsonl`), reader);
       }
 
-      // (2) Single-recent: list the one directory; accept ONLY when exactly one *.jsonl exists.
+      // (2) Open-handle (fd) correlation (§4.2a): the pane's own agent process holds the session
+      //     JSONL OPEN, so EXACTLY ONE in-root `.jsonl` open handle deterministically names it
+      //     (no guessing). 0 or ≥2 open handles → ambiguous → fall through (AC-12). The reader
+      //     still re-validates confinement/ownership/no-follow on read (defense-in-depth).
+      if (openHandlePaths.length === 1) {
+        return parseSessionFile(openHandlePaths[0]!, reader);
+      }
+
+      // (3) Single-recent: list the one directory; accept ONLY when exactly one *.jsonl exists.
       //     Zero or multiple (ambiguous) → null (no misattribution — AC-07c/AC-08).
       const names = reader.listDir(dir);
       if (names === null) return null;

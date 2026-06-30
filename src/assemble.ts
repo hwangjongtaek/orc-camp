@@ -138,11 +138,18 @@ function buildUsageHint(rec: PaneRawRecord, agentType: Orc['agentType']): UsageL
   if (rec.cmdline && !processTreeCommands.includes(rec.cmdline)) {
     processTreeCommands.push(rec.cmdline); // depth-0 argv (redacted) as a fallback id source
   }
+  // SPEC-008 §4.2a — the pane's OWN subtree pids for open-handle (fd) correlation. Numbers only
+  // (no content); empty when processTree is null → fd correlation is skipped. Only positive
+  // integers (a stale/garbled pid never reaches lsof/`/proc`).
+  const agentPids = (rec.processTree ?? [])
+    .map((n) => n.pid)
+    .filter((p) => Number.isInteger(p) && p > 0);
   return {
     paneId: rec.paneId,
     agentType,
     cwd: rec.cwd, // redacted (SPEC-006 §2.3)
     processTreeCommands,
+    agentPids,
     lastActivityAt: rec.lastActivityAt,
   };
 }

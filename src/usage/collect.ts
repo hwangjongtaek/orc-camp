@@ -10,9 +10,17 @@
  * logs NOTHING, and when a sink is provided it receives only phase/provider/paneId/durationMs/
  * bytesRead/lineCount/outcome (no transcript text, no secret, no session path — AC-03/§4.5).
  */
-import type { AgentType, OrcUsage, UsageCollectFn, UsageLocateHint } from '../types';
+import type {
+  AgentType,
+  OrcUsage,
+  ProcessSpawn,
+  UsageCollectFn,
+  UsageLocateHint,
+} from '../types';
+import { safeSpawn } from '../tmux/exec';
 import { makeConfinedReader } from './reader';
 import type { UsageProvider } from './provider';
+import { makeOpenHandleLocator, type OpenHandleLocator } from './openhandle';
 import { makeClaudeCodeProvider, defaultClaudeRoot } from './providers/claude-code';
 import { makeCodexProvider, defaultCodexRoot } from './providers/codex';
 
@@ -40,6 +48,13 @@ export interface UsageCollectorOptions {
   readerOptions?: { maxBytes?: number; maxLines?: number; maxLineBytes?: number; timeBudgetMs?: number };
   /** Metadata-only debug sink. Default: no-op (collector logs nothing). */
   onDebug?: (entry: UsageDebugEntry) => void;
+  /**
+   * Hardened spawn primitive for the open-handle (lsof) locator. Defaults to the SAME `safeSpawn`
+   * used by `ps` (shell:false, fixed argv, timeout). Provided by scan.ts so both surfaces share it.
+   */
+  spawn?: ProcessSpawn;
+  /** Override the open-handle (fd) locator directly (tests inject a deterministic mock). */
+  openHandle?: OpenHandleLocator;
 }
 
 export function makeUsageCollector(opts: UsageCollectorOptions = {}): UsageCollectFn {
@@ -56,6 +71,9 @@ export function makeUsageCollector(opts: UsageCollectorOptions = {}): UsageColle
 
   const now = opts.now ?? (() => Date.now());
   const onDebug = opts.onDebug;
+  // SPEC-008 §4.2a — open-handle (fd) locator. Defaults to the real lsof/`/proc` locator over the
+  // shared safeSpawn; tests inject a mock locator (or a mock spawn) so NO live lsof ever runs.
+  const openHandle = opts.openHandle ?? makeOpenHandleLocator(opts.spawn ?? safeSpawn);
 
   return async (hint: UsageLocateHint): Promise<OrcUsage | null> => {
     const start = now();
@@ -74,7 +92,17 @@ export function makeUsageCollector(opts: UsageCollectorOptions = {}): UsageColle
         now,
         ...(opts.readerOptions ?? {}),
       });
-      const usage = provider.collect(hint, reader);
+      // SPEC-008 §4.2a — pre-resolve the pane's in-root `.jsonl` open handles (async lsof/`/proc`).
+      // Bounded, read-only, and NEVER aborts collection: any failure degrades to [] (G6/G9).
+      let handlePaths: string[] = [];
+      if (reader.rootReal) {
+        try {
+          handlePaths = await openHandle(hint.agentPids, reader.rootReal);
+        } catch {
+          handlePaths = [];
+        }
+      }
+      const usage = provider.collect(hint, reader, handlePaths);
       const stats = reader.lastStats;
       if (stats) {
         bytesRead = stats.bytesRead;

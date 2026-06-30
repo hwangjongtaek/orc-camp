@@ -26,8 +26,14 @@ export function makeCodexProvider(root: string = defaultCodexRoot()): UsageProvi
   return {
     id: 'codex',
     root,
-    collect(_hint: UsageLocateHint, _reader: ConfinedReader): OrcUsage | null {
-      // STUB (Q1): usage-payload keys unverified → return null (no guessing).
+    collect(
+      _hint: UsageLocateHint,
+      _reader: ConfinedReader,
+      _openHandlePaths: string[],
+    ): OrcUsage | null {
+      // STUB (Q1, A2 CONDITIONAL GO): usage-payload keys unverified → return null (no guessing).
+      // The open-handle paths are intentionally ignored here too — Codex stays null until §4.4
+      // (a)~(e) are confirmed by ConfinedReader measurement.
       return null;
     },
   };

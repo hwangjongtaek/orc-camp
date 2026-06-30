@@ -12,8 +12,17 @@ export interface UsageProvider {
   readonly id: AgentType;
   /** Code-fixed allowlist root for this provider (e.g. ~/.claude/projects). */
   readonly root: string;
-  /** Locate + parse this orc's session log via the confined reader; null on any doubt. Sync. */
-  collect(hint: UsageLocateHint, reader: ConfinedReader): OrcUsage | null;
+  /**
+   * Locate + parse this orc's session log via the confined reader; null on any doubt. SYNC —
+   * the async open-handle (fd) correlation runs in the COLLECTOR, which pre-resolves the candidate
+   * paths and passes them in. `openHandlePaths` are already filtered to ABSOLUTE, in-root,
+   * `.jsonl` paths ([] when none/unavailable); the provider re-validates on read (SPEC-008 §4.2a).
+   */
+  collect(
+    hint: UsageLocateHint,
+    reader: ConfinedReader,
+    openHandlePaths: string[],
+  ): OrcUsage | null;
 }
 
 // ---------------------------------------------------------------------------

@@ -77,6 +77,7 @@ describe('SPEC-008-AC-02 — non-leak through the full scan pipeline', () => {
       roots: { claudeProjects: root },
       getUid: () => CURRENT_UID,
       onDebug: (e) => debug.push(e),
+      openHandle: async () => [], // offline: explicit --resume id correlates the file; no live lsof
     });
     const { deps } = makeDeps(claudeScenario(), CLOCK, collectUsage);
     const result = await new ScanRunner(deps).scanOnce();

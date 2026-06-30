@@ -420,6 +420,10 @@ export interface UsageLocateHint {
   agentType: AgentType; // selects the provider; 'unknown' → null
   cwd: string; // redacted #{pane_current_path} (SPEC-006 §2.3) — encoded-dir derivation
   processTreeCommands: string[]; // redacted subtree node argv (SPEC-002 §2.9) — explicit session-id source
+  // SPEC-008 §4.2a — this pane's OWN subtree pids (processTree node pids; agent-runtime nodes
+  // included). NUMBERS only (redaction-irrelevant). Empty when processTree is null → open-handle
+  // correlation is skipped. NEVER carries a pid outside this pane's subtree (T-U11).
+  agentPids: number[];
   lastActivityAt: string; // ISO 8601 — recency correlation signal
 }
 

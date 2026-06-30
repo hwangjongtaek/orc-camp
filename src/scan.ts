@@ -37,7 +37,7 @@ import { makeProcessSnapshot } from './tmux/introspect';
 import { redact, sanitizeCapture } from './redaction/redact';
 import { detectOrc as defaultDetectOrc, defaultDetectors } from './detection/detect';
 import { inferStatus as defaultInferStatus } from './status/infer';
-import { defaultUsageCollector } from './usage/collect';
+import { makeUsageCollector } from './usage/collect';
 
 export interface ScanRuntimeDeps {
   tmuxExec: TmuxExecFn;
@@ -64,7 +64,9 @@ export function createDefaultDeps(spawn: ProcessSpawn = safeSpawn): ScanRuntimeD
     detectOrc: defaultDetectOrc,
     inferStatus: defaultInferStatus,
     detectors: defaultDetectors,
-    collectUsage: defaultUsageCollector,
+    // Build the usage collector with the SAME hardened spawn as `ps`, so the SPEC-008 §4.2a
+    // open-handle (lsof) locator inherits shell:false + fixed argv + timeout (G9).
+    collectUsage: makeUsageCollector({ spawn }),
     now: () => new Date(),
   };
 }
