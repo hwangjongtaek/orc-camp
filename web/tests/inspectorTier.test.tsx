@@ -67,17 +67,17 @@ describe('SPEC-302 OrcInspector prestige tier readout', () => {
   });
 
   it('AC-14: usage=null + uptime → latched tier badge + uptime basis note (§3.7)', () => {
-    // No token/cost correlation, but the agent process has been up 8000s → uptime tier 1.
-    seed([makeOrc({ paneId: 'p1', agentType: 'claude-code', usage: null, uptimeSec: 8000 })]);
+    // No token/cost correlation, but the agent process has been up ~1 day → uptime tier 1.
+    seed([makeOrc({ paneId: 'p1', agentType: 'claude-code', usage: null, uptimeSec: 90_000 })]);
     useStore.getState().reconcilePrestige([
-      { id: 'pane:p1', characterKey: 'orc-claude-storm-shaman', hasPrestige: true, usage: null, uptimeSec: 8000 },
+      { id: 'pane:p1', characterKey: 'orc-claude-storm-shaman', hasPrestige: true, usage: null, uptimeSec: 90_000 },
     ]);
     const c = renderInspector('pane:p1');
     const badge = c.querySelector('.oc-tier-badge');
     expect(badge).not.toBeNull();
     expect(badge!.textContent).toContain('T1');
     expect(c.textContent).toContain('uptime'); // basis = uptime, not tokens/cost
-    expect(c.textContent).toContain('2.2h'); // 8000s → 2.2h
+    expect(c.textContent).toContain('1.0d'); // 90000s → 1.0d
   });
 
   it('does not show a tier badge when no orc is selected', () => {

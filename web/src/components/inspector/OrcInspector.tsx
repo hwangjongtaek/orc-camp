@@ -251,8 +251,9 @@ function fmtTokens(n: number): string {
   return String(n);
 }
 
-/** Compact uptime for the tier basis note (SPEC-302 §3.7): 8000 → "2.2h", 2700 → "45m", 30 → "30s". */
+/** Compact uptime for the tier basis note (SPEC-302 §3.7): 604800 → "7.0d", 8000 → "2.2h", 2700 → "45m". */
 function fmtUptime(sec: number): string {
+  if (sec >= 86_400) return `${(sec / 86_400).toFixed(1)}d`;
   if (sec >= 3600) return `${(sec / 3600).toFixed(1)}h`;
   if (sec >= 60) return `${Math.round(sec / 60)}m`;
   return `${Math.round(sec)}s`;

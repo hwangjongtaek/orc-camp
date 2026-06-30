@@ -118,20 +118,20 @@ describe('SPEC-302 §3.1/§3.2 rawTierForUsage', () => {
 
   it('AC-14: uptime fallback tiers + token/cost precedence (D-040 §3.7)', () => {
     const both = usage({ cumulativeTokens: null, cumulativeCostUsd: null });
-    // uptime tiers, boundaries inclusive (3600/14400/43200s); null uptime → 0
-    expect(rawTierForUsage(both, 1800)).toBe(0);
-    expect(rawTierForUsage(both, 3600)).toBe(1);
-    expect(rawTierForUsage(both, 14_400)).toBe(2);
-    expect(rawTierForUsage(both, 43_200)).toBe(3);
+    // uptime tiers, day-scale boundaries inclusive (86400/259200/604800s = 1d/3d/7d); null → 0
+    expect(rawTierForUsage(both, 86_399)).toBe(0); // just under 1 day
+    expect(rawTierForUsage(both, 86_400)).toBe(1); // 1 day
+    expect(rawTierForUsage(both, 259_200)).toBe(2); // 3 days
+    expect(rawTierForUsage(both, 604_800)).toBe(3); // 7 days
     expect(rawTierForUsage(both, null)).toBe(0);
     // usage entirely null also falls through to the uptime axis
-    expect(rawTierForUsage(null, 43_200)).toBe(3);
+    expect(rawTierForUsage(null, 604_800)).toBe(3);
     expect(rawTierForUsage(null, null)).toBe(0);
     // precedence: a present token count beats a higher uptime tier (uptime ignored)
-    expect(rawTierForUsage(usage({ cumulativeTokens: 150_000 }), 43_200)).toBe(1);
-    expect(rawTierForUsage(usage({ cumulativeTokens: 0 }), 43_200)).toBe(0);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 150_000 }), 604_800)).toBe(1);
+    expect(rawTierForUsage(usage({ cumulativeTokens: 0 }), 604_800)).toBe(0);
     // precedence: present cost (even below tier 1) wins over uptime → 0, uptime never consulted
-    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 1 }), 43_200)).toBe(0);
+    expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 1 }), 604_800)).toBe(0);
     expect(rawTierForUsage(usage({ cumulativeTokens: null, cumulativeCostUsd: 60 }), 0)).toBe(3);
   });
 });
