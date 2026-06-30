@@ -1,43 +1,53 @@
 /**
  * SPEC-301 — game-like camp MAP scene (replaces the static lane/slot CampScene).
  *
- * Layers (back→front, §2.7): background → terrain/ground → zone headers + station props →
- * orc layer (absolute OrcSprite buttons). Everything lives in one fixed-aspect logical
- * coordinate layer scaled as a single unit (zero layout shift on resize, §3.2). Orc
+ * Layers (back→front, §2.7): full-cover background image → ground decor → zone headers +
+ * station props → orc layer (absolute OrcSprite buttons). Everything lives in one fixed-aspect
+ * logical coordinate layer scaled as a single unit (zero layout shift on resize, §3.2). Orc
  * positions are the deterministic computeLayout() targets; movement is driven by the shared
  * RoamingController on the single shared clock.
  *
  * Keyboard (AC-09): each zone is ONE roving-tabindex group (one tab stop). Tab moves
  * between zones, Arrow moves within the focused zone (row-major order), Enter/Space selects
- * (→ ?orc=). Placeholder parity (AC-10): a missing background/terrain degrades to a CSS
- * ground; missing props degrade to CSS station markers at identical coordinates.
+ * (→ ?orc=). Placeholder parity (AC-10): a missing background image degrades to a CSS
+ * gradient ground; missing props degrade to CSS station markers at identical coordinates.
  */
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useAssets } from '../../assets/AssetContext';
 import { useStore } from '../../store/store';
 import { computeLayout, type OrcMapInput } from '../../scene/layout';
+import { groundFromBackground, clampToRect } from '../../scene/ground';
 import { getTime } from '../../scene/clock';
 import { RoamingController } from '../../scene/roaming';
-import { parallaxTransform } from '../../scene/terrain';
-import { BASE_SCALE, MAP_SPRITE_SCALE } from '../../scene/stations';
+import { computeCells, gatherArea, type Cell } from '../../scene/spacing';
+import { buildSpeechPool } from '../../scene/speech';
+import { characterKeyMap, resolveCharacterKey } from '../../assets/spriteResolver';
+import { thresholdsForCharacter, type OrcTierObservation } from '../../assets/prestige';
 import {
-  DRAG_THRESHOLD,
-  fitScale,
-  scrollForZoom,
-  zoomIn,
-  zoomOut,
-} from '../../scene/panzoom';
+  BASE_SCALE,
+  GROUND_SPRITE_SCALE,
+  MAP_SPRITE_SCALE,
+  PATROL_MARGIN,
+  type Rect,
+  type Vec2,
+} from '../../scene/stations';
+import { DRAG_THRESHOLD } from '../../scene/panzoom';
 import type { Orc } from '../../types/domain';
 import { OrcSprite } from '../sprite/OrcSprite';
 import { StationLayer } from './StationLayer';
 import { BackdropLayer } from './BackdropLayer';
-import { TerrainLayer } from './TerrainLayer';
 import { DecorLayer } from './DecorLayer';
+import { MonsterSprite } from './MonsterSprite';
+import { MonsterController, resolveMonsterVariant, monsterScaleFor } from '../../scene/monster';
 
 const EMPTY: string[] = [];
 
 const ARROW_NEXT = new Set(['ArrowRight', 'ArrowDown']);
 const ARROW_PREV = new Set(['ArrowLeft', 'ArrowUp']);
+
+// Inset (logical px) the orc-gather area keeps from the viewport edges so a clustered orc near the
+// edge still reads fully on-screen when the map is narrowed (50/50 & 30/70 layout modes).
+const GATHER_PAD = 48;
 
 function toInput(o: Orc): OrcMapInput {
   return { id: o.id, paneId: o.paneId, windowIndex: o.windowIndex, status: o.status };
@@ -47,23 +57,35 @@ export function CampMap({
   campId,
   selectedOrcId,
   onSelect,
+  onDeselect,
 }: {
   campId: string;
   selectedOrcId: string | null;
   onSelect: (orcId: string) => void;
+  /** #51 — clear the selection when the user clicks empty map space. */
+  onDeselect?: () => void;
 }): JSX.Element {
   const orcIds = useStore((s) => s.server.orcIdsByCamp[campId] ?? EMPTY);
   const version = useStore((s) => s.server.snapshotVersion);
   const reducedMotion = useStore((s) => s.reducedMotion);
+  // §3.1-11 — user drag-and-drop placements (logical world coords), keyed by orcId.
+  const orcPositions = useStore((s) => s.ui.orcPositions);
+  const setOrcPosition = useStore((s) => s.setOrcPosition);
   const { manifest, assetBase } = useAssets();
 
-  // §3.1-9 (#43) — ambient micro-wander is ON by default so an idle camp gently "breathes"
-  // (subtle, deterministic, reduced-motion-disabled inside the controller; jitter affects
-  // renderedPos only — target/slot/layout are untouched, so no AC outcome changes).
+  // §3.1-9/§3.1-10 — ambient micro-wander AND the active patrol loop are ON in the live map: an
+  // idle camp gently "breathes", active orcs patrol (roam ↔ active), and non-active orcs settle
+  // at seeded rest spots near their station. All are deterministic, reduced-motion-disabled inside
+  // the controller, and affect renderedPos only (target/slot/layout untouched → no AC changes).
   const controllerRef = useRef<RoamingController | null>(null);
   if (controllerRef.current === null)
-    controllerRef.current = new RoamingController({ ambientWander: true });
+    controllerRef.current = new RoamingController({ ambientWander: true, patrol: true });
   const controller = controllerRef.current;
+
+  // Measured size (logical px == css px at BASE_SCALE) of the on-screen map viewport. Tracked with a
+  // ResizeObserver below; it changes when the user switches layout mode (Full / 50:50 / 30:70) or
+  // resizes the window, and drives the orc-gather area so orcs re-cluster to fit the visible map.
+  const [viewport, setViewport] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
 
   // Read the live orcs for this camp (re-derived per applied version).
   const orcs = useMemo(() => {
@@ -72,19 +94,188 @@ export function CampMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orcIds, version]);
 
-  const layout = useMemo(() => computeLayout(orcs.map(toInput)), [orcs]);
+  // The active background = user-selected override (detail-panel switcher) else the manifest scene
+  // default. Switching it swaps both the image AND its ground (each background carries its own).
+  const backgroundRef = useStore((s) => s.ui.backgroundRef);
+  const activeBgRef = backgroundRef ?? manifest?.scene?.backdrop?.background_ref ?? null;
+  const activeBg = activeBgRef ? manifest?.backgrounds?.[activeBgRef] ?? null : null;
+
+  // §2.1 image-ground mode: if the active background declares a walkable polygon, the image IS the
+  // world (native size, drag-pan) and orcs are placed inside the ground; otherwise the legacy
+  // zone-grid world is used. Derived from the manifest, so it's stable across data refreshes.
+  const ground = useMemo(() => groundFromBackground(activeBg), [activeBg]);
+  const spriteScale = ground ? GROUND_SPRITE_SCALE : MAP_SPRITE_SCALE;
+
+  // SPEC-303 (Phase 1) — the active background's epic monster NPC: an ambient, non-interactive
+  // boss that continuously roams the ground polygon (roaming animation only; dwell/error are
+  // Phase 2). Resolved from the manifest (status-gated); only rendered in image-ground mode.
+  const monster = useMemo(() => resolveMonsterVariant(manifest, activeBgRef), [manifest, activeBgRef]);
+  const monsterScale = monsterScaleFor(activeBgRef);
+  const monsterControllerRef = useRef<MonsterController | null>(null);
+  if (monsterControllerRef.current === null) monsterControllerRef.current = new MonsterController();
+  const monsterController = monsterControllerRef.current;
+  useEffect(() => {
+    const frameEdge = monster?.def.frame_size?.[0] ?? 256;
+    monsterController.sync(
+      ground && monster ? monster.key : null,
+      ground,
+      frameEdge,
+      monsterScale,
+      getTime(),
+      { reducedMotion },
+    );
+  }, [ground, monster, monsterScale, reducedMotion, monsterController]);
+
+  const layout = useMemo(() => computeLayout(orcs.map(toInput), ground), [orcs, ground]);
   const { world } = layout.dims;
 
-  // Drive the movement controller from the deterministic targets (§3.1).
+  // §2.4b (#51) — personal-space bubble: lay a non-overlapping grid over the walkable area and
+  // give each orc one cell. In image-ground mode one grid spans the (gathered) safe area; in
+  // zone-grid mode each zone gets its own grid over its inner rect. The orc's home = its cell
+  // CENTER and its patrol/rest clamp bound = its cell RECT, so motion is confined to the cell and
+  // adjacent orcs never overlap — while cells distribute orcs across the visible map (#50 spread).
+  //
+  // The grid spans `gatherArea(safeArea, viewport)`: when the map is narrowed (50/50 / 30/70
+  // layout modes) the cells re-pack into the centered visible band so the orcs GATHER on-screen
+  // instead of being pushed off the right edge. At full width it equals the whole safe area, so
+  // the original spread is preserved.
+  const cellByOrc = useMemo(() => {
+    const m = new Map<string, Cell>();
+    if (ground) {
+      const cells = computeCells(gatherArea(ground.safeArea, viewport, GATHER_PAD), orcs.length);
+      orcs.forEach((o, i) => {
+        const c = cells[i];
+        if (c) m.set(o.id, c);
+      });
+    } else {
+      const byZone = new Map<number, string[]>();
+      for (const o of orcs) {
+        const zi = layout.targets.get(o.id)?.zoneIndex ?? 0;
+        const list = byZone.get(zi) ?? [];
+        list.push(o.id);
+        byZone.set(zi, list);
+      }
+      for (const [zi, ids] of byZone) {
+        const inner = layout.zones[zi]?.inner;
+        if (!inner) continue;
+        const cells = computeCells(inner, ids.length);
+        ids.forEach((id, i) => {
+          const c = cells[i];
+          if (c) m.set(id, c);
+        });
+      }
+    }
+    return m;
+  }, [orcs, layout, ground, viewport]);
+
+  // §3.1-11 — the walkable bound an orc patrols/rests within: the whole ground safe area
+  // (image-ground) or the orc's zone inner rect (zone-grid). Used to keep a drag-dropped orc on the
+  // walkable ground (a placed orc is no longer confined to its auto-assigned cell).
+  const walkBoundFor = (orcId: string): Rect | undefined => {
+    if (ground) return ground.safeArea;
+    const zi = layout.targets.get(orcId)?.zoneIndex ?? 0;
+    return layout.zones[zi]?.inner;
+  };
+
+  // The orc's home: a user drag-drop placement (clamped onto the walkable ground) wins over the
+  // auto-assigned cell center (§3.1-11); else the cell center (§2.4b); else the layout target. A
+  // placed orc is `pinned` → it rests EXACTLY at the drop (no patrol/rest offset, no cell-clamp).
+  const homeFor = (
+    orcId: string,
+  ): { home: Vec2; bound: Rect | undefined; pinned: boolean } => {
+    const cell = cellByOrc.get(orcId);
+    const manual = orcPositions[orcId];
+    if (manual) {
+      const walk = walkBoundFor(orcId);
+      return {
+        home: walk ? clampToRect(manual, walk, PATROL_MARGIN) : manual,
+        bound: undefined, // pinned → no bound-clamp
+        pinned: true,
+      };
+    }
+    return {
+      home: cell?.center ?? layout.targets.get(orcId)?.target ?? { x: 0, y: 0 },
+      bound: cell?.rect,
+      pinned: false,
+    };
+  };
+
+  // Drive the movement controller from the per-orc cells / placements (§2.4b / §3.1 / §3.1-11).
   useEffect(() => {
-    const entries = orcs.map((o) => ({
-      id: o.id,
-      paneId: o.paneId, // §3.1-9 wander seed (authority paneId, reindex-stable)
-      status: o.status,
-      target: layout.targets.get(o.id)?.target ?? { x: 0, y: 0 },
-    }));
+    const entries = orcs.map((o) => {
+      const { home, bound, pinned } = homeFor(o.id);
+      return {
+        id: o.id,
+        paneId: o.paneId, // §3.1-9 wander seed (authority paneId, reindex-stable)
+        status: o.status,
+        target: home,
+        pinned, // §3.1-11 user-placed → rests exactly at the drop
+        ...(bound !== undefined ? { bound } : {}), // §2.4b patrol/rest clamp (auto-placed only)
+      };
+    });
     controller.sync(entries, getTime(), { reducedMotion });
-  }, [layout, orcs, reducedMotion, controller]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cellByOrc, orcs, reducedMotion, controller, layout, orcPositions, ground]);
+
+  // §3.1-11 — commit a drag-and-drop drop: clamp the drop onto the walkable ground, snap the orc
+  // there immediately (no walk-back from its old home), and persist the placement so it resumes
+  // its activity/waiting at the new spot and survives live data refreshes.
+  const onMoveOrc = (orcId: string, pos: Vec2): void => {
+    const walk = walkBoundFor(orcId);
+    const clamped = walk ? clampToRect(pos, walk, PATROL_MARGIN) : pos;
+    controller.place(orcId, clamped, getTime());
+    setOrcPosition(orcId, clamped);
+  };
+
+  // SPEC-300 §2.3 — sequential character assignment: the camp's orcs cycle through the available
+  // character pool in reading order (orcs are pre-sorted by windowIndex/paneIndex), so adjacent
+  // orcs look different regardless of agent type. Stable across data refreshes (paneId order).
+  const characterByOrc = useMemo(
+    () => characterKeyMap(orcs.map((o) => o.id), manifest),
+    [orcs, manifest],
+  );
+
+  // SPEC-302 §3.2 — reconcile the monotonic prestige-tier latch against the orcs currently on this
+  // map. Each observation is keyed on the SAME resolved character the sprite renders (composite
+  // (id, resolvedCharacterKey) parity) and gated on that character carrying a `prestige` block; an
+  // id leaving `orcs` (or a pool reassignment changing its key) resets its latch (§3.2 reset i/ii).
+  // The latch lives in the store (client display state); OrcSprite reads `displayedTierById`.
+  const reconcilePrestige = useStore((s) => s.reconcilePrestige);
+  const displayedTierById = useStore((s) => s.prestige.displayedTierById);
+  const prestigeObservations = useMemo<OrcTierObservation[]>(
+    () =>
+      orcs.map((o) => {
+        const resolvedKey = resolveCharacterKey(manifest, characterByOrc.get(o.id), o.agentType);
+        const def = resolvedKey ? manifest?.characters[resolvedKey] : undefined;
+        return {
+          id: o.id,
+          characterKey: resolvedKey,
+          hasPrestige: !!def?.prestige,
+          usage: o.usage,
+          uptimeSec: o.uptimeSec, // §3.7 uptime fallback axis (used only when usage axes are null)
+          thresholds: thresholdsForCharacter(def),
+        };
+      }),
+    [orcs, characterByOrc, manifest],
+  );
+  useEffect(() => {
+    reconcilePrestige(prestigeObservations);
+  }, [prestigeObservations, reconcilePrestige]);
+
+  // §2.6b (#50) — per-orc word pool for intermittent ambient speech: built from the orc's
+  // preview/summary text (the "preview words" the bubbles randomly combine), plus command/cwd as
+  // supplementary tokens. Re-derived per applied snapshot version.
+  const speechByOrc = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const o of orcs) {
+      m.set(
+        o.id,
+        buildSpeechPool(o.currentWorkSummary, o.preview?.text?.join(' '), o.command, o.cwd),
+      );
+    }
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orcs, version]);
 
   // --- per-zone roving tabindex (AC-09) ---
   const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -154,77 +345,50 @@ export function CampMap({
   // This ref is ALSO the IntersectionObserver root for the off-screen sprite gate (§3.3-3),
   // so sprites scrolled out of the world are correctly frozen.
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const backdropRef = useRef<HTMLDivElement | null>(null);
 
-  // §2.8a — backdrop parallax: on scroll, translate the backdrop by scroll×parallax (slower
-  // than the 1× terrain) for depth. TRANSFORM-only (no layout/scroll mutation → CLS 0, AC-16);
-  // reduced-motion pins it (parallaxTransform returns translate(0,0), AC-19). Data refresh does
-  // not touch scroll, so parallax state is stable across WS batches.
-  const parallax = manifest?.scene?.backdrop?.parallax ?? 0.3;
-  const hasBackdrop = Boolean(
-    manifest?.scene?.backdrop?.background_ref &&
-      manifest?.backgrounds?.[manifest.scene.backdrop.background_ref]?.file,
-  );
-  useEffect(() => {
-    const vp = containerRef.current;
-    const bd = backdropRef.current;
-    if (!vp || !bd) return;
-    const apply = (): void => {
-      bd.style.transform = parallaxTransform(vp.scrollLeft, vp.scrollTop, parallax, reducedMotion);
-    };
-    apply();
-    vp.addEventListener('scroll', apply, { passive: true });
-    return () => vp.removeEventListener('scroll', apply);
-  }, [parallax, reducedMotion, orcs.length, hasBackdrop]);
+  // §2.6b/§2.8a — the background image covers the whole world (background-size: cover) and is
+  // pinned to it (no parallax: a transformed full-cover image would reveal uncovered edges on
+  // scroll). When no background image is declared, a CSS gradient ground is the fallback ground
+  // (placeholder parity, §3.4 / AC-20). Resolution is asset-independent → zero layout shift.
+  const hasBackdrop = Boolean(activeBg?.file);
 
-  // §2.7 (#42) — viewport zoom. scale() is applied to .oc-map__world AND the world box size is
-  // multiplied by `scale`, so the scroller's scrollWidth/Height track the visual size (scroll
-  // math stays exact). The scale is a pure visual transform — logical coords / §2.5 targets are
-  // unchanged → zero layout shift (AC-08). reduced-motion is automatically instant: we never
-  // animate the transform.
-  const [scale, setScale] = useState(1);
-  const scaleRef = useRef(1);
-  const pendingScrollRef = useRef<{ left: number; top: number } | null>(null);
-
-  const applyScale = useCallback((next: number) => {
-    const sc = containerRef.current;
-    if (sc) {
-      const anchor = { x: sc.clientWidth / 2, y: sc.clientHeight / 2 };
-      pendingScrollRef.current = scrollForZoom(
-        { left: sc.scrollLeft, top: sc.scrollTop },
-        scaleRef.current,
-        next,
-        anchor,
-      );
-    }
-    setScale(next);
-  }, []);
-
-  // After the scaled world box is in the DOM, restore the scroll so the viewport CENTER stays
-  // put across the zoom (the browser clamps negative/overflowing offsets into the valid range).
+  // Track the on-screen viewport size so the orc-gather area follows the map width. A
+  // ResizeObserver fires on layout-mode switches (Full / 50:50 / 30:70) and window resizes; sizes
+  // are rounded so sub-pixel jitter never thrashes the memoized cell layout.
   useLayoutEffect(() => {
-    scaleRef.current = scale;
-    const sc = containerRef.current;
-    const p = pendingScrollRef.current;
-    if (sc && p) {
-      sc.scrollLeft = Math.max(0, p.left);
-      sc.scrollTop = Math.max(0, p.top);
-      pendingScrollRef.current = null;
-    }
-  }, [scale]);
-
-  const onZoomIn = useCallback(() => applyScale(zoomIn(scaleRef.current)), [applyScale]);
-  const onZoomOut = useCallback(() => applyScale(zoomOut(scaleRef.current)), [applyScale]);
-  const onFit = useCallback(() => {
     const sc = containerRef.current;
     if (!sc) return;
-    applyScale(
-      fitScale(
-        { w: world.w * BASE_SCALE, h: world.h * BASE_SCALE },
-        { w: sc.clientWidth, h: sc.clientHeight },
-      ),
-    );
-  }, [applyScale, world.w, world.h]);
+    const measure = (): void => {
+      const w = Math.round(sc.clientWidth);
+      const h = Math.round(sc.clientHeight);
+      setViewport((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(sc);
+    return () => ro.disconnect();
+  }, []);
+
+  // §2.1 image-ground mode — the image world (2× the native background, fixed) is bigger than the
+  // viewport, so center the viewport on the walkable ground (instead of the top-left sky). Re-runs
+  // per (camp, background, viewport SIZE): switching the background OR the layout mode re-centers
+  // on the (now-gathered) ground; the user's drag-pan within a given size is preserved.
+  const centeredKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const sc = containerRef.current;
+    const key = `${campId}:${activeBgRef ?? ''}:${viewport.w}x${viewport.h}`;
+    if (!sc || !ground || viewport.w === 0 || centeredKeyRef.current === key) return;
+    const cx = ground.safeArea.x + ground.safeArea.w / 2;
+    const cy = ground.safeArea.y + ground.safeArea.h / 2;
+    sc.scrollLeft = Math.max(0, cx - sc.clientWidth / 2);
+    sc.scrollTop = Math.max(0, cy - sc.clientHeight / 2);
+    centeredKeyRef.current = key;
+  }, [ground, campId, activeBgRef, viewport]);
+
+  // §2.7 — NO zoom. The world is rendered at a fixed scale (BASE_SCALE); the background is shown
+  // at its fixed 2× world size (orcs at original sprite size) and the user explores ONLY by
+  // drag-pan. (Sprite/coord sizes are layout constants → zero layout shift.)
 
   // §2.7 (#42) — drag-to-pan. Mouse/pen drag on the map BACKGROUND pans scrollLeft/Top; a small
   // threshold means a stationary press is still a click (so orc selection survives). We never
@@ -234,9 +398,13 @@ export function CampMap({
   const panRef = useRef<
     { x: number; y: number; left: number; top: number; id: number; active: boolean } | null
   >(null);
+  // #51 — a drag-pan ends with a synthetic click; suppress the next click's deselect so panning
+  // never clears the selection. Reset at the start of every fresh gesture.
+  const suppressClickRef = useRef(false);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>): void => {
     if (e.pointerType === 'touch' || e.button !== 0) return;
+    suppressClickRef.current = false;
     if ((e.target as HTMLElement).closest('button, a, input, [role="dialog"]')) return;
     const sc = containerRef.current;
     if (!sc) return;
@@ -259,6 +427,7 @@ export function CampMap({
     if (!p.active) {
       if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return; // below threshold → keep it a click
       p.active = true;
+      suppressClickRef.current = true; // a real drag → don't let the trailing click deselect
       sc.setPointerCapture?.(p.id);
       sc.classList.add('oc-map__scroll--panning');
     }
@@ -277,6 +446,17 @@ export function CampMap({
     panRef.current = null;
   };
 
+  // #51 — click on empty map space clears the selection. Clicks on an orc/control (or the trailing
+  // click after a drag-pan) are ignored, so selecting/panning is unaffected.
+  const onBackgroundClick = (e: React.MouseEvent<HTMLDivElement>): void => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    if ((e.target as HTMLElement).closest('button, a, input, [role="dialog"]')) return;
+    onDeselect?.();
+  };
+
   if (orcs.length === 0) {
     return (
       <div className="oc-scene">
@@ -292,7 +472,8 @@ export function CampMap({
     <div className="oc-map">
       {/* §2.7 — the .oc-map__scroll element IS the fixed on-screen viewport; it scrolls/pans
           over the large world. It is also the IntersectionObserver root (§3.3-3) and the
-          drag-to-pan surface (#42). The zoom controls live OUTSIDE it so they stay pinned. */}
+          drag-to-pan surface (#42). No zoom: the world renders at a fixed scale and the user
+          explores only by drag-pan. */}
       <div
         className="oc-map__scroll"
         ref={containerRef}
@@ -300,33 +481,27 @@ export function CampMap({
         onPointerMove={onPointerMove}
         onPointerUp={endPan}
         onPointerCancel={endPan}
+        onClick={onBackgroundClick}
       >
         <div
           className="oc-map__world"
           role="group"
           aria-label="Camp map"
           style={{
-            width: `${world.w * BASE_SCALE * scale}px`,
-            height: `${world.h * BASE_SCALE * scale}px`,
-            transform: `scale(${scale})`,
+            width: `${world.w * BASE_SCALE}px`,
+            height: `${world.h * BASE_SCALE}px`,
           }}
         >
-          {/* z-stack (§2.7 ①→⑫): backdrop → ground/terrain → decor → stations → sprites →
-              dusk lighting. Depth layers stay below status overlay/label/raw target. */}
-          <BackdropLayer ref={backdropRef} manifest={manifest} assetBase={assetBase} />
-        <div
-          className={`oc-map__ground${hasBackdrop ? ' oc-map__ground--glaze' : ''}`}
-          aria-hidden="true"
-        />
-        <TerrainLayer
-          zones={layout.zones}
-          world={world}
-          manifest={manifest}
-          assetBase={assetBase}
-        />
-        <DecorLayer zones={layout.zones} manifest={manifest} assetBase={assetBase} />
+          {/* z-stack (§2.7 ①→⑫): full-cover background image → decor → stations → sprites →
+              dusk lighting. Depth layers stay below status overlay/label/raw target. The
+              background image IS the ground; the CSS gradient ground is only a fallback when no
+              background image is declared (placeholder parity, §3.4 / AC-20). In image-ground
+              mode the image carries its own scenery, so the CSS decor/station layers are skipped. */}
+          <BackdropLayer manifest={manifest} assetBase={assetBase} backgroundRef={activeBgRef} />
+        {!hasBackdrop && <div className="oc-map__ground" aria-hidden="true" />}
+        {!ground && <DecorLayer zones={layout.zones} manifest={manifest} assetBase={assetBase} />}
 
-        <StationLayer zones={layout.zones} manifest={manifest} assetBase={assetBase} />
+        {!ground && <StationLayer zones={layout.zones} manifest={manifest} assetBase={assetBase} />}
 
         <div className="oc-map__orcs">
           {orcs.map((o) => {
@@ -341,15 +516,18 @@ export function CampMap({
                 key={o.id}
                 orcId={o.id}
                 agentType={o.agentType}
+                characterKey={characterByOrc.get(o.id)}
+                displayedTier={displayedTierById[o.id] ?? 0}
                 status={o.status}
                 statusConfidence={o.statusConfidence}
                 tmuxTarget={o.tmuxTarget}
                 currentWorkSummary={o.currentWorkSummary}
                 summarySource={o.summarySource}
                 summaryIsEstimated={o.summaryIsEstimated}
-                target={t?.target ?? { x: 0, y: 0 }}
+                speechWords={speechByOrc.get(o.id)}
+                target={homeFor(o.id).home}
                 controller={controller}
-                mapSpriteScale={MAP_SPRITE_SCALE}
+                mapSpriteScale={spriteScale}
                 scrollRootRef={containerRef}
                 selected={o.id === selectedOrcId}
                 tabIndex={tabIndex}
@@ -357,40 +535,33 @@ export function CampMap({
                 onFocusOrc={onFocusOrc}
                 onKeyNav={onKeyNav}
                 registerButton={registerButton}
+                onMoveOrc={onMoveOrc}
               />
             );
           })}
         </div>
+
+        {/* SPEC-303 — the epic monster renders ABOVE the orc sprites (user request: orcs are
+            smaller, so showing them beneath the larger monster reads fine). Same z-plane as orcs
+            (--oc-z-map-orc) but later in DOM ⇒ painted on top; still non-interactive
+            (pointer-events:none) and below the dusk lighting vignette. */}
+        {ground && monster && (
+          <MonsterSprite
+            def={monster.def}
+            controller={monsterController}
+            orcController={controller}
+            orcIds={orcs.map((o) => o.id)}
+            assetBase={assetBase}
+            scale={monsterScale}
+            reducedMotion={reducedMotion}
+          />
+        )}
 
           {/* §2.8d — single static dusk lighting/vignette overlay. Tokens-only, pointer-events
               none, above sprites but BELOW status overlay/label/raw target (§2.7 ⑧). No
               pulsing animation → reduced-motion safe (AC-19). */}
           <div className="oc-map__lighting" aria-hidden="true" data-testid="map-lighting" />
         </div>
-      </div>
-
-      {/* §2.7 (#42) — keyboard-accessible zoom/fit control, pinned to the viewport corner
-          (outside the scroller so it never scrolls away). Reduced-motion: instant. */}
-      <div
-        className="oc-map__controls"
-        role="group"
-        aria-label="Map zoom controls"
-        data-testid="map-controls"
-      >
-        <button type="button" className="oc-btn oc-map__ctrl" aria-label="Zoom out" onClick={onZoomOut}>
-          −
-        </button>
-        <button type="button" className="oc-btn oc-map__ctrl" aria-label="Zoom in" onClick={onZoomIn}>
-          +
-        </button>
-        <button
-          type="button"
-          className="oc-btn oc-map__ctrl"
-          aria-label="Fit camp to view"
-          onClick={onFit}
-        >
-          Fit
-        </button>
       </div>
     </div>
   );

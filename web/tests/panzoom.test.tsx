@@ -21,7 +21,6 @@ import {
   zoomIn,
   zoomOut,
 } from '../src/scene/panzoom';
-import { ZONE_W, ZONE_H } from '../src/scene/stations';
 import { makeCamp, makeOrc, makeScan } from './fixtures';
 import type { Orc } from '../src/types/domain';
 
@@ -157,42 +156,16 @@ describe('SPEC-301 §2.7 #42 drag-to-pan', () => {
   });
 });
 
-describe('SPEC-301 §2.7 #42 zoom + fit controls', () => {
-  it('zoom out / in change the world scale deterministically + keep scroll math (box scales too)', () => {
+describe('SPEC-301 §2.7 no-zoom: fixed scale, drag-pan only', () => {
+  it('the world renders at a fixed scale (no transform) and exposes no zoom/fit controls', () => {
     const campId = seed([makeOrc({ paneId: '%1', windowIndex: 0, status: 'idle', tmuxTarget: 'w:0.0' })]);
     const { container, world } = renderMap(campId);
-    instrumentScroller(container.querySelector('.oc-map__scroll') as HTMLElement);
-    expect(world.style.transform).toBe('scale(1)');
-    expect(parseFloat(world.style.width)).toBeCloseTo(ZONE_W, 1); // 1 window world = ZONE_W wide
-
-    fireEvent.click(container.querySelector('[aria-label="Zoom out"]')!);
-    expect(world.style.transform).toBe('scale(0.8)');
-    // box size is scaled with the transform so scrollWidth/Height track the visual size
-    expect(parseFloat(world.style.width)).toBeCloseTo(ZONE_W * 0.8, 1);
-    expect(parseFloat(world.style.height)).toBeCloseTo(ZONE_H * 0.8, 1);
-
-    fireEvent.click(container.querySelector('[aria-label="Zoom in"]')!);
-    expect(world.style.transform).toBe('scale(1)'); // 0.8 × 1.25 = 1 (deterministic)
-  });
-
-  it('Fit computes the scale from world / viewport', () => {
-    const campId = seed([makeOrc({ paneId: '%1', windowIndex: 0, status: 'idle', tmuxTarget: 'w:0.0' })]);
-    const { container, world } = renderMap(campId);
-    instrumentScroller(container.querySelector('.oc-map__scroll') as HTMLElement, { w: 800, h: 600 });
-    fireEvent.click(container.querySelector('[aria-label="Fit camp to view"]')!);
-    const expected = fitScale({ w: ZONE_W, h: ZONE_H }, { w: 800, h: 600 });
-    expect(parseFloat(world.style.transform.replace(/scale\(|\)/g, ''))).toBeCloseTo(expected, 4);
-    expect(expected).toBeGreaterThan(ZOOM_MIN);
-    expect(expected).toBeLessThanOrEqual(ZOOM_MAX);
-  });
-
-  it('zoom controls are keyboard-accessible <button>s with aria-labels', () => {
-    const campId = seed([makeOrc({ paneId: '%1', windowIndex: 0, status: 'idle', tmuxTarget: 'w:0.0' })]);
-    const { container } = renderMap(campId);
+    // no scale transform on the world box (fixed scale)
+    expect(world.style.transform).toBe('');
+    // the old zoom/fit control cluster is gone
+    expect(container.querySelector('[data-testid="map-controls"]')).toBeNull();
     for (const label of ['Zoom out', 'Zoom in', 'Fit camp to view']) {
-      const btn = container.querySelector(`[aria-label="${label}"]`) as HTMLButtonElement;
-      expect(btn).not.toBeNull();
-      expect(btn.tagName).toBe('BUTTON');
+      expect(container.querySelector(`[aria-label="${label}"]`)).toBeNull();
     }
   });
 });

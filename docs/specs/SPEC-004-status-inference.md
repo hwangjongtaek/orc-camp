@@ -145,11 +145,14 @@ band 경계 자체는 고정하되 구간 수치와 status별 base는 [[SPEC-007
 2. **`terminated`** — `lifecycle.paneDead == true`, **또는** `prior`에 있던 `paneId`가 이번 fresh inventory에서 사라짐, **또는** `panePid`가 더 이상 살아있지 않음(보조). → `terminated`(retention 규칙 §3.7).
 2b. **`terminated` (agent gone — liveness-gate, NEW)** — `lifecycle.agentProcessAlive == false`(subtree는 가용한데 **탐지된 agent 프로세스가 subtree에 없음**: 탐지가 stale pane title/scrollback banner 잔여뿐). pane/shell은 살아있어도 **그 agent의 lifecycle은 끝났다**. → `terminated`(S-AGONE, retention §3.7). 이 gate가 §3에서 **tail 상태(3)보다 먼저**여서, 이미 죽은 세션의 scrollback에 남은 error/prompt/변화로 `error`/`waiting`/`active`를 **잘못 단정하지 않는다**(precision/active FP 근본 수정).
 3. **tail 상태** — `recentOutput`이 있을 때, tail(말단 의미 영역)을 검사한다. **단, `agentProcessAlive == false`면 이 단계 전체를 건너뛴다(2b에서 이미 `terminated`)**:
-   - tail이 error/traceback/exception pattern이거나 비정상 exit → **`error`**.
-   - tail이 입력 대기 prompt pattern이고(차분 모드면) 내용 변화 없음 → **`waiting`**.
-   - 직전 대비 "의미 있는 내용 변화"가 있고 최근 활동 ≤ `T_active` → **`active`**. **`active` liveness-gate(확정)**: `active`는 `agentProcessAlive == true`일 때만 HIGH/일반 confidence로 확정한다. `agentProcessAlive == null`(subtree 미가용, 생존 입증 불가)이면 `active`를 **HIGH로 단정하지 않고** 약신호로만(≤ MEDIUM, §3.8 degrade) 둔다. `agentProcessAlive == false`는 2b에서 이미 걸러진다.
+   - **3a. `error`** — tail이 error/traceback/exception pattern이거나 비정상 exit → **`error`**.
+   - **3b. `active` (working indicator — S-WORK, NEW)** — tail에 agent가 **실제로 turn을 수행 중**임을 나타내는 TUI 자체 affordance(가설: cross-agent `esc to interrupt` 힌트, 또는 agent별 working 동사+`…`)가 보이면 → **`active`**(HIGH). 이는 `prior` 없이 **단발 cycle로** 판정되는 1차 active 신호이며, "실행 중 = 무조건 active"가 아니라 **정말 일하는 중일 때만** active로 보는 핵심 규칙이다(원인: 실행 중 TUI는 idle prompt에 머물러도 cursor/애니메이션으로 `pane_activity`가 계속 갱신됨). `waiting`보다 먼저 평가해 잔존 idle prompt가 진행 중 turn을 가리지 않게 한다. `agentProcessAlive == null`이면 §3.8 degrade(≤ MEDIUM).
+   - **3c. `waiting`** — tail이 입력 대기 prompt pattern이고(차분 모드면) 내용 변화 없음 → **`waiting`**.
+   - **3d. `active` (내용 변화)** — 직전 대비 "의미 있는 내용 변화"가 있고 최근 활동 ≤ `T_active` → **`active`**. **`active` liveness-gate(확정)**: `active`는 `agentProcessAlive == true`일 때만 HIGH/일반 confidence로 확정한다. `agentProcessAlive == null`(subtree 미가용, 생존 입증 불가)이면 `active`를 **HIGH로 단정하지 않고** 약신호로만(≤ MEDIUM, §3.8 degrade) 둔다. `agentProcessAlive == false`는 2b에서 이미 걸러진다.
+   - **3e. `waiting` (agent at rest — S-IDLE-PROMPT, NEW)** — **알려진 agent**(claude-code/codex)가 살아있고 최근 pane 활동은 있으나 **working sign이 전혀 없고**(interrupt 힌트도, spinner churn도 없음) 의미 있는 변화도 없으면, 그 agent는 (정적) 입력/승인 box에서 **turn을 마치고 사용자를 기다리는 중**이다 → **`waiting`**(MEDIUM). 여기서의 최근 pane 활동은 작업이 아니라 TUI cursor/애니메이션이므로 `active`로 보지 않는다(= "실행 중 = 무조건 active" 오판의 근본 수정). **spinner churn**(S-CHG-V, 휘발성 전용 변화)이 있으면 이 규칙을 건너뛰어 4의 약 `active`로 떨어진다(여전히 "일하는 중"으로 보되 LOW). unknown-type generic 후보는 이 규칙에 해당하지 않는다(4의 약 active로 처리).
 4. **시간 기반** — 위에서 미확정이면:
-   - 비활동(`scannedAt − lastActivityAt`)이 `T_idle` 초과, 변화·prompt·error 없음 → **`idle`**.
+   - **4a. 약 `active`** — 최근 활동 ≤ `T_active` + 출력 있음(변화 미입증/휘발성 전용): generic/unknown 후보(또는 spinner churn) → **`active`**(약, LOW). 알려진 agent의 working-sign 없는 최근 활동은 3e에서 이미 `waiting`으로 확정됐다.
+   - **4b. `idle`** — 비활동(`scannedAt − lastActivityAt`)이 `T_idle` 초과, 변화·prompt·error 없음 → **`idle`**.
 5. **`unknown`** — 위 어느 것도 확정 불가(capture 미가용, 신호 충돌, 단발 scan에서 active를 입증 불가 등). → **`unknown`**.
 
 > `error`를 `active`보다 먼저 보되, error pattern은 **tail(가장 최근 영역)**에서만 발화한다. error 줄 이후에 더 새로운 비-error 출력이 있으면 그 pane은 error로 보지 않는다(스트림 중간의 일시적 error 줄 오탐 방지, §3.4).
@@ -170,8 +173,9 @@ band 경계 자체는 고정하되 구간 수치와 status별 base는 [[SPEC-007
 2. **fingerprint**: 정규화된 **말단 K줄**(가설 `K=40`)을 각각 해시해 `captureFingerprint`(해시 배열)를 만든다. 해시만 보관하므로 원문을 저장하지 않는다(privacy).
 3. **변화 판정**: `prior.captureFingerprint`와 현재 fingerprint를 region(말단 K줄) 단위로 비교한다.
    - **의미 있는 변화** = 마스킹 후에도 내용이 다른 줄이 1개 이상(완전 마스킹/빈 줄 제외). → `active` 후보, HIGH 가능.
-   - **휘발성 전용 변화** = 마스킹 전엔 달랐으나 마스킹 후 동일(시계/스피너만 변함). → 단정적 `active` 신호 아님. `active` 후보 LOW(≤0.49)로만 두거나, adapter가 제공한 "working spinner" pattern이 매칭되면 MEDIUM으로 승급(가설).
+   - **휘발성 전용 변화(spinner churn)** = 마스킹 전엔 달랐으나 마스킹 후 동일(시계/스피너만 변함). → 단정적 `active` 신호 아님. tail에 **spinner glyph(braille/circle)가 보이면** 약 `active`(LOW, S-CHG-V)로 두어 "일하는 중"을 유지하되 HIGH로 승급하지 않는다. spinner sign이 없으면 §3.1-3e(알려진 agent at rest)에서 `waiting`으로 갈 수 있다.
    - **변화 없음** = fingerprint 동일. → `active` 아님(§3.3/§3.4로 진행).
+4. **working indicator(S-WORK, NEW)** — fingerprint diff와 별개로, tail에 agent가 **turn 수행 중**임을 나타내는 명시 affordance(가설: `esc to interrupt`/`press esc to interrupt`/`ctrl+c to interrupt`, agent별 working 동사+`…`)가 보이면 `prior` 없이도 `active`로 단정한다(§3.1-3b). 이는 "working spinner pattern"의 확정형으로, **단발 scan에서도 working↔waiting을 구분**하는 1차 신호다. 휘발성 마스킹과 충돌하지 않도록 spinner glyph 단독은 S-WORK(HIGH)가 아니라 S-CHG-V(약)로만 본다(§3.2-3, AC-04 보존).
 
 > region compare는 scrollback 상단 변화(이전 출력이 위로 밀림)로 인한 오탐도 줄인다. K는 PoC로 보정한다.
 
@@ -233,12 +237,14 @@ confidence(가설):
 | S-PID | `panePid`(=pane top, 보통 shell) 미생존 | `#{pane_pid}`+OS 확인 | `terminated` | B | O(부분) |
 | **S-AGONE** | **`agentProcessAlive == false`**: subtree 가용한데 탐지된 agent 프로세스 없음(shell은 살아있음) | [[SPEC-002-tmux-discovery]] §2.9 subtree + [[SPEC-003-agent-detection]] process-corroboration 파생 | `terminated` | **B** | **O** |
 | S-ERR | tail error/traceback/exit pattern (**agent-alive gated**) | `recentOutput` tail | `error` | A/C | O |
+| **S-WORK** | **agent working indicator**(가설: `esc to interrupt` 등 interrupt 힌트, working 동사+`…`) — turn 수행 중 (**agent-alive gated**) | `recentOutput` tail (말단 ~6줄) | `active` | **A** | **O (단발 가능)** |
 | S-PROMPT-A | adapter-specific 대기 prompt (**agent-alive gated**) | `recentOutput` tail | `waiting` | A | O |
 | S-PROMPT-G | generic 대기 prompt (**agent-alive gated**) | `recentOutput` tail | `waiting` | B/C | O |
 | S-CHG | 의미 있는 region 변화 + 최근 활동 (**agent-alive gated**) | fingerprint diff(§3.2) | `active` | A | **X (prior 필요)** |
-| S-CHG-V | 휘발성 전용 변화 | fingerprint diff(§3.2) | `active`(약) | C | **X (prior 필요)** |
+| S-CHG-V | 휘발성 전용 변화(spinner glyph) | fingerprint diff/spinner(§3.2) | `active`(약) | C | O(단발: spinner glyph) |
+| **S-IDLE-PROMPT** | **알려진 agent alive + 최근 활동 + working sign 없음**(interrupt 힌트·spinner 모두 없음) → 정적 입력 box에서 대기 (**known-agent only, agent-alive gated**) | `recentOutput` tail + `lastActivityAt` | `waiting` | **B** | **O (단발 가능)** |
 | S-IDLE | 비활동 > `T_idle` | `scannedAt − lastActivityAt` | `idle` | B | O |
-| S-RECENT | 최근 활동 ≤ `T_active`(변화 미입증, **agent-alive/null gated**) | `lastActivityAt` | `active`(약, 단발) | C | O |
+| S-RECENT | 최근 활동 ≤ `T_active`(변화 미입증, generic/unknown 또는 spinner churn, **agent-alive/null gated**) | `lastActivityAt` | `active`(약, 단발) | C | O |
 
 - **"agent-alive gated"**: 해당 신호는 `agentProcessAlive == false`면 발화하지 않는다(2b에서 `terminated`로 선점). `agentProcessAlive == null`(subtree 미가용)이면 발화하되 `active`는 HIGH로 승급하지 않는다(§3.8 degrade). `agentProcessAlive == true`면 종전대로 평가한다.
 
@@ -383,13 +389,23 @@ confidence(가설):
   - When `inferStatus`를 실행하면
   - Then `status`는 `error`/`waiting`이 아니라 `terminated`다(liveness-gate가 tail 상태보다 먼저 선점, §3.1-2b).
 
+- **SPEC-004-AC-21** (R-ORC-003) — working indicator → active (S-WORK, "실행 중 = 무조건 active" 아님)
+  - Given 알려진 agent(claude-code/codex)이고 `recentOutput` tail에 working indicator(가설: `esc to interrupt` 등)가 있는 fixture에서(`prior` 없어도 됨)
+  - When `inferStatus`를 실행하면
+  - Then `status = "active"`이고(`agentProcessAlive`가 false/null이 아니면 HIGH ≥0.80), `statusSignals`에 `ruleId="active/working.indicator"`가 있다. 단발 cycle에서도 판정된다.
+
+- **SPEC-004-AC-22** (R-ORC-003, R-ORC-005) — running but idle → waiting (S-IDLE-PROMPT, FP-active 근본 수정)
+  - Given 알려진 agent가 alive하고 최근 pane 활동(`≤ T_active`)은 있으나 tail에 **working sign이 전혀 없는**(interrupt 힌트도 spinner glyph도 없는) 정적 입력 box fixture에서
+  - When `inferStatus`를 실행하면
+  - Then `status = "waiting"`(MEDIUM, `ruleId="waiting/agent_idle"`)이고 `active`가 아니다(최근 pane 활동만으로 active로 단정하지 않는다). 단, spinner churn(S-CHG-V)이 있으면 약 `active`(LOW)로 유지된다.
+
 ## 5. Traceability
 
 | 요구사항 | 다루는 방식 | 검증 AC |
 | --- | --- | --- |
-| R-ORC-003 | orc별 `status`(7종)+`statusConfidence`+요약 필드 산출, precedence·신호 규칙·결정성. **`active` liveness-gate(agentProcessAlive)** | SPEC-004-AC-01, AC-03, AC-05, AC-07, AC-08, AC-15, AC-16, AC-19 |
+| R-ORC-003 | orc별 `status`(7종)+`statusConfidence`+요약 필드 산출, precedence·신호 규칙·결정성. **`active` liveness-gate(agentProcessAlive)**. **working↔waiting 측정(S-WORK/S-IDLE-PROMPT): "실행 중 = 무조건 active" 아님** | SPEC-004-AC-01, AC-03, AC-05, AC-07, AC-08, AC-15, AC-16, AC-19, AC-21, AC-22 |
 | R-ORC-004 | `currentWorkSummary` 추출과 `summarySource`(pane_title/recent_output/recent_prompt/user_label/unknown) 선택, redaction 후 데이터 기준 | SPEC-004-AC-11, AC-13 |
-| R-ORC-005 | 추정값·status를 단정하지 않음: 항상 statusConfidence, estimated 표시, 노이즈/오탐 억제, calibration 단조성. **subtree 미가용 degrade·죽은 세션 scrollback 오탐 차단** | SPEC-004-AC-02, AC-04, AC-06, AC-12, AC-14, AC-16, AC-18, AC-20 |
+| R-ORC-005 | 추정값·status를 단정하지 않음: 항상 statusConfidence, estimated 표시, 노이즈/오탐 억제, calibration 단조성. **subtree 미가용 degrade·죽은 세션 scrollback 오탐 차단·running-but-idle FP-active 차단** | SPEC-004-AC-02, AC-04, AC-06, AC-12, AC-14, AC-16, AC-18, AC-20, AC-22 |
 | R-ORC-006 | `terminated` vs `stale` 구분과 즉시 제거 금지(짧은 retention) lifecycle. **agent-gone(S-AGONE, 살아있는 shell·죽은 agent) → terminated retention** | SPEC-004-AC-09, AC-10, AC-17, AC-20 |
 
 > 본 spec은 1차 슬라이스 `R-ORC` 중 status 축(003/004/005/006)을 다룬다. type 축(R-ORC-001/002/007)은 [[SPEC-003-agent-detection]]. R-TMUX-005(stale)는 [[SPEC-002-tmux-discovery]] 소유이며 본 spec은 그 stale 신호를 소비(AC-10 공동). privacy(R-PRIV-004/005)는 [[SPEC-006-privacy-redaction]] 소유이며 본 spec은 경계(AC-13)에서 정합한다. 전체 매트릭스 통합은 [[SPEC-007-test-validation]].

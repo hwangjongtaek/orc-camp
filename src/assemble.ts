@@ -15,6 +15,7 @@ import {
   SCHEMA_VERSION,
   type AgentDetector,
   type AgentSignal,
+  type AgentType,
   type Camp,
   type DetectOrcFn,
   type InferStatusFn,
@@ -27,8 +28,13 @@ import {
   type ScanResult,
   type StatusSignal,
   type StatusSummary,
+  type UsageCollectFn,
+  type UsageLocateHint,
 } from './types';
 import { computeFingerprint } from './status/fingerprint';
+
+/** Default usage collector: emit `usage=null` (forward-safe; SPEC-302 §3.2 → tier 0). */
+const NULL_USAGE_COLLECT: UsageCollectFn = async () => null;
 
 export interface AssembleInput {
   inventory: InventoryResult;
@@ -42,6 +48,12 @@ export interface AssembleInput {
   priors: Map<string, PriorOrcState>; // by paneId (prior cycle); empty on first/single-shot
   /** Retained terminated orcs (S-GONE, SPEC-004 §3.7) to fold into matching camps by sessionId. */
   retainedTerminated?: Orc[];
+  /**
+   * SPEC-008 — best-effort, never-throwing per-orc usage collector. Injected (testable,
+   * swappable). Defaults to a null-emitter so the pipeline is forward-safe when usage is
+   * unconfigured (`usage=null` → SPEC-302 tier 0).
+   */
+  collectUsage?: UsageCollectFn;
 }
 
 export interface AssembleOutput {
@@ -117,11 +129,77 @@ function buildPreview(rec: PaneRawRecord): Preview | null {
   };
 }
 
+/**
+ * Build the redaction-bound usage hint for a candidate pane (SPEC-008 §4.4). Carries ONLY
+ * already-redacted/structural fields: the redacted cwd, the redacted subtree argv strings, the
+ * agentType (provider selector), paneId (authority), and lastActivityAt. No raw tmux data.
+ */
+function buildUsageHint(rec: PaneRawRecord, agentType: Orc['agentType']): UsageLocateHint {
+  const processTreeCommands = (rec.processTree ?? []).map((n) => n.command);
+  if (rec.cmdline && !processTreeCommands.includes(rec.cmdline)) {
+    processTreeCommands.push(rec.cmdline); // depth-0 argv (redacted) as a fallback id source
+  }
+  // SPEC-008 §4.2a — the pane's OWN subtree pids for open-handle (fd) correlation. Numbers only
+  // (no content); empty when processTree is null → fd correlation is skipped. Only positive
+  // integers (a stale/garbled pid never reaches lsof/`/proc`).
+  const agentPids = (rec.processTree ?? [])
+    .map((n) => n.pid)
+    .filter((p) => Number.isInteger(p) && p > 0);
+  return {
+    paneId: rec.paneId,
+    agentType,
+    cwd: rec.cwd, // redacted (SPEC-006 §2.3)
+    processTreeCommands,
+    agentPids,
+    lastActivityAt: rec.lastActivityAt,
+  };
+}
+
+/**
+ * SPEC-302 §3.7 / D-040 — agent-runtime argv signatures used to locate the orc's agent
+ * runtime process within its subtree (mirrors the SPEC-003 adapters' signature, kept minimal
+ * because uptime is a SOFT longevity proxy on an ALREADY-confirmed agent pane). `unknown`
+ * agents have no reliable runtime token → no uptime (null → tier 0, SPEC-302 §2.6).
+ */
+const AGENT_RUNTIME_SIGNATURE: Record<AgentType, RegExp | null> = {
+  'claude-code': /@anthropic-ai\/claude-code|claude-code|\bclaude\b/i,
+  codex: /@openai\/codex|codex-cli|\bcodex\b/i,
+  unknown: null,
+};
+
+/**
+ * SPEC-302 §3.7 — the agent runtime process's elapsed seconds (uptime), best-effort.
+ *
+ * The detection candidate does not carry the matched node's pid, so we select the
+ * **longest-lived** (max `etimeSec`) live subtree node whose redacted argv matches the agent
+ * runtime for this orc's agentType — the agent process's start anchor. Returns null when:
+ *   - paneDead (terminated pane), OR
+ *   - processTree is null/undefined/empty (introspection unavailable, or no live process — ps
+ *     lists ONLY live processes, so a terminated agent simply isn't present), OR
+ *   - no live node matches the agent runtime / has a usable `etimeSec`.
+ * Pure & total: any doubt → null (never throws, never blocks assembly).
+ */
+function selectAgentUptimeSec(rec: PaneRawRecord, agentType: AgentType): number | null {
+  if (rec.paneDead) return null;
+  const tree = rec.processTree;
+  if (!tree || tree.length === 0) return null;
+  const sig = AGENT_RUNTIME_SIGNATURE[agentType];
+  if (!sig) return null;
+  let best: number | null = null;
+  for (const node of tree) {
+    const e = node.etimeSec;
+    if (typeof e !== 'number' || !Number.isFinite(e) || e < 0) continue;
+    if (!sig.test(node.command)) continue;
+    if (best === null || e > best) best = e; // longest-lived = largest elapsed seconds
+  }
+  return best;
+}
+
 /** Build an Orc from a candidate pane (detection already ran). */
-function buildOrc(
+async function buildOrc(
   rec: PaneRawRecord,
   input: AssembleInput,
-): { orc: Orc; fingerprint: string[] } | null {
+): Promise<{ orc: Orc; fingerprint: string[] } | null> {
   const signal = paneToSignal(rec);
   const candidate = input.detectOrc(signal, input.detectors);
   if (!candidate) return null; // non-candidate
@@ -157,6 +235,22 @@ function buildOrc(
     ruleId: s.ruleId,
   }));
 
+  // SPEC-008 best-effort usage. The injected collector never throws; if it somehow rejects we
+  // still degrade to null so one orc's collection can't abort assembly (AC-10).
+  const collectUsage = input.collectUsage ?? NULL_USAGE_COLLECT;
+  let usage = null as Orc['usage'];
+  try {
+    usage = await collectUsage(buildUsageHint(rec, candidate.agentType));
+  } catch {
+    usage = null;
+  }
+
+  // SPEC-302 §3.7 / D-040 — agent-process uptime (token-fallback tier signal). Per-orc isolated,
+  // best-effort. A terminated orc has no live agent process → null (the agent node is absent from
+  // the ps snapshot; selectAgentUptimeSec also null-guards paneDead and the inferred terminated state).
+  const uptimeSec =
+    inference.status === 'terminated' ? null : selectAgentUptimeSec(rec, candidate.agentType);
+
   const orc: Orc = {
     id: `pane:${rec.paneId}`,
     paneId: rec.paneId,
@@ -177,6 +271,8 @@ function buildOrc(
     summaryIsEstimated: inference.summaryIsEstimated,
     lastActivityAt: rec.lastActivityAt,
     preview: buildPreview(rec),
+    usage,
+    uptimeSec,
   };
 
   const fingerprint = computeFingerprint(rec.capture ? rec.capture.lines : []);
@@ -192,7 +288,7 @@ function maxActivity(values: (string | null)[]): string | null {
   return max;
 }
 
-export function assembleScanResult(input: AssembleInput): AssembleOutput {
+export async function assembleScanResult(input: AssembleInput): Promise<AssembleOutput> {
   const { inventory } = input;
   const nextPriors = new Map<string, PriorOrcState>();
   const liveOrcsByPaneId = new Map<string, Orc>();
@@ -223,15 +319,19 @@ export function assembleScanResult(input: AssembleInput): AssembleOutput {
     const panes = panesBySession.get(session.sessionName) ?? [];
     const orcs: Orc[] = [];
 
-    for (const rec of panes) {
-      const built = buildOrc(rec, input);
-      if (!built) continue;
-      orcs.push(built.orc);
-      liveOrcsByPaneId.set(rec.paneId, built.orc);
+    // Build orcs concurrently within the session so the bounded usage I/O of independent panes
+    // overlaps (latency); Promise.all preserves input order → deterministic orcs array.
+    const built = await Promise.all(panes.map((rec) => buildOrc(rec, input)));
+    for (let i = 0; i < panes.length; i++) {
+      const b = built[i];
+      if (!b) continue;
+      const rec = panes[i]!;
+      orcs.push(b.orc);
+      liveOrcsByPaneId.set(rec.paneId, b.orc);
       nextPriors.set(rec.paneId, {
         paneId: rec.paneId,
-        captureFingerprint: built.fingerprint,
-        status: built.orc.status,
+        captureFingerprint: b.fingerprint,
+        status: b.orc.status,
         lastActivityAt: rec.lastActivityAt,
         observedAt: input.scannedAt,
       });

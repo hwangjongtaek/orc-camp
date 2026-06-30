@@ -2,8 +2,8 @@
 spec: SPEC-301
 title: camp 맵·이동·roaming (orc 공간 배치·movement)
 status: approved
-updated: 2026-06-28
-requirements: [R-UI-003, R-UI-006, R-UI-008, R-ORC-005, R-P1-004, R-P1-005, R-P1-013]
+updated: 2026-06-29
+requirements: [R-UI-003, R-UI-004, R-UI-006, R-UI-008, R-ORC-005, R-P1-004, R-P1-005, R-P1-013]
 decisions: [D-007, D-013, D-017, D-035]
 tags:
   - specs
@@ -20,7 +20,9 @@ tags:
 
 이 spec은 camp detail scene을 **정적 lane/slot 격자에서 게임형 pixel MAP으로 전환**하는 계약을 고정한다. 맵에서 orc는 **위치(position)와 애니메이션**으로 현재 활동(status)을 드러내며, 위치는 새 데이터 없이 **기존 `Orc` 필드의 결정적 함수**다. 본 spec은 [[SPEC-300-asset-rendering]] §3.7의 P1 movement를 **진입(enter)·소유**하고 그 Open Question **Q4(`roaming`/8방향 진입 조건)를 해소**한다.
 
-입력은 [[SPEC-005-data-contract]]가 만든 `Orc`(특히 `windowIndex`·`status`·`paneId`)와 `asset-packs/orc-camp-default/manifest.json`의 background/`safe_area`·props·tilesets·character `roaming` 8방향 walk-cycle이다. 본 spec은 그 위에 ① **zone(window) 분할**, ② **station(status) 앵커**, ③ **slot(paneId) fan-out**, ④ **target position = f(windowIndex, status, paneId, mapDims)**, ⑤ **roaming 진입·8방향 quantize·보간**, ⑥ **activity 표시(speech bubble + 상시 label/overlay)**, ⑦ **맵 render contract(DOM 기본·canvas P2·공유 clock·zero layout shift·keyboard·reduced-motion)**, ⑧ **성능 예산(20 session/100 pane)**, ⑨ **placeholder parity**를 정의한다.
+> **핵심 모델(확정·구현, 2026-06-29) — image-ground(단일 배경 이미지) 우선**: camp 배경은 타일/zone-grid가 아니라 **단일 배경 이미지**다(§2.1a). 배경 이미지에 `logical_size`(= native px)와 walkable `ground` polygon이 있으면 **image-ground 모드**로 동작한다: 이미지가 곧 world(native 해상도, `BASE_SCALE=1`), 뷰포트는 이미지보다 작아 **drag-pan**으로 탐색하며 첫 mount 시 ground 중심으로 센터링한다(전체를 한 번에 보지 않음). 모든 orc는 walkable **safe_area**(polygon의 내접 rect) 내부에 배치된다. 배경에 ground polygon이 없으면(예: legacy `warbase-sunset-dashboard`) **§2.2 zone-grid world(fallback/placeholder)**로 동작한다(하위호환). **Wang/타일 지면은 제거**됐다(§2.8, [[SPEC-300-asset-rendering]] §2.5 supersede). 씬 배치 산출물(ground 산정·placement·비율 게이트)의 **owner는 `scene-placement-engineer`**(`.claude/agents/scene-placement-engineer.md`)다.
+
+입력은 [[SPEC-005-data-contract]]가 만든 `Orc`(특히 `windowIndex`·`status`·`paneId`)와 `asset-packs/orc-camp-default/manifest.json`의 background `logical_size`/`safe_area`/`ground`·character `roaming` 8방향 walk-cycle이다. 본 spec은 그 위에 ① **image-ground 배치(world=이미지·safe_area placement·ratio 게이트)** 또는 **zone(window) 분할(fallback)**, ② **station(status) 앵커**, ③ **slot(paneId) fan-out**, ④ **target position = f(status, paneId)[image-ground] / f(windowIndex, status, paneId, mapDims)[zone-grid]**, ⑤ **roaming 진입·8방향 quantize·보간**, ⑥ **activity 표시(speech bubble + 상시 label/overlay)**, ⑦ **맵 render contract(DOM 기본·canvas P2·공유 clock·zero layout shift·drag-pan·keyboard·reduced-motion)**, ⑧ **성능 예산(20 session/100 pane)**, ⑨ **placeholder parity**를 정의한다.
 
 > **소유 경계**:
 > - **소유(본 spec)**: 맵 layout(zone/station/slot 배치 규칙·좌표 함수), orc movement·`roaming` 진입 조건 + direction quantize + 보간, activity speech bubble 배치, **맵 render contract**(DOM/canvas 매체·공유 애니메이션 clock·zero layout shift·맵 keyboard nav·reduced-motion snap).
@@ -38,7 +40,9 @@ tags:
 
 | 구분 | 항목 | 비고 |
 | --- | --- | --- |
-| **In** | zone(window) 분할 규칙: `safe_area` play-field → `windowIndex`별 zone grid (§2.2) | window grouping 공간화 |
+| **In** | **image-ground 배치(default)**: 배경 이미지 = world(native), orc를 walkable `safe_area`에 결정적 배치 (§2.1a/§2.5) | 단일 배경 이미지 모델 |
+| **In** | **ground-ratio 등록 게이트**: `groundRatio(polygon, world) ≥ REFERENCE_GROUND_RATIO`(=0.281) (§2.8 ground gate) | 신규 배경 등록 조건 |
+| **In** | zone(window) 분할 규칙 (**legacy/fallback**): ground polygon 없는 배경 → `windowIndex`별 zone grid (§2.2) | window grouping 공간화(하위호환) |
 | **In** | station(status) 앵커 테이블: 7 `OrcStatus` → zone 내 고정 prop 앵커 (§2.3) | 위치=상태 |
 | **In** | slot(paneId) fan-out: 동일 zone+status orc의 결정적 offset, reindex 안정성 (§2.4) | 위치=식별 |
 | **In** | target position 함수 `f(windowIndex, status, paneId, mapDims)` (§2.5) | 순수·결정적 |
@@ -55,6 +59,7 @@ tags:
 | **Out** | `status`/`agentType`/summary **추론** | [[SPEC-004-status-inference]] / [[SPEC-003-agent-detection]] |
 | **Out** | 서버 좌표 필드 추가·snapshot/WS 좌표 전송 | INV-1로 **금지** |
 | **In** | idle ambient micro-wander **활성화**(기본 ON·subtle, P1, #43) | §3.1-9, 비-load-bearing(reduced-motion off·결정적·jitter-only) |
+| **In** | active **patrol loop**(roam↔active 반복·동선 randomize) + non-active **랜덤 rest**(기본 ON, P1, #49) | §3.1-10, 비-load-bearing(reduced-motion off·결정적·`renderedPos`-only) |
 
 > **MVP vs P1 분리(확정)**: 정적 **맵 layout**(zone/station/slot 위치로 활동을 공간 표현)은 R-UI-003 "camp scene이 orc 위치를 드러낸다"의 공간적 실현이며, movement가 꺼져도(또는 reduced-motion에서) orc는 자신의 target position으로 **snap**해 맵이 완전히 동작한다. **`roaming` 보간·8방향 walk-cycle**은 그 위의 **P1 progressive enhancement**(R-P1-004 + R-P1-013, §6)다. 즉 reduced-motion 경로 == movement-off 경로 == snap이다.
 
@@ -97,7 +102,43 @@ interface MapDims {
 - **`REF_FRAME_MAX`(확정 메커니즘, 값 가설 `232`)**: ring/stack 간격(§2.4-3/§2.4-5)의 scaled footprint는 character별 `frame_size`(232 vs 228)가 아니라 **layout 상수 `REF_FRAME_MAX`** 기준(`REF_FRAME_MAX * mapSpriteScale`)으로 정의한다(같은 `(windowIndex, status, paneId)` slot 좌표가 `agentType`에 의존하지 않도록 — INV-1·§2.5). 개별 sprite 박스만 자기 `frame_size × mapSpriteScale`로 그린다.
 - **불변식 보존**: sprite box는 월드 logical 좌표에 절대 배치되므로 zero layout shift(§3.2)·종횡비 고정 유지(스크롤·팬은 layout shift가 아니다; 데이터 refresh가 scroll 위치를 바꾸지 않는다 — §3.2).
 
-### 2.2 zone = window (분할 계약)
+> **두 world 모델(확정·구현)**: 아래 §2.1a image-ground가 **default**다. §2.1의 `mapSpriteScale`(0.9)·§2.2 zone-grid·§2.3 station·§2.4 slot 격자는 **legacy/fallback**(ground polygon 없는 배경)으로 보존된다. 두 모델 모두 placement는 순수·결정적(INV-1)이며 `web/src/scene/layout.ts:computeLayout(orcs, ground?)`가 `ground` 인자 유무로 분기한다.
+
+### 2.1a image-ground 모드 (default·확정·구현)
+
+배경 이미지가 곧 world인 모델. `web/src/scene/ground.ts`(순수·결정적; `Date.now`/`Math.random` 없음)가 background를 placement context로 변환한다.
+
+**ground context 도출(`groundFromBackground(bg)`)**:
+
+```ts
+interface GroundContext {
+  world: { w: number; h: number }; // = background.logical_size (= 2× native) = world 크기
+  safeArea: Rect;                  // walkable polygon의 내접 rect — orc target은 여기에 clamp
+  polygon: Vec2[];                 // walkable polygon (logical px, 2× 좌표) — ratio 게이트 SSOT
+}
+// bg.logical_size + bg.ground.polygon(≥3 vertices)이 있으면 GroundContext, 아니면 null(→ zone-grid).
+// safeArea = bg.safe_area([x,y,w,h]) 우선, 없으면 polygon bbox.
+```
+
+**배경 requirements(확정·구현 — 2× world)**: 각 배경은 `native_size`(= 이미지 native px), `world_scale`(고정 배율), `logical_size = native_size × world_scale`(= world 크기)를 선언하고, image-ground로 쓰려면 **logical(2×) 좌표계의** walkable `ground.polygon`(+권장 `safe_area`)을 선언해야 한다. default `orccamp-default`: `native_size=[1672,941]`, `world_scale=2`, `logical_size=[3344,1882]`. world = `logical_size`(= 2× native)이며, **1672×941 PNG는 `image-rendering: pixelated`로 2× 업스케일**돼 world를 full-cover로 채운다([[SPEC-300-asset-rendering]] §2.6b). 2× world는 orc가 **원본 크기 sprite**로 들어가도록 ground 공간을 넓힌다(아래 스프라이트 스케일).
+
+**선명도 요구사항(이미지 해상도, 확정)**: 배경은 world에 full-cover로 그려지므로 `native_size < logical_size`(= `world_scale > 1`)이면 그만큼 업스케일되어 흐려진다(HiDPI/retina에서는 device DPR 배율이 추가로 곱해져 sprite보다 더 흐리게 보인다 — sprite는 DPR만, 배경은 `world_scale × DPR`). 따라서 **배경 native 해상도는 world 크기(`logical_size`)와 같아야 한다(`world_scale = 1`, 업스케일 0)**. `orccamp-default`의 권장 재생성 해상도 = **현재 world 크기 `3344×1882`(16:9)** — 재생성본을 받으면 `native_size=[3344,1882]`·`world_scale=1`로 교체하고 `image-rendering`은 `pixelated`(혹은 디테일 일러스트면 `auto`)로 둔다. 더 높은 선명도(retina-perfect 배경)를 원하면 `6688×3764`도 가능하나 sprite/UI는 여전히 DPR-soft라 효용은 체감 위주다. 신규 배경도 이 규칙(native = world)을 따른다.
+
+**placement(확정·구현, `groundLayout`/`groundTargetPosition`)**:
+
+1. **world = `logical_size`**(= 2× native, 예 `3344×1882`). `BASE_SCALE=1`(1 logical px = 1 css px), **고정 스케일(zoom 없음, transform 없음)**. 뷰포트는 world보다 작아 **drag-pan으로만** 탐색한다(§2.7). 첫 mount 시 뷰포트를 ground 중심(`safeArea` center)으로 **센터링**한다(전체를 한 번에 보지 않음).
+2. **모든 orc를 walkable `safeArea` 내부에 배치**: target = `stationAnchor(status, safeArea)` + ground-scaled slot fan-out을 `clampToRect(safeArea, GROUND_MARGIN)`로 클램프한다(`GROUND_MARGIN = (REF_FRAME_MAX × GROUND_SPRITE_SCALE)/2 = 104.4` → 원본 크기 sprite body 전체가 walkable rect 안). polygon은 **ratio 게이트**(§2.8)·향후 정밀 polygon 배치용이며, 현재 placement는 polygon 내접 rect(safe_area)로 **보수적 clamp**한다.
+3. **slot peers는 status 단위로 키**: 모든 window가 단일 ground를 공유하므로 동일 status의 slot rank가 전역에서 유일·비중첩이 되도록 peer 집합을 **status로** 묶는다(zone-grid의 `(windowIndex, status)` 키와 다름). 따라서 서로 다른 window의 동일 status orc도 distinct ground slot을 받는다.
+4. **`zoneIndex`는 window rank 유지**: placement는 단일 ground지만 `target.zoneIndex`는 `windowIndex` rank를 그대로 추적해 dock/keyboard 그룹(§2.7, window당 single tab stop)을 보존한다.
+5. **결정성(INV-1 유지)**: target = `f(status, paneId-rank)`(+ground 상수). 동일 입력 → 동일 좌표. 서버 좌표/런타임 무작위 없음.
+
+**스프라이트 스케일(확정·구현 — 원본 크기, 2× world 도입)**: image-ground sprite 스케일을 **`GROUND_SPRITE_SCALE = MAP_SPRITE_SCALE`(=0.9, 원본 크기)**로 통일했다(구 `0.3`에서 변경). 좁은 ground에 sprite를 축소해 욱여넣는 대신 **world(배경 이미지)를 `world_scale=2`로 확대**해 원본 크기 sprite가 walkable ground에 들어가게 한다. 따라서 `GROUND_PITCH_FACTOR = GROUND_SPRITE_SCALE / MAP_SPRITE_SCALE = 1.0`(slot/ring·terminated stack pitch가 zone-grid와 동일 footprint 기준). 두 world 모델의 sprite는 이제 동일 원본 크기(`frame_size × 0.9`)다.
+
+**레이어 정책(확정·구현)**: image-ground 모드에서는 배경 이미지가 자체 scenery를 가지므로 **CSS Decor/Station 레이어를 렌더하지 않는다**(§2.8, [[SPEC-300-asset-rendering]] §2.6 intro). lighting/shadow/label/overlay·selection/bubble은 유지한다(§2.7 z-stack ⑤·⑧~⑫).
+
+### 2.2 zone = window (분할 계약 — legacy/fallback)
+
+> **적용 범위(확정)**: §2.2~§2.4(zone/station/slot 격자)는 **ground polygon이 없는 배경(legacy zone-grid 모드)에만** 적용된다. image-ground(default)는 §2.1a를 따른다. 아래 zone-grid 규칙은 하위호환·placeholder parity를 위해 보존한다.
 
 각 `windowIndex`를 **고정 logical 치수의 zone 하나**로 만들고, zone들을 grid로 이어붙여 **큰 논리 월드**를 구성한다([[SPEC-201-dashboard-screens]] §2.3 "window=lane" 의미를 공간으로 보존). 뷰포트는 이 월드를 **스크롤/팬**한다(§2.7). 이는 구 모델의 "play-field 안에 zone을 욱여넣어 sprite를 축소"를 대체한다(F2 재결정 — 원본 크기 sprite 우선).
 
@@ -151,23 +192,43 @@ interface MapDims {
 - `slotOffset`은 `slotRank`의 결정적 함수이고 `slotRank`는 동일-(zone,status) peer `paneId` 집합의 결정적 함수다. 따라서 같은 입력 → 같은 offset.
 - peer 집합이 바뀌면(같은 station에 orc가 합류/이탈) slotRank가 재계산될 수 있다(고유한 군집 변화). 그 전이는 §3.1 roaming이 매끄럽게 처리한다. **단 `tmuxTarget` reindex만으로는 slotRank가 바뀌지 않는다**(INV-2, §4 AC-03).
 
+#### 2.4b personal-space bubble grid (#51, live map home)
+
+> **배경**: #50에서 active orc를 random `patrolCenter`로 흩뿌리며 **겹침**이 생겼다. #51은 이를 **결정적 그리드**로 대체해 "map 전반 분산"과 "캐릭터 간 비겹침"을 **동시에** 만족한다. (이는 live 맵의 home을 §2.3 station/§2.4 slot에서 **그리드 cell로 대체**한다 — status 공간 인코딩은 상시 label/overlay(§2.6)로 유지. §2.3–§2.5의 순수 layout 함수 자체는 placeholder/keyboard 그룹핑용으로 보존.)
+
+- **그리드(`computeCells(area, count)`, 순수)**: walkable 영역(image-ground = safe area 전체; zone-grid = zone별 inner rect)을 orc 수만큼 **near-square cell**로 row-major 분할한다. orc[i](읽기 순서 = windowIndex/paneIndex asc)는 cell[i]를 소유한다.
+- **home + bound = cell**: orc의 controller target = cell **center**, patrol/rest clamp **bound = cell rect**다. §3.1-10 patrol/rest는 `PATROL_MARGIN`(= half-footprint)로 cell 안에 clamp되므로 **sprite box가 자기 cell을 벗어나지 않고 → 인접 orc와 겹치지 않는다**(목표: "일정 거리 버블 + 비겹침"). cell ≥ footprint면 여유 있게 비겹침.
+- **cell-collapse 적응 clamp(확정)**: cell 한 변이 `2×PATROL_MARGIN`(≈209px)보다 작아지면(과밀 camp / 좁은 50:50·30:70 layout) half-footprint clamp가 **모든 patrol waypoint를 center 한 점으로 붕괴**시켜 active orc가 제자리에 **얼어붙는다**. 따라서 patrol clamp의 도달 band를 cell center 기준 **±`PATROL_MIN_BAND`(가설 `≈0.16×SCALED_FOOTPRINT`)로 floor**한다(단, band는 cell half-extent를 넘지 않음 → anchor는 항상 자기 cell 안). 여유 cell은 종전대로 half-footprint clamp(엄격 비겹침 유지), 과밀 cell만 **가시적 patrol 반경을 보존**한다(sprite footprint가 cell보다 큰 과밀 상황에서만 footprint 단위의 경계 overlap 허용 — 이미 정지 상태에도 존재하던 overlap의 cell 범위 내 변동). `patrolWaypoint(bound)`의 per-axis 적응 clamp가 담당.
+- **불변식**: 순수·결정적(`Math.random`/`Date.now` 금지), `renderedPos`-only 효과는 §3.1-10이 담당(zero layout shift). 멤버십/수 변화 시 cell 재배치는 §3.1 roaming이 매끄럽게 walk-over로 처리한다.
+
 ### 2.5 target position (순수 함수)
 
 ```ts
-// 결정적·순수. 무작위/wall-clock 의존 없음(보간 clock은 rendered pos에만 작용, target엔 무관)
+// (A) image-ground (default, §2.1a): world = 배경 이미지, target = station anchor in safeArea
+//     + ground-scaled slot fan-out, clamped to safeArea. peers는 STATUS로 키.
+function groundTargetPosition(orc: OrcMapInput, ctx: CampLayoutContext, g: GroundContext): Vec2 {
+  const inner = g.safeArea;                                       // walkable 내접 rect
+  const S     = stationAnchor(orc.status, inner);                 // §2.3
+  const rank  = slotRank(orc.paneId, ctx.peersOf(orc));          // peers = 동일 STATUS paneIds
+  const raw   = slotOffset(rank, GROUND_REF_INNER);              // 순수 ring math (큰 ref rect)
+  const off   = { x: raw.x * GROUND_PITCH_FACTOR, y: raw.y * GROUND_PITCH_FACTOR }; // ground footprint로 스케일
+  return clampToRect(add(S, off), inner, GROUND_MARGIN);         // sprite body 전체가 안에
+}
+
+// (B) zone-grid (legacy/fallback, §2.2~2.4)
 function targetPosition(orc: OrcMapInput, ctx: CampLayoutContext, dims: MapDims): Vec2 {
   const zr      = zoneRect(orc.windowIndex, ctx.windows, dims);   // §2.2
   const inner   = innerRect(zr);                                  // §2.2
   const S       = stationAnchor(orc.status, inner);               // §2.3
-  const rank    = slotRank(orc.paneId, ctx.peersOf(orc));         // §2.4 (동일 zone+status peer paneIds)
+  const rank    = slotRank(orc.paneId, ctx.peersOf(orc));         // §2.4 (동일 (zone,status) peer paneIds)
   return add(S, slotOffset(rank, inner));                         // §2.4
 }
 // CampLayoutContext = { windows: number[] /*오름차순 distinct windowIndex*/,
-//                       peersOf(orc): string[] /*동일 (zone,status) paneId 집합*/ }
+//   peersOf(orc): string[] /* image-ground=동일 STATUS / zone-grid=동일 (zone,status) paneId 집합 */ }
 ```
 
-- **순수성/결정성(확정)**: 동일 `(orc, ctx, dims)`는 항상 동일 `targetPosition`을 산출한다. 이는 §4 AC-12로 검증한다.
-- **입력 한정(INV-1)**: 함수가 읽는 orc 필드는 `windowIndex`·`status`·`paneId`뿐이다(+ camp window 집합·동일 군집 peer paneId + map 치수). 좌표는 어디서도 데이터로 **수신되지 않는다**.
+- **순수성/결정성(확정)**: image-ground는 `(orc, status-peers, ground)`, zone-grid는 `(orc, ctx, dims)`에 대해 항상 동일 좌표를 산출한다. §4 AC-12(zone-grid)·AC-22(image-ground)로 검증한다.
+- **입력 한정(INV-1)**: 두 함수 모두 읽는 orc 필드는 `windowIndex`·`status`·`paneId`뿐이다(+ground/zone 상수·peer paneId). 좌표는 어디서도 데이터로 **수신되지 않는다**. (image-ground는 placement에 `windowIndex`를 직접 쓰지 않지만 `target.zoneIndex`로 window rank를 추적해 keyboard 그룹을 보존한다 — §2.1a-4.)
 
 ### 2.6 activity 표시 (speech bubble + 상시 label/overlay)
 
@@ -177,6 +238,7 @@ function targetPosition(orc: OrcMapInput, ctx: CampLayoutContext, dims: MapDims)
 | **status overlay icon** | **항상** | `objects/status-ui` 아이콘([[SPEC-300-asset-rendering]] §2.3c) | label을 가리지 않음(§2.3-1) |
 | **raw target label** | **항상**(R-UI-007) | `tmuxTarget` | A7: 은유가 가리지 않음 |
 | **activity speech bubble** | **hover/focus/select 시에만** | `currentWorkSummary` + `summarySource` + `summaryIsEstimated`면 estimated 마커(`~`/`est.`) | bubble가 status label·target을 가리지 않음 |
+| **ambient speech bubble(#50/#52)** | **간헐적 자동**(seeded schedule) | **WoW풍 orcish 어휘(`scene/orcish.ts`) + preview/summary 단어의 랜덤 조합**(`buildSpeechPool`→`speechAt`). `active` orc는 더 긴(≈2–3줄) 발화 | hover bubble에 양보, label·target 비가림, `aria-hidden` |
 
 규칙(확정):
 
@@ -184,15 +246,29 @@ function targetPosition(orc: OrcMapInput, ctx: CampLayoutContext, dims: MapDims)
 2. **bubble는 on-demand**: speech bubble은 hover/focus/select에서만 띄운다(100-pane 혼잡 방지). bubble 위치는 sprite 상단/측면이며 status label·target label을 가리지 않게 배치한다.
 3. **단정 금지(R-ORC-005, INV-4)**: bubble의 summary는 `summaryIsEstimated=true`면 estimated 마커를 동반하고 `summarySource`를 표기한다. `currentWorkSummary==null`이면 "no summary"로 표시한다(합성 금지).
 
+#### 2.6b ambient speech bubble (#50, 기본 ON·sparse)
+
+- **목적/내용**: "살아있는 camp" 분위기로 orc가 **간헐적으로** 말풍선을 띄운다. 내용은 **WoW풍 orcish 어휘(`scene/orcish.ts`)를 그 orc의 preview/summary 단어 랜덤 조합에 섞은** 구 — `[opener] 작업단어… [closer]` 형태(opener=인사/긍정 "Zug zug"·"Lok'tar", closer=전투구호 "Lok'tar ogar!"·"Gol'Kosh!", 사이사이 grunt filler). orcish 어휘는 **단어 단위 library**(opener/closer/filler/chatter 그룹)로 보관한다. 작업 단어 풀은 `buildSpeechPool(currentWorkSummary, preview.text, command, cwd)`로 토큰화·dedupe·상한(가설 ≤24어)하며, 쓸 단어가 없으면 pure-orcish chatter fallback으로 대체(기능 가시성 보장).
+- **`active` orc = 작업하며 수다(#52)**: `active` 상태 orc는 더 긴 발화(작업 단어 `[SPEECH_WORDS_ACTIVE_MIN, SPEECH_WORDS_ACTIVE_MAX]` 가설 `[4,7]`개 + **항상** opener·closer + grunt filler)를 띄워 말풍선이 **≈2–3줄**을 채운다(`oc-bubble--speech-multiline`, CSS `line-clamp: 3`). 그 외 status는 짧게(1–3 단어, opener/closer 간헐) 유지된다. **스케줄(주기/위상/표시시간)은 `active` 여부와 무관하게 동일** — 길이만 달라진다.
+- **스케줄(순수·결정적)**: `speechAt(orcId, t, pool, active?)` = `(orcId, 공유 clock t, active)`의 순수 함수. orc별 seeded **주기**(`[SPEECH_PERIOD_MIN_MS, SPEECH_PERIOD_MAX_MS]` 가설 `[9s,18s]`) + seeded 위상에서 각 주기 시작 후 `SPEECH_DUR_MS`(가설 `3.2s`) 동안만 표시하고, 발화 문장은 주기 index로 re-roll한다. `Math.random`/`Date.now` 금지(단일 공유 clock으로 구동, 비-load-bearing). off-screen sprite는 §3.3-3 tick 게이트로 발화 계산도 건너뛴다.
+- **불변식/게이팅**: ambient bubble은 **hover/focus/select 시 detailed activity bubble(§2.6-2)에 양보**(동시 표시 안 함)하고, status label·raw target을 가리지 않으며 `aria-hidden`(상시 정보 아님 → SR 스팸 방지). **reduced-motion에서 비활성**(no autoplay, [[SPEC-202-design-accessibility]] AC-11)이고 `terminated` orc는 발화하지 않는다(풀 empty). `renderedPos`/layout 불변(zero layout shift).
+
+#### 2.6c selection marker + 빈 공간 클릭 해제 (#51)
+
+- **selection marker(게임형)**: 선택된 orc는 **파란 사각형 테두리가 아니라** pixel-art **ground ring**(manifest `ui.selection_markers['selected-orc']` = pixellab asset)을 발(ground anchor) 아래에 footprint 크기로 깐다(orc가 ring 안에 선다). asset 미탑재/로드 실패 시 **CSS corner-bracket reticle**로 parity fallback한다(파란 박스로 회귀하지 않음). marker는 sprite **아래** z(ground decoration), `pointer-events:none`, sprite box 불변(zero layout shift), subtle pulse(reduced-motion에서 정지).
+- **빈 공간 클릭 해제**: 맵 **빈 공간 클릭** 시 선택을 해제한다(`?orc=` 제거 → [[SPEC-200-routing-data]] §2.2 URL이 SSOT). orc/컨트롤 클릭(선택)과 **drag-pan 직후의 trailing click**(#42)은 해제하지 않는다(`suppressClick` 가드). 키보드 선택/포커스(§2.7 AC-09)는 영향 없음.
+
 ### 2.7 맵 render contract
 
 - **매체(확정): DOM 기본 / canvas P2 escape hatch**. 맵은 **DOM 절대 위치 sprite**를 background 위에 합성하는 것을 기본으로 한다. 성능 예산(§3.3)을 규모에서 못 맞추면 canvas/WebGL 렌더 레이어를 **P2 대체 경로**로 둔다(동일 `SpriteRenderState`([[SPEC-300-asset-rendering]] §2.4) + §2.5 position 계약 뒤에서 교체, 단 keyboard/selection/a11y는 DOM overlay로 보존). 이는 **[[SPEC-201-dashboard-screens]] Q4(DOM vs canvas scene)**를 **DOM=기본, canvas=P2**로 해소한다([[SPEC-300-asset-rendering]] Q4는 roaming 진입 질문으로 §3.1에서 별도 해소됨 — 혼동 금지).
 - **scene 배치 supersede(확정, F3)**: camp detail **scene 배치**(좌표·정렬)는 본 spec(§2.2~2.5)이 소유하며, **[[SPEC-201-dashboard-screens]] SPEC-201-AC-03의 "paneIndex 오름차순 lane slot 배치" 진술을 scene 컨텍스트에서 supersede**한다. SPEC-201의 `paneIndex` 오름차순 정렬은 list/table 등 비-scene 표시에 한정되도록 재범위화됐다(SPEC-201 §2.3·AC-03 개정). window grouping·selection·비-orc pane·layout 안정성은 SPEC-201이 계속 소유한다.
-- **스크롤/팬 뷰포트 + 큰 논리 월드(확정 — 원본-크기 sprite를 위한 구조)**: 맵은 화면상 고정 크기 **뷰포트**(panel)가 `MapDims.world`(§2.2 zone grid 합) logical 좌표계의 **큰 월드**를 `overflow: auto`(또는 pan transform)로 **스크롤/팬**하는 구조다. world 내부의 sprite·station·label·terrain은 world logical 좌표에 절대 배치되고, world는 **고정 base 스케일**(예: 1 logical px = 1 css px, 또는 가독 가능한 modest fit)로 렌더된다 → sprite는 `frame_size × mapSpriteScale`(≈원본)로 크게 보인다. 작은 camp은 월드가 뷰포트에 다 들어와 스크롤이 없고, 큰 camp만 스크롤된다. world 레이아웃은 안정적이라 sprite/status/roaming/hover/select 변화·데이터 refresh가 **scroll 위치를 바꾸지 않고 인접 reflow를 만들지 않는다**(zero layout shift, §3.2). 뷰포트 리사이즈는 보이는 영역만 바꾸고 world 내 상대 위치는 불변이다.
-  - **NOTE (drag-to-pan + zoom/fit, #42)**: 뷰포트 탐색은 native scroll 외에 ① **drag-to-pan**(맵 배경 위 pointer/touch drag → `scrollLeft/Top` 갱신; orc/버튼 클릭은 가로채지 않게 drag threshold, touch는 native momentum scroll), ② **zoom/fit control**(zoom out/in + "Fit")을 제공한다. zoom은 BASE 스케일 위에 `scale(s)`를 **`.oc-map__world`에 적용**하되 world box 크기도 `world×s`로 같이 키워 **scroll 범위(scrollWidth/Height)가 정확히 유지**되게 한다(스케일은 시각 변형일 뿐 logical 좌표/§2.5 target은 불변 — zero layout shift). "Fit"은 `min(viewportW/worldW, viewportH/worldH)`로 전체 월드가 뷰포트에 들어오는 스케일을 산출한다. control은 keyboard 접근 가능(`aria-label` 버튼)하고 focus-scroll-into-view는 보존되며, reduced-motion에서 pan/zoom은 **즉시(애니메이션 없음)** 적용된다([[SPEC-202-design-accessibility]] AC-11).
+- **world = 배경 이미지 2× 확대(image-ground, default·확정·구현)**: world = `MapDims.world` = 배경 `logical_size`(= `native_size × world_scale` = 2× native, 예 `3344×1882`). native PNG(예 1672×941)는 `image-rendering: pixelated`로 2× 업스케일돼 world 전체를 full-cover로 채운다. world는 **고정 스케일(`BASE_SCALE=1`, transform/zoom 없음)**로 렌더되어 sprite가 원본 크기(`frame_size × 0.9`)로 보인다. **뷰포트는 world보다 작아** `overflow: auto` + **drag-pan으로만** 탐색하며(전체를 한 번에 보지 않음), **첫 mount 시 뷰포트를 walkable ground 중심(`safeArea` center)으로 센터링**한다(`CampMap` center-on-mount). zoom은 없다(아래 NOTE).
+- **스크롤/팬 뷰포트 + 큰 논리 월드(legacy zone-grid — 원본-크기 sprite를 위한 구조)**: ground polygon이 없는 배경에서는 `MapDims.world`가 §2.2 zone grid 합이 되고, 화면상 고정 크기 **뷰포트**(panel)가 그 **큰 월드**를 `overflow: auto`(또는 pan transform)로 **스크롤/팬**한다. world 내부의 sprite·station·label은 world logical 좌표에 절대 배치되고, world는 고정 base 스케일로 렌더돼 sprite는 `frame_size × mapSpriteScale`(≈원본)로 크게 보인다. 작은 camp은 월드가 뷰포트에 다 들어와 스크롤이 없고, 큰 camp만 스크롤된다. **두 모델 공통**: world 레이아웃은 안정적이라 sprite/status/roaming/hover/select 변화·데이터 refresh가 **scroll 위치를 바꾸지 않고 인접 reflow를 만들지 않는다**(zero layout shift, §3.2). 뷰포트 리사이즈는 보이는 영역만 바꾸고 world 내 상대 위치는 불변이다.
+  - **NOTE (drag-to-pan only — no zoom, #42 갱신·확정·구현)**: 뷰포트 탐색은 native scroll + **drag-to-pan**(맵 배경 위 pointer/touch drag → `scrollLeft/Top` 갱신; orc/버튼 클릭은 가로채지 않게 `DRAG_THRESHOLD`, touch는 native momentum scroll)뿐이다. **zoom in/out/fit은 미지원**(superseded): world는 고정 `world_scale=2`·`BASE_SCALE` 스케일로만 렌더되고 `scale(s)` transform·zoom state·zoom/Fit 버튼이 없다(`CampMap`에서 제거). focus-scroll-into-view(focus된 orc로 스크롤)는 보존되며 reduced-motion에서 pan은 즉시 적용된다([[SPEC-202-design-accessibility]] AC-11). `panzoom.ts`의 순수 pan 헬퍼는 유지된다(zoom 헬퍼 미사용).
 - **sprite box(확정)**: 각 sprite는 해당 character의 manifest `frame_size`(232/228 등)에 **§2.1 `mapSpriteScale`을 곱한** logical box(= `frame_size × mapSpriteScale`, 종횡비 보존)이며, scaled anchor(`anchor × mapSpriteScale`)가 rendered ground 위치에 정렬된다. `mapSpriteScale`은 asset·placeholder에 동일 적용된다(§3.2, AC-08). `image-rendering: pixelated`.
-- **z 레이어(확정, back→front; §2.8 depth toolkit으로 확장)**: ① sky/backdrop(parallax, 느린 스크롤, §2.8a) → ② terrain ground(corner-Wang 자동 타일링 [[SPEC-300-asset-rendering]] §2.6a; flat-variant/CSS gradient fallback) → ③ ground decor/scenery(결정적 산재, `pointer-events:none`, §2.8c) → ④ zone header + station prop → ⑤ per-sprite ground shadow([[SPEC-300-asset-rendering]] §2.6e, §2.8e) → ⑥ terminated edge sprite → ⑦ active sprite(ground y, 동률 시 `paneId` asc 정렬) → ⑧ dusk lighting/ambient/vignette overlay(§2.8d, `pointer-events:none`) → ⑨ status overlay icon → ⑩ status label + raw target label → ⑪ selection/hover marker(`ui/selection-markers`) → ⑫ activity speech bubble.
-  - **불변(확정·INV-4/A7)**: depth 레이어(①②③⑤⑧: backdrop·terrain·decor·shadow·lighting)는 **항상 status overlay·status label·raw `tmuxTarget`(⑨⑩) 아래**다 → 어떤 depth 레이어도 status/식별 텍스트를 가리지 않는다([[SPEC-202-design-accessibility]] A7·R4). decor·shadow·lighting은 `pointer-events:none`이라 selection/hover/keyboard를 가로채지 않는다.
+- **z 레이어(확정, back→front)**: ① **배경 이미지 ground**(full-cover, image-ground = world 전체; [[SPEC-300-asset-rendering]] §2.6b; 없으면 CSS gradient ground) → ② (legacy zone-grid 한정) ground decor/scenery(결정적 산재, `pointer-events:none`, §2.8c) → ③ (legacy 한정) zone header + station prop → ④ per-sprite ground shadow([[SPEC-300-asset-rendering]] §2.6e, §2.8e) → ④′ **epic monster sprite**(비-상호작용 ambient NPC; MVP는 orc sprite 뒤, `pointer-events:none`; [[SPEC-303-epic-monster-npc]] §3.9) → ⑤ terminated edge sprite → ⑥ active sprite(ground y, 동률 시 `paneId` asc 정렬) → ⑦ dusk lighting/ambient/vignette overlay(§2.8d, `pointer-events:none`) → ⑧ status overlay icon → ⑨ status label + raw target label → ⑩ selection/hover marker(`ui/selection-markers`) → ⑪ activity speech bubble. **superseded**: 구 ① sky/backdrop+parallax·② corner-Wang terrain 레이어는 image-ground 단일 배경 이미지로 대체됐다(§2.8a/b supersede).
+  - **epic monster(④′, 비-load-bearing)**: 배경별 ambient 보스 몬스터 1마리는 별도 비-상호작용 레이어로 그려진다. 자기 ground shadow(④)를 받고, **항상 status overlay/label/raw target/selection marker/bubble(⑧–⑪) 아래**·`pointer-events:none`이라 어떤 orc의 상태/식별 텍스트·선택도 가리거나 가로채지 않는다(A7/R4). 거동·배치는 [[SPEC-303-epic-monster-npc]] 소유(본 spec은 z 위치만 고정).
+  - **불변(확정·INV-4/A7)**: 배경/decor/shadow/lighting 레이어는 **항상 status overlay·status label·raw `tmuxTarget`(⑧⑨) 아래**다 → 어떤 배경/장식 레이어도 status/식별 텍스트를 가리지 않는다([[SPEC-202-design-accessibility]] A7·R4). decor·shadow·lighting은 `pointer-events:none`이라 selection/hover/keyboard를 가로채지 않는다.
 - **selection(참조 SPEC-201/200)**: sprite click / `Enter` / `Space` → `?orc=<orcId>` 설정해 inspector를 연다. selection 키는 `orcId`(reindex 불변, INV-2). control 진입점은 inspector(SPEC-201) → flow는 [[SPEC-400-control-actions]].
 - **공유 애니메이션 clock(확정, F1 — phase는 state-entry에 anchor)**: 모든 sprite의 frame 진행·보간은 **단일 공유 시계**(하나의 `requestAnimationFrame` 루프, 전역 시간 `t`)에서 파생한다. per-sprite `setInterval`/타이머·per-sprite RAF는 **0건**(성능). 단 frame index는 un-anchored 전역 `t`가 아니라 **각 sprite의 state-entry 시각 `tEnter`에 anchor**한다: `frame = floor((t − tEnter) * fps) mod frames`([[SPEC-300-asset-rendering]] `fps`/`frames`). `tEnter`는 그 sprite가 현재 animation state로 전이한 시각(공유 clock 값)이다.
   - 이로써 [[SPEC-300-asset-rendering]] **§3.3-2(전이 시 frame 0부터 재생 / 같은 state 유지 시 위상 보존)**를 **위반하지 않는다**: state 전이 시 `tEnter`를 갱신해 새 state가 frame 0에서 시작하고, state가 유지되면 `tEnter` 불변이라 위상이 보존된다(매 snapshot frame 0 리셋 없음).
@@ -200,41 +276,46 @@ function targetPosition(orc: OrcMapInput, ctx: CampLayoutContext, dims: MapDims)
 - **keyboard(참조 SPEC-202 값)**: 각 zone = **하나의 roving-tabindex 그룹**(zone당 single tab stop). `Tab`/`Shift+Tab`은 zone 간(및 dock control 간, [[SPEC-202-design-accessibility]] K1) 이동, Arrow는 focus된 zone 내부 orc 간 이동(결정적 순서: ground 위치 row-major, 동률 시 slotRank), `Enter`/`Space`로 선택. 이는 [[SPEC-202-design-accessibility]] K2(orc layer roving tabindex)를 **zone 단위로 구체화**한다(§6 coordination note).
 - **reduced-motion(참조 SPEC-202/300)**: `prefers-reduced-motion: reduce`면 rendered pos를 target으로 즉시 snap하고 정적 frame([[SPEC-300-asset-rendering]] `reduced_motion.fallback_frame`)을 표시하며, walk-cycle·autoplay·ambient wander를 시작하지 않는다(§3.1-7).
 
-### 2.8 rich map depth toolkit (backdrop·parallax·terrain field·scenery·lighting·shadow placement)
+### 2.8 scene depth toolkit + ground-ratio 게이트 (background·scenery·lighting·shadow·ground gate)
 
-맵을 **평면 단일 tile에서 입체(깊이) 있는 scene으로** 전환하는 배치/좌표 계약. asset resolve·타일 선택·이미지 fit·CSS shadow shape 등 **렌더 메커니즘은 [[SPEC-300-asset-rendering]] §2.5/§2.6**가 소유하고, 본 절은 **무엇이 어디에 놓이는지**(world 좌표·결정적 field/scatter·parallax 결합·z·lighting)를 소유한다. 모든 산출은 INV-1(client-derived, **서버 좌표 불추가·런타임 무작위 금지**)을 따른다. 좌표는 §2.2~2.5와 동일한 world logical 좌표계다.
+맵 scene의 배치/좌표 계약. asset resolve·이미지 fit·CSS shadow shape 등 **렌더 메커니즘은 [[SPEC-300-asset-rendering]] §2.5/§2.6**가 소유하고, 본 절은 **무엇이 어디에 놓이는지**(world 좌표·결정적 scatter·z·lighting)와 **신규 배경 등록 게이트**를 소유한다. 모든 산출은 INV-1(client-derived, **서버 좌표 불추가·런타임 무작위 금지**)을 따른다.
 
-**(a) backdrop/horizon + parallax(확정 구조, 값 가설)**:
+> **SUPERSEDED(확정, 2026-06-29)**: 구 (a) backdrop horizon+parallax·(b) corner-Wang terrain field는 **image-ground 단일 배경 이미지**로 대체됐다([[SPEC-300-asset-rendering]] §2.5/§2.6 supersede). 아래 (a)/(b)는 legacy 기록으로만 보존한다. (c) decor scatter는 **legacy zone-grid fallback에만** 적용된다(image-ground는 CSS decor 미렌더). (d) lighting·(e) shadow는 두 모델 공통으로 유지된다.
 
-1. backdrop은 z-stack 최후면(§2.7 ①). world 위에 절대 배치하되 **뷰포트 스크롤에 대해 terrain보다 느리게** 이동한다: 스크롤 오프셋 `s`에 대해 backdrop translate = `s × P`(가설 `P = scene.backdrop.parallax = 0.3`). `P=1`이면 backdrop 고정(무한히 먼 지평선), `P=0`이면 terrain과 동일 속도. terrain/sprite는 `s`(=1배)로 움직이므로 둘의 차이가 깊이감을 만든다.
-2. parallax는 **transform(translate)만**이며 layout/scroll 위치를 바꾸지 않는다(reflow 0, §3.2). 데이터 refresh(WS batch)가 scroll/parallax 상태를 리셋하지 않는다.
-3. backdrop은 **비-제약(non-constraining)**: world/zone/station 좌표(§2.1~2.5 상수)는 backdrop 치수와 무관하다(§2.1 F2 재결정). backdrop 부재 시 ②terrain이 그대로 배경이 된다(§3.4).
-4. **reduced-motion(확정)**: `prefers-reduced-motion: reduce`면 parallax를 끄고 backdrop을 스크롤과 동률(또는 pin)로 둔다 — 시차 애니메이션 없음([[SPEC-202-design-accessibility]] AC-11). 입체감(레이어 자체)은 유지된다.
+**(a) background image(확정·구현, 구 backdrop+parallax는 superseded)**: image-ground는 단일 배경 이미지가 z-stack 최후면(§2.7 ①)이며 world 전체를 full-cover로 덮는다(= world = 2× native, native PNG는 `image-rendering: pixelated`로 2× 업스케일). `parallax=0`이므로 뷰포트 스크롤/drag-pan에서 배경은 world와 동률로 움직인다(별도 시차 변환 없음). 구 horizon+parallax(`P=0.3`, transform translate) 모델은 폐기됐다.
 
-**(b) 결정적 terrain field(확정 구조, 분류 규칙 가설)**:
+**(b) 결정적 terrain field — SUPERSEDED(legacy 기록)**: 구 `terrainAt(cornerX, cornerY) → terrainIndex`(moss/dirt corner field) 자동 타일링은 단일 배경 이미지로 대체됐다(런타임 미사용). 지면은 배경 이미지(또는 CSS gradient fallback)이다.
 
-1. `terrainAt(cornerX, cornerY) → terrainIndex`는 **world corner 격자점의 순수 함수**다([[SPEC-300-asset-rendering]] §2.6a가 소비). 반환은 `wang.terrains` index(`0`=moss base, `1`=dirt accent).
-2. 분류 규칙(가설): 기본 moss(0). 다음을 dirt(1)로 둔다 — (i) zone gutter·world margin(zone 사이 통로), (ii) zone inner rect 내 station 앵커 주변 소형 packed patch(작업장·모닥불 바닥), (iii) seeded integer hash `h(cornerX, cornerY)`로 결정되는 희소 variation. **무작위 금지**: `h`는 corner 좌표의 결정적 함수이며 매 렌더 동일.
-3. **결정성(확정)**: 동일 world(동일 window 집합·`MapDims`) → 동일 terrain field → 동일 Wang 타일. 서버 데이터/좌표 불사용(INV-1). zone이 스크롤로 재진입해도 동일.
+**(c) 결정적 scenery scatter(확정 — legacy zone-grid fallback 한정)**:
 
-**(c) 결정적 scenery scatter(확정 구조, 값 가설)**:
-
-1. `decorPlacements(zoneRect, ctx) → DecorInstance[]`는 zone별 **결정적** scenery 목록을 산출한다. seed = `zoneIndex`(+layout 상수). `scene.decor.items`의 `weight`로 가중 선택하고 위치는 seeded hash로 정한다(**no `Math.random`·no wall-clock**).
-2. **배치 제약(확정)**: decor는 (i) station 앵커·slot ring 영역, (ii) zone header 영역, (iii) label/bubble 예상 영역을 **회피**해 배치한다(겹침 시 해당 instance drop). decor는 z상 sprite/label 아래(§2.7 ③)이고 **`pointer-events:none`**이라 selection/hover/keyboard를 가로채지 않는다(§2.7 불변).
+1. `decorPlacements(zoneRect, ctx) → DecorInstance[]`는 zone별 **결정적** scenery 목록을 산출한다. seed = `zoneIndex`(+layout 상수). `scene.decor.items`의 `weight`로 가중 선택하고 위치는 seeded hash로 정한다(**no `Math.random`·no wall-clock**). **image-ground 모드에서는 CSS decor 레이어를 렌더하지 않으므로**(배경 이미지가 scenery 보유) 본 항목은 zone-grid fallback에 한정 적용된다.
+2. **배치 제약(확정)**: decor는 (i) station 앵커·slot ring 영역, (ii) zone header 영역, (iii) label/bubble 예상 영역을 **회피**해 배치한다(겹침 시 해당 instance drop). decor는 z상 sprite/label 아래(§2.7 ②)이고 **`pointer-events:none`**이라 selection/hover/keyboard를 가로채지 않는다(§2.7 불변).
 3. **개수 budget(가설)**: zone당 decor ≤ `DECOR_MAX`(가설 `6`), category(ground/tall/light-source/boundary)별 상한도 가설 — 100-pane 성능(§3.3) 보호.
 4. **결정성(확정)**: 동일 `(zoneRect, ctx)` → 동일 placement 집합.
 
 **(d) dusk lighting/ambient(확정 구조, 값 가설)**:
 
-1. world 위 단일 **lighting overlay**(CSS radial/linear gradient vignette + ambient tint)를 §2.7 ⑧(sprite 위, status overlay/label 아래)에 둔다. **tokens-only**([[SPEC-202-design-accessibility]] §2.1, raw hex 금지), `pointer-events:none`.
-2. **label 가독성 보존(확정)**: lighting은 status overlay/label/raw target(⑨⑩)보다 **낮은 z**라 이들을 어둡게 만들지 않는다. vignette/ambient 강도는 [[SPEC-202-design-accessibility]] C1/C2 대비를 깨지 않는 선(가설, QA 보정).
+1. world 위 단일 **lighting overlay**(CSS radial/linear gradient vignette + ambient tint)를 §2.7 ⑦(sprite 위, status overlay/label 아래)에 둔다. **tokens-only**([[SPEC-202-design-accessibility]] §2.1, raw hex 금지), `pointer-events:none`.
+2. **label 가독성 보존(확정)**: lighting은 status overlay/label/raw target(⑧⑨)보다 **낮은 z**라 이들을 어둡게 만들지 않는다. vignette/ambient 강도는 [[SPEC-202-design-accessibility]] C1/C2 대비를 깨지 않는 선(가설, QA 보정).
 3. **reduced-motion(확정)**: lighting은 정적(맥동/플리커 애니메이션 금지). brazier 등 `light-source` decor의 애니메이션도 reduce에서 정지(§3.5-4).
 
 **(e) per-sprite ground shadow placement(확정)**:
 
-1. 각 sprite 아래(§2.7 ⑤, sprite보다 낮은 z)에 ground shadow를 둔다. 위치 = sprite의 scaled ground anchor(`anchor × mapSpriteScale`) 지점, 크기 = footprint(`frame_size × mapSpriteScale`)에 `scene.shadow.css.footprint_ratio` 적용. shape/asset resolve는 [[SPEC-300-asset-rendering]] §2.6e.
+1. 각 sprite 아래(§2.7 ④, sprite보다 낮은 z)에 ground shadow를 둔다. 위치 = sprite의 scaled ground anchor(`anchor × spriteScale`) 지점에 **중심**을 둔다 — anchor는 실제 발 content 최하단([[SPEC-300-asset-rendering]] §2.5)이라 그림자가 발에 밀착한다(과거 anchor가 빈 패딩에 있어 그림자가 발 아래 ~30px에 떠 보이던 버그 수정). 크기 = footprint(`frame_size × spriteScale`)에 `scene.shadow.css.footprint_ratio`(=0.46) 적용한 **납작한 타원**(높이 = 너비 × 0.3)이며 image-ground=`GROUND_SPRITE_SCALE`/zone-grid=`MAP_SPRITE_SCALE`. shape/asset resolve는 [[SPEC-300-asset-rendering]] §2.6e.
 2. shadow는 layout box를 만들지 않는다(절대 위치 장식, zero layout shift). placeholder sprite도 shadow를 받는다(§3.4 parity).
 3. terminated edge sprite도 **정적** shadow를 받는다(roaming 없이 정적, [[SPEC-300-asset-rendering]] §3.3).
+
+**(f) ground-ratio 등록 게이트(확정·구현 — 신규 배경 등록 규칙)**:
+
+신규 배경을 image-ground로 등록하려면 walkable ground가 default 배경보다 좁아선 안 된다(미래 camp이 default보다 활동영역이 부족하지 않도록). `web/src/scene/ground.ts`가 소유한다.
+
+1. **참조 하한**: `REFERENCE_GROUND_RATIO = 0.281`(default `orccamp-default`의 측정 ratio 0.2815의 바닥값 — 참조 배경이 자기 게이트를 통과하도록 바로 아래로 설정).
+2. **게이트**: `meetsGroundRatio(polygon, world) = groundRatio(polygon, world) ≥ REFERENCE_GROUND_RATIO`. 미달이면 **reject + 사유**(`ground_ratio <측정값> < reference 0.281`). 등록 가능한 배경만 image-ground로 쓴다.
+   - **예외(확정)**: 게이트 미달 배경이라도 **명문화된 사용자 승인 예외**로 등록할 수 있다. 예외는 manifest `backgrounds.<key>.ground.gate`에 `pass:false` + `exception:true` + `accepted:"<근거/일시>"`로 박제한다. 예외 배경은 정직한 측정값(polygon/area/ratio)을 그대로 두고(위조 금지), 단지 등록을 허용한다 — 런타임은 게이트를 강제하지 않으며 orc는 `safe_area`에 clamp되어 정상 동작한다. 예외 1호: **`necropolis-camp`**(ratio 0.2191 < 0.2815, gothic courtyard가 4면 구조물로 둘러싸여 default보다 작음; 2026-06-29 사용자 승인). 예외는 "활동영역이 default보다 작아도 됨"을 user가 명시 수용한 경우에만 부여한다(기본은 reject).
+3. **ratio는 polygon에서 재계산(SSOT)**: `groundRatio = shoelaceArea(polygon) / (world.w × world.h)`. manifest에 stored된 `ground.area`/`ratio`는 **신뢰하지 않고** polygon에서 재계산한다(위조·드리프트 방지). `shoelaceArea`는 polygon 정점의 절대 면적이다. 예외 배경도 stored 값은 정직한 측정값이어야 한다(`gate.exception`이 reject를 면제할 뿐 측정값을 바꾸지 않는다).
+4. **scale 불변(확정)**: ratio는 `world_scale`에 **불변**이다 — polygon area와 world area가 같은 배율²로 함께 커지므로 비율은 일정하다(default: 1× area 442975/(1672·941) = 2× area 1771900/(3344·1882) = **0.2815**). 따라서 2× world 도입(변경 1) 후에도 게이트 결과는 동일하다(`0.2815 ≥ 0.281`).
+5. **결정성(확정)**: 순수 함수(`Date.now`/`Math.random` 없음). 동일 polygon·world → 동일 ratio·동일 게이트 결과.
+6. **owner**: 신규 배경의 ground polygon 산정·placement·게이트 통과 검증은 `scene-placement-engineer`가 소유한다(`.claude/agents/scene-placement-engineer.md`).
 
 ## 3. Behavior rules
 
@@ -269,6 +350,19 @@ function targetPosition(orc: OrcMapInput, ctx: CampLayoutContext, dims: MapDims)
 7. **reduced-motion(확정)**: `prefers-reduced-motion: reduce`면 §1·§2.7대로 `renderedPos := targetPos` 즉시 snap, 정적 frame, walk-cycle·autoplay 미시작([[SPEC-202-design-accessibility]] AC-11). 이는 movement-off 경로와 동일하다.
 8. **mid-walk retarget(확정 규칙, 파라미터 가설, F11)**: roaming 보간 중에 `targetPos`가 다시 바뀌면(예: 도착 전 status가 한 번 더 변화), 새 tween을 **현재 `renderedPos`에서** 다시 시작한다: `tweenStart := t`, duration은 `현재 renderedPos → 새 targetPos` 거리로 §3.1-6 공식으로 **재계산**하고, direction은 `새 targetPos − 현재 renderedPos`로 **재-quantize**한다. animation state는 `roaming` 유지(state 미변화 시 §2.7 `tEnter` 불변으로 walk-cycle 위상 보존). 직전 tween의 잔여 위치를 버리지 않으므로 순간이동이 없다. easing 누적 처리(재시작 시 ease-in 반복 여부)는 가설(§6 Q3).
 9. **idle ambient micro-wander(P1, 기본 ON·subtle, #43)**: idle이며 도착 상태인 sprite가 station 주변 반경 `WANDER_R`(가설 `≈8–14` logical px, **subtle**) 내에서 느린(slow `WANDER_FREQ`) 작은 표류를 갖는 ambient 효과로 "살아있는 camp" 분위기를 준다. **기본 ON**(CampMap이 `RoamingController({ambientWander:true})`로 구성)이되 다음을 **항상** 지킨다: 결정적(`paneId`+공유 clock seed, `Math.random`/`Date.now` 금지), idle+arrived에만, **reduced-motion에서 비활성**, `renderedPos`에만 작용하는 **순수 jitter**(target/slot/layout 불변 → zero layout shift). 따라서 §2.5 target·§2.4 slot·§4 core AC 결과를 바꾸지 않는다(비-load-bearing). reduced-motion 경로에서는 §2.7·§3.1-7대로 시작하지 않는다.
+10. **active patrol loop + non-active 랜덤 rest(P1, 기본 ON·#49)**: 도착 후 동작을 status로 분기한다.
+    - **active = 순찰 루프**: active orc는 station home에 그냥 서 있지 않고 `dwell(active anim) → roam(walk-cycle) → dwell → …`를 무한 반복한다. 루프는 **도착 시각 `arrivalT`에 앵커**되고 waypoint 0 = home이라 orc는 먼저 자기 자리로 **걸어간 뒤** 순찰을 시작한다(순간이동 없음). leg/dwell **지속시간**과 waypoint **각도·반경**(반경 `[PATROL_R_MIN, PATROL_R_MAX]` 가설 `≈[0.25,0.6]×SCALED_FOOTPRINT`)은 모두 `paneId` seed로 흐트러뜨려(`mix(paneHash, k)`) **fleet이 한 덩어리로 움직이지 않게** 동선을 randomize한다(목표: "모든 캐릭터가 함께 움직이지 않도록"). 순수 함수 `patrolAt(home, paneId, arrivalT, t)` — `Math.random`/`Date.now` 금지(INV-1).
+      - **map 전반 분산 + 비겹침(#50→#51)**: 모든 orc의 **home은 §2.4b 그리드 cell의 center**다(active·non-active 공통). cell이 walkable 영역 전체에 깔리므로 orc가 **맵 전반에 분산**되고(목표: "patrol 시 좀 더 map 전반에 배치"), patrol/rest가 cell 안으로 clamp돼 **서로 겹치지 않는다**(§2.4b). (이는 #50의 random `patrolCenter`를 결정적 그리드로 대체해 spread와 non-overlap을 **동시에** 달성한다 — 더 이상 station-기반 배치가 아님. status는 상시 label/overlay로 전달, §2.6.)
+      - **cell에 적응하는 반경(확정·cell-collapse fix)**: cell이 footprint보다 작아도 patrol이 **얼어붙지 않도록**, waypoint clamp band는 cell center 기준 **±`PATROL_MIN_BAND`로 floor**된다(§2.4b). 즉 실효 patrol 반경은 cell 크기에 **적응**한다 — 여유 cell은 자연 ring `[PATROL_R_MIN, PATROL_R_MAX]`을 그대로 쓰고, 좁은/과밀 cell은 반경이 줄되 **최소 가시 이동(±PATROL_MIN_BAND)** 을 유지한다.
+      - **dwell 방향 randomize(#50)**: roam 후 dwell 시 active anim의 facing은 **남쪽 고정이 아니라 cycle별 seeded 8방향**(`DIRECTIONS[mix(seed,1000+n)]`)이다. [[SPEC-300-asset-rendering]] §3.2가 **arrived 상태에서도 요청 direction을 존중**하도록 확장돼(없으면 south fallback) 렌더된다(목표: "roam 후 active animation 이 random 방향").
+    - **non-active = 랜덤 rest**: active가 아닌 orc는 자기 station 부근의 **seeded rest 좌표**(`restOffset(paneId)`, 반경 `REST_R` 가설 `≈0.4×SCALED_FOOTPRINT`)에서 대기한다. station이 status별로 공간 분리돼 있고 patrol/rest 반경이 station 간격보다 작게 묶이므로 **active 순찰 밴드와 겹치지 않는다**(목표: "active 캐릭터와 겹치지 않은 랜덤 위치에서 대기"). 대기 중에도 status 애니메이션(idle/waiting/…)은 계속 재생된다(목표: "active가 아닌 orc도 애니메이션 적용").
+    - **공통 불변식**: patrol/rest는 `renderedPos`에만 작용하는 **순수 변위**(§2.5 target·§2.4 slot·§4 core AC 불변 → zero layout shift, 비-load-bearing)이고 walkable bound(zone inner rect / ground safe area)로 clamp하며, **reduced-motion에서 전부 비활성**(§3.1-7 snap). 기본 OFF인 controller(`RoamingController()`)에서는 active가 home에 그대로 정지(기존 AC-04 동작 보존)하므로 opt-in이다(CampMap이 `RoamingController({ambientWander:true, patrol:true})`로 구성).
+11. **drag-and-drop 이동(#53, 기본 ON)**: 사용자가 orc를 **드래그 앤 드롭**해 맵 위 임의 위치로 옮길 수 있다.
+    - **상호작용**: orc sprite(`<button>`) 위 pointer down→move가 `DRAG_START_PX`(가설 4px)를 넘으면 드래그로 전환된다(그 미만은 기존 tap=선택 유지). 드래그 중 sprite는 **포인터를 따라가고**(world는 `BASE_SCALE=1`이라 screen Δ = logical Δ), pointer up에서 **드롭**된다. 드롭 직후의 synthetic click은 억제돼 **드롭이 선택을 유발하지 않는다**. background drag-pan(§2.7 #42)은 orc(`<button>`)에서 시작하지 않으므로 충돌하지 않고, orc는 `touch-action:none`이라 터치도 스크롤 대신 드래그한다.
+    - **드롭 후 동작(목표·확정)**: 드롭 위치는 walkable bound(ground safe area / zone inner rect)로 `PATROL_MARGIN` clamp돼 **활동영역 안에 안착**하고, 그 지점이 orc의 새 **home**이 된다. controller는 즉시 그 자리에 **snap**(walk-back 없음, `RoamingController.place()`)하고 그 orc를 **`pinned`**(cell bound 미부여)으로 표시한다. pinned orc는 status로 분기한다: **`active` orc는 드롭 지점을 중심으로 patrol을 재개**(§3.1-10 roam↔dwell 루프; bound가 없으므로 드롭 지점 둘레의 자연 ring을 돌며 **옛 cell로 복원되지 않음**)하고, **non-active orc는 드롭 지점에 정확히 머물며**(§3.1-9 wander·rest offset 미적용) status 애니메이션만 제자리에서 재생한다. 이는 두 결함을 제거한다: ① 이전엔 `place()`가 **옛 cell bound**를 남겨 patrol/rest가 그 안으로 clamp돼 **드래그 전 위치로 복원**됐고(→ bound를 제거해 해결), ② rest offset이 home 위에 더해져 **드롭 위치와 어긋났다**(→ non-active는 정확히 드롭에 안착). (자동 배치 orc는 종전대로 cell 안에서 patrol/rest, §3.1-10.) 새 home은 client UI 상태(`ui.orcPositions[orcId]`)로 보관돼 **live 데이터 refresh를 가로질러 유지**되며(같은 home+`pinned`로 재-sync되므로 no-op), orc가 사라지면 prune된다.
+    - **드래그 중 애니메이션(목표)**: 이동 중에는 status/walk-cycle이 아니라 **`idle` 애니메이션을, 드래그 시작 시점의 facing 방향으로** 출력한다(`resolveSprite`의 `dragging` 플래그가 state를 `idle`로 강제하고 방향을 고정; idle은 8방향 폴더 보유). reduced-motion에서는 §3.1-7대로 정지 프레임이되 이동(위치 추종) 자체는 사용자 동작이므로 허용된다.
+    - **불변식**: 드래그는 사용자 의도 입력이므로 §3.1-9/-10의 결정적 ambient 효과와 달리 `ui.orcPositions`라는 **명시 상태**를 변경한다(여전히 `Math.random`/`Date.now` 미사용 — 위치는 포인터에서 옴). drop home은 §2.4b cell 대신 사용되며 patrol/rest는 walkable bound로 clamp된다. status 공간 인코딩은 상시 label/overlay(§2.6)로 유지되므로 사용자 재배치가 식별성을 해치지 않는다.
+12. **epic monster ambient mover(forward — [[SPEC-303-epic-monster-npc]] 소유)**: orc와 별개로 배경별 **epic 보스 몬스터 1마리**가 동일 공유 clock 위에서 ambient roaming한다. **핵심 대비**: orc는 polygon 내접 rect(`safe_area`)에 clamp되지만(§2.1a-2), 몬스터는 **`ground.polygon` 전체**를 roaming하고(발자국 footprint만 polygon clamp), 도착 시 무작위(seeded) dwell anim({active,waiting,idle})을 재생하며, **orc footprint와 교차하면 `error`로 래치**된다. 몬스터는 **비-상호작용·비-load-bearing**(pointer/tab/selection 제외, orc 데이터 모델·`computeCells`/grid·zero-layout-shift 입력에서 제외, 자산 미가용 시 placeholder 없이 미렌더)이라 orc 배치를 교란하지 않는다. 결정적(`monster id + 공유 clock`, `Math.random`/`Date.now`/server 좌표 금지·INV-1)이고 reduced-motion에서 정지(idle/south). 세부 계약(controller·footprint·error debounce·z-order·feasibility)은 [[SPEC-303-epic-monster-npc]]가 소유한다(본 spec은 forward-pointer만).
 
 ### 3.2 zero layout shift (확정)
 
@@ -284,34 +378,35 @@ function targetPosition(orc: OrcMapInput, ctx: CampLayoutContext, dims: MapDims)
 
 ### 3.4 placeholder parity (R-UI-006, [[08-Decisions|D-007]]) (확정)
 
-asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 layout·interaction·a11y**가 동작한다.
+asset(background image/props/sprite)이 없거나 일부 누락돼도 **동일 layout·interaction·a11y**가 동작한다. 배치 좌표(image-ground: world=상수 `logical_size`·`safeArea`·slot / zone-grid: zone/station/slot)는 asset과 무관하게 산출된다.
 
 | 누락 대상 | 대체(확정) |
 | --- | --- |
-| terrain ground | corner-Wang 자동 타일링([[SPEC-300-asset-rendering]] §2.6a) → 없으면 flat-variant `orc-camp-terrain-square-topdown.moss-ground` 타일링(+결정적 accent) → 없으면 CSS gradient ground. terrain field(§2.8b)는 asset 무관 상수 → 배치 불변, **단일 평면 tile 회귀 방지** |
-| backdrop/horizon 이미지 | `scene.backdrop` 이미지 layer(비-제약, §2.8a) → 없으면 CSS 수직 dusk gradient(또는 생략). world/zone/station 좌표(상수)에 영향 없음 → 배치·parallax 구조 불변 |
-| ground decor/scenery | prop sprite([[SPEC-300-asset-rendering]] §2.6c) → 일부 ref 누락 시 해당 instance만 생략(non-load-bearing). placement(§2.8c)는 asset 무관 → 불변 |
+| background(ground) 이미지 | 단일 배경 이미지 full-cover([[SPEC-300-asset-rendering]] §2.6b) → 없으면 **CSS gradient ground**. world/`safeArea`(image-ground) 또는 world/zone(zone-grid) 좌표는 상수라 배치 불변 |
+| ground decor/scenery (zone-grid fallback 한정) | prop sprite([[SPEC-300-asset-rendering]] §2.6c) → 일부 ref 누락 시 해당 instance만 생략(non-load-bearing). placement(§2.8c)는 asset 무관 → 불변. (image-ground는 CSS decor 미렌더) |
 | per-sprite shadow | CSS 타원(항상 가능) 또는 asset([[SPEC-300-asset-rendering]] §2.6e) → 누락 개념 없음(CSS fallback 상시), depth cue 유지 |
 | dusk lighting | CSS gradient/vignette overlay(asset 불요, tokens-only §2.8d) → 누락 개념 없음(항상 CSS) |
-| station prop | 동일 station 앵커에 **CSS marker**(작은 box + station/status glyph + label) → 위치=상태 정보 보존 |
-| zone header prop | CSS label "window {windowIndex}"만 렌더 |
-| sprite | [[SPEC-300-asset-rendering]] L1/L2 placeholder(box = `frame_size × mapSpriteScale`, asset과 동일 스케일, 위치·interaction 불변) |
+| station prop (zone-grid fallback 한정) | 동일 station 앵커에 **CSS marker**(작은 box + station/status glyph + label) → 위치=상태 정보 보존 |
+| zone header prop (zone-grid fallback 한정) | CSS label "window {windowIndex}"만 렌더 |
+| sprite | [[SPEC-300-asset-rendering]] L1/L2 placeholder(box = `frame_size × spriteScale`, asset과 동일 스케일 — image-ground는 `GROUND_SPRITE_SCALE`·zone-grid는 `MAP_SPRITE_SCALE`, 위치·interaction 불변) |
 | status overlay | CSS glyph fallback([[SPEC-202-design-accessibility]] R1) |
+
+> **superseded**: 구 terrain ground row(corner-Wang/flat-variant 타일링 + accent)·backdrop horizon+parallax row는 image-ground 전환으로 폐기됐다(§2.8 supersede). 지면 fallback은 이제 **배경 이미지 → CSS gradient** 2단계다.
 
 규칙:
 
-1. **zone/station 위치 불변**: zone 분할·station 앵커·slot offset은 manifest **asset과 무관하게** `mapDims`(상수)·`Orc` 필드만으로 계산되므로 asset 누락이 배치를 바꾸지 않는다.
-2. **status 구분 유지**: placeholder에서도 위치(station) + label + overlay/CSS glyph로 7종 status가 grayscale-구분 가능하다([[SPEC-202-design-accessibility]] AC-16와 동치).
+1. **배치 위치 불변**: image-ground placement(world=`logical_size`·`safeArea`·slot)와 zone-grid placement(zone/station/slot offset)는 manifest **이미지 asset과 무관하게** 상수·`Orc` 필드만으로 계산되므로 asset 누락이 배치를 바꾸지 않는다.
+2. **status 구분 유지**: placeholder에서도 위치(station/ground slot) + label + overlay/CSS glyph로 7종 status가 grayscale-구분 가능하다([[SPEC-202-design-accessibility]] AC-16와 동치).
 3. **interaction/a11y parity**: selection·hover·focus·keyboard·bubble·reduced-motion이 placeholder에서도 동일 동작한다([[SPEC-300-asset-rendering]] §3.6, [[SPEC-202-design-accessibility]] P1).
 4. **no layout shift**: asset 유무 토글이 layout을 바꾸지 않는다(§3.2-2).
 
-### 3.5 depth 레이어 런타임 규칙 (parallax·정적 페인트·성능·reduced-motion) (확정)
+### 3.5 scene 레이어 런타임 규칙 (정적 페인트·성능·reduced-motion) (확정)
 
-1. **정적 페인트(확정)**: terrain·decor·backdrop·lighting·shadow는 **per-frame 애니메이션이 아니다**. 공유 clock 렌더 루프(§2.7)의 frame 작업(sprite frame·보간)에 포함되지 않으며, **뷰포트/zone/스크롤 변화 시에만** 다시 그린다(또는 CSS transform로 parallax만 갱신). 즉 depth 레이어는 §3.3 100-pane sprite 애니메이션 budget에 비용을 더하지 않는다.
-2. **parallax는 transform만(확정)**: 스크롤 시 backdrop은 §2.8a 비율 `P`로 translate한다. layout/scroll 위치 불변(§3.2), 데이터 refresh가 parallax/scroll을 리셋하지 않는다.
-3. **성능 친화 렌더(확정 지침)**: terrain은 가시 뷰포트(+여유 margin) cell만 타일링(off-screen 미생성), decor는 zone당 `DECOR_MAX` 상한(§2.8c), backdrop은 단일 이미지, shadow는 CSS, lighting은 단일 overlay. canvas P2 경로(§2.7)는 이 정적 레이어를 단일 texture로 합성할 수 있다(keyboard/selection/a11y는 DOM overlay 보존).
-4. **reduced-motion(확정)**: `prefers-reduced-motion: reduce`면 (a) parallax off(backdrop 동률/pin), (b) decor 애니메이션(brazier flicker 등) off→정적, (c) lighting 맥동 off→정적. depth scene은 **정적으로 완전히 렌더**된다(입체감 유지, 모션만 제거). movement-off 경로와 정합(§1).
-5. **결정성·no server coords(확정)**: terrain field·decor scatter·accent는 모두 §2.8 결정적 함수이며 `Math.random`·wall-clock·서버 좌표를 쓰지 않는다(INV-1). 동일 world → 동일 scene.
+1. **정적 페인트(확정)**: 배경 이미지·decor·lighting·shadow는 **per-frame 애니메이션이 아니다**. 공유 clock 렌더 루프(§2.7)의 frame 작업(sprite frame·보간)에 포함되지 않으며, **뷰포트/스크롤(drag-pan) 변화 시에만** 다시 그린다. 즉 scene 레이어는 §3.3 100-pane sprite 애니메이션 budget에 비용을 더하지 않는다.
+2. **배경은 단일 이미지(확정)**: image-ground 배경은 world 전체를 덮는 단일 이미지이며 parallax 변환이 없다(`parallax=0`). drag-pan은 `scrollLeft/Top` 갱신으로 layout/scroll 위치를 바꾸지 않는다(§3.2). 데이터 refresh가 scroll을 리셋하지 않는다.
+3. **성능 친화 렌더(확정 지침)**: 배경은 단일 이미지, shadow는 CSS, lighting은 단일 overlay, decor(zone-grid fallback)는 zone당 `DECOR_MAX` 상한. canvas P2 경로(§2.7)는 이 정적 레이어를 단일 texture로 합성할 수 있다(keyboard/selection/a11y는 DOM overlay 보존).
+4. **reduced-motion(확정)**: `prefers-reduced-motion: reduce`면 (a) decor 애니메이션(brazier flicker 등) off→정적, (b) lighting 맥동 off→정적. scene은 **정적으로 완전히 렌더**된다(입체감 유지, 모션만 제거). movement-off 경로와 정합(§1). (구 parallax off 규칙은 parallax 제거로 무효.)
+5. **결정성·no server coords(확정)**: ground placement·decor scatter는 모두 결정적 함수이며 `Math.random`·wall-clock·서버 좌표를 쓰지 않는다(INV-1). 동일 world → 동일 scene.
 
 ## 4. Acceptance criteria
 
@@ -355,7 +450,7 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
 - **SPEC-301-AC-08** (R-UI-003, R-UI-006, [[SPEC-202-design-accessibility]] AC-12/17 정합) — zero layout shift
   - Given 맵이 렌더된 상태에서 (i) status/위치 변화·roaming, (ii) hover/select, (iii) asset 탑재↔미탑재 토글, (iv) 뷰포트 리사이즈가 발생할 때
   - When layout을 측정하면
-  - Then sprite는 fixed-aspect 컨테이너 내 절대 위치라 인접 요소 reflow가 없고 CLS=0이며, sprite box는 `frame_size × mapSpriteScale`(§2.1)로 고정되고 그 스케일이 **asset·placeholder에 동일 적용**되어 asset 토글 시 layout shift가 0이다.
+  - Then sprite는 fixed-aspect 컨테이너 내 절대 위치라 인접 요소 reflow가 없고 CLS=0이며, sprite box는 `frame_size × spriteScale`(image-ground=`GROUND_SPRITE_SCALE` / zone-grid=`MAP_SPRITE_SCALE`, §2.1/§2.1a)로 고정되고 그 스케일이 **asset·placeholder에 동일 적용**되어 asset 토글 시 layout shift가 0이다.
 
 - **SPEC-301-AC-09** (R-UI-003, R-UI-004 진입, [[SPEC-202-design-accessibility]] AC-07/K2 정합) — keyboard roving-tabindex(zone 단위)·선택
   - Given 마우스 없이 키보드만 쓰는 사용자와 복수 zone 맵에서
@@ -363,9 +458,9 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
   - Then 각 zone이 하나의 roving-tabindex 그룹(zone당 single tab stop)이고, `Tab`/`Shift+Tab`은 zone 간 이동, Arrow는 focus zone 내부 orc 간 결정적 순서 이동, `Enter`/`Space`는 focus orc를 선택해 `?orc=<orcId>`로 inspector를 열며, 어떤 orc도 키보드로 도달 불가능하지 않다.
 
 - **SPEC-301-AC-10** (R-UI-006) — placeholder parity
-  - Given background/props/tiles/sprite asset이 미탑재/누락인 fixture에서
+  - Given background image/props/sprite asset이 미탑재/누락인 fixture에서(image-ground 및 legacy zone-grid 각각)
   - When 맵을 렌더·조작하면
-  - Then zone/station/slot 위치가 asset 탑재 시와 **동일**하게 산출되고(CSS ground + station CSS marker), 7종 status가 위치+label+overlay/CSS glyph로 grayscale-구분 가능하며, selection·hover·keyboard·bubble·reduced-motion이 동일 동작하고, asset 토글로 layout shift가 0이다(§3.4).
+  - Then 배치 좌표(image-ground: world=`logical_size`·`safeArea`·slot / zone-grid: zone/station/slot)가 asset 탑재 시와 **동일**하게 산출되고(배경 부재 시 CSS gradient ground, zone-grid는 station CSS marker), 7종 status가 위치+label+overlay/CSS glyph로 grayscale-구분 가능하며, selection·hover·keyboard·bubble·reduced-motion이 동일 동작하고, asset 토글로 layout shift가 0이다(§3.4).
 
 - **SPEC-301-AC-11** (비기능 성능) — 20 session/100 pane 프레임 예산 (측정=비-게이트 / 구조=게이트)
   - Given 20 session / 100 pane(100 sprite)가 동시에 roaming하는 fixture에서([[SPEC-007-test-validation]] §2.1 측정 패턴 준용)
@@ -387,56 +482,68 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
   - When 맵이 §2.1 `mapSpriteScale`·§2.2 고정 zone/world·§2.4 ring을 산출하면
   - Then (a) full-size scaled sprite box가 자신의 zone inner rect 안에 들어가고 ring 간격 `RING_STEP`(scaled footprint 기준)이라 인접 ring sprite가 비-중첩이며, (b) zone은 **항상 고정 `ZONE_W×ZONE_H`(=MIN_ZONE)**라 window 수와 무관하게 degenerate하지 않고 window/orc가 많으면 **world가 커져 뷰포트가 스크롤**하며(§2.2/§2.7), (c) `mapSpriteScale`이 **asset과 placeholder 박스에 동일하게 적용**되어 toggle 시 box 크기·layout이 변하지 않으며(AC-08·[[SPEC-202-design-accessibility]] AC-17 동치), frame_size 종횡비가 보존된다.
 
-> 아래 AC-15~21은 **rich map depth toolkit**(§2.8/§3.5)을 검증한다. asset resolve·Wang 타일 선택·이미지 fit·shadow shape 메커니즘은 [[SPEC-300-asset-rendering]] §2.6(SPEC-300-AC-14~18)이 소유하고, 본 AC는 **배치·결정성·parallax·z·depth fallback parity**를 검증한다.
+> 아래 AC-15~21은 구 **rich map depth toolkit**(§2.8/§3.5)을 검증했다. image-ground(단일 배경 이미지) 전환으로 Wang terrain field·backdrop parallax 관련 항목(AC-15/16)은 **superseded**됐고, scenery/z/lighting/budget 항목(AC-17~21)은 image-ground에 맞춰 재범위화됐다. 신규 image-ground 검증은 **AC-22/AC-23**이다.
 
-- **SPEC-301-AC-15** (R-UI-003, R-UI-008, INV-1, [[SPEC-300-asset-rendering]] §2.6a 정합) — 결정적 terrain field·서버 데이터 불변
-  - Given 동일 window 집합·`MapDims` fixture에서 terrain field를 반복 산출하고, 동일 입력의 snapshot/WS payload를 검사할 때
-  - When `terrainAt(cornerX, cornerY)`를 산출하면
-  - Then 매 호출 동일 `terrainIndex`를 산출하고(순수·결정적), 함수가 `Math.random`·wall-clock·서버 좌표를 사용하지 않으며, `Orc`/`Camp`/`ScanResult`/snapshot/WS 어디에도 terrain/좌표 필드가 존재하지 않는다(INV-1).
+- **SPEC-301-AC-15** (R-UI-003, R-UI-008, INV-1) — 결정적 terrain field — **(superseded — image-ground)**
+  - corner-Wang terrain field(`terrainAt`)가 단일 배경 이미지로 대체돼 런타임에 존재하지 않는다(§2.8b superseded). client-derived 결정성·서버 좌표 불추가 검증은 **AC-12(zone-grid target)·AC-22(image-ground target)**가 대체한다. AC ID는 추적 안정성을 위해 보존하나 게이트하지 않는다.
 
-- **SPEC-301-AC-16** (R-UI-003, [[SPEC-202-design-accessibility]] AC-12 정합) — backdrop parallax + scroll 안정
-  - Given 큰 world와 `scene.backdrop.parallax=P`(0<P<1) fixture에서(reduced-motion 아님)
-  - When 뷰포트를 스크롤하면
-  - Then backdrop은 terrain보다 느리게(스크롤 `s`에 대해 translate `s×P`, §2.8a) **transform만**으로 이동하고, 스크롤/parallax가 인접 reflow를 만들지 않으며(CLS=0), 데이터 refresh(WS batch)가 scroll/parallax 상태를 리셋하지 않는다.
+- **SPEC-301-AC-16** (R-UI-003) — backdrop parallax + scroll 안정 — **(superseded — image-ground)**
+  - 단일 배경 이미지(`parallax=0`)가 backdrop horizon+parallax를 대체했다(§2.8a superseded). drag-pan 시 scroll/layout 안정성은 **AC-08(zero layout shift)·AC-22(image-ground drag-pan)**가 검증한다.
 
-- **SPEC-301-AC-17** (R-UI-003, R-UI-007, [[SPEC-202-design-accessibility]] A7/R4 정합) — depth z-order·label 비가림
-  - Given backdrop·terrain·decor·shadow·lighting·sprite·status overlay·status label·raw target이 모두 있는 scene fixture에서
+- **SPEC-301-AC-17** (R-UI-003, R-UI-007, [[SPEC-202-design-accessibility]] A7/R4 정합) — scene z-order·label 비가림
+  - Given 배경 이미지·decor(zone-grid fallback)·shadow·lighting·sprite·status overlay·status label·raw target이 있는 scene fixture에서
   - When z-순서를 검사하면
-  - Then §2.7 확장 z-stack(①→⑫, back→front)대로 렌더되고, depth 레이어(backdrop·terrain·decor·shadow·lighting)는 **항상 status overlay·status label·raw `tmuxTarget`(⑨⑩) 아래**에 위치해 어떤 depth 레이어도 상태/식별 텍스트를 가리지 않으며, decor·shadow·lighting은 `pointer-events:none`이라 selection/hover/keyboard를 가로채지 않는다.
+  - Then §2.7 z-stack(①→⑪, back→front)대로 렌더되고, 배경/decor/shadow/lighting 레이어는 **항상 status overlay·status label·raw `tmuxTarget`(⑧⑨) 아래**에 위치해 어떤 배경/장식 레이어도 상태/식별 텍스트를 가리지 않으며, decor·shadow·lighting은 `pointer-events:none`이라 selection/hover/keyboard를 가로채지 않는다.
 
-- **SPEC-301-AC-18** (R-UI-003, R-UI-008, INV-1) — 결정적 scenery scatter·비-개입
-  - Given zone fixture와 `scene.decor` 선언에서 `decorPlacements(zoneRect, ctx)`를 반복 산출할 때
+- **SPEC-301-AC-18** (R-UI-003, R-UI-008, INV-1) — 결정적 scenery scatter·비-개입 (zone-grid fallback 한정)
+  - Given legacy zone-grid fixture와 `scene.decor` 선언에서 `decorPlacements(zoneRect, ctx)`를 반복 산출할 때(image-ground는 CSS decor 미렌더)
   - When placement를 산출하면
   - Then 동일 입력에 동일 placement 집합을 산출하고(seeded, `Math.random` 0건), decor가 station 앵커·slot ring·zone header·label 영역을 회피하며(겹침 시 drop), decor는 `pointer-events:none`이고 zone당 decor ≤ `DECOR_MAX`(가설)이며, sprite/label 배치를 바꾸지 않는다.
 
-- **SPEC-301-AC-19** (R-P1-004, 비기능 접근성, [[SPEC-202-design-accessibility]] AC-11 정합) — reduced-motion: parallax·decor·lighting 정지
-  - Given `prefers-reduced-motion: reduce`이고 rich depth(backdrop/decor/lighting) scene fixture에서
+- **SPEC-301-AC-19** (R-P1-004, 비기능 접근성, [[SPEC-202-design-accessibility]] AC-11 정합) — reduced-motion: decor·lighting 정지
+  - Given `prefers-reduced-motion: reduce`이고 decor(zone-grid)/lighting scene fixture에서
   - When 맵을 렌더하면
-  - Then parallax가 비활성(backdrop 동률/pin)이고 decor 애니메이션(brazier flicker 등)·lighting 맥동이 정지하며, scene은 **정적으로 입체감을 유지**한 채 렌더된다(모션만 제거, depth 레이어 자체는 유지; §3.5-4).
+  - Then decor 애니메이션(brazier flicker 등)·lighting 맥동이 정지하며, scene은 **정적으로 입체감을 유지**한 채 렌더된다(모션만 제거; §3.5-4). (구 parallax off 항목은 parallax 제거로 무효.)
 
-- **SPEC-301-AC-20** (R-UI-006, [[SPEC-202-design-accessibility]] AC-17 정합, [[SPEC-300-asset-rendering]] §3.9 공동) — rich-map placeholder parity·zero layout shift
-  - Given backdrop/Wang-terrain/decor/shadow asset을 각각 또는 전부 미탑재↔탑재로 토글하는 fixture에서
+- **SPEC-301-AC-20** (R-UI-006, [[SPEC-202-design-accessibility]] AC-17 정합, [[SPEC-300-asset-rendering]] §3.9 공동) — image-ground placeholder parity·zero layout shift
+  - Given background 이미지/decor/shadow asset을 각각 또는 전부 미탑재↔탑재로 토글하는 fixture에서
   - When 맵을 렌더·측정하면
-  - Then 모든 단계에서 zone/station/slot 좌표·terrain field·decor placement·sprite box·scroll 위치가 **동일**하고(CLS=0), terrain은 최소 CSS gradient로 그려져 **단일 평면 tile 회귀가 없으며**, depth cue(shadow/lighting의 CSS fallback)가 asset 없이도 유지된다(§3.4).
+  - Then 모든 단계에서 world/`safeArea`/slot 좌표(image-ground) 또는 zone/station/slot 좌표(zone-grid)·sprite box·scroll 위치가 **동일**하고(CLS=0), 배경 이미지가 없으면 최소 CSS gradient ground로 그려지며, depth cue(shadow/lighting의 CSS fallback)가 asset 없이도 유지된다(§3.4).
 
-- **SPEC-301-AC-21** (비기능 성능, §3.3 정합) — depth 레이어 정적·budget 비가산
-  - Given 20 session/100 pane + rich depth(backdrop/Wang terrain/decor/lighting/shadow) fixture에서
+- **SPEC-301-AC-21** (비기능 성능, §3.3 정합) — scene 레이어 정적·budget 비가산
+  - Given 20 session/100 pane + scene(배경 이미지/decor/lighting/shadow) fixture에서
   - When 렌더 루프를 검사하면
-  - Then terrain·decor·backdrop·lighting·shadow는 per-frame 애니메이션이 아니어서 공유 clock frame 작업에 미포함되고(§3.5-1), 뷰포트/스크롤 변화 시에만 갱신되며(parallax는 transform), off-screen terrain cell은 생성되지 않아 §3.3 sprite 애니메이션 budget(AC-11)에 depth 비용을 더하지 않는다.
+  - Then 배경 이미지·decor·lighting·shadow는 per-frame 애니메이션이 아니어서 공유 clock frame 작업에 미포함되고(§3.5-1), 뷰포트/drag-pan 변화 시에만 갱신되며, §3.3 sprite 애니메이션 budget(AC-11)에 scene 비용을 더하지 않는다.
+
+- **SPEC-301-AC-22** (R-UI-003, R-UI-008, R-UI-006, INV-1) — image-ground world(2× native) + 원본 크기 placement (구현·`web/tests/ground.test.ts`)
+  - Given `logical_size`(= `native_size × world_scale`, 2×) + walkable `ground.polygon`(logical 좌표) + `safe_area`를 가진 배경(예: `orccamp-default`)과 여러 window/status/terminated orc fixture에서
+  - When `computeLayout(orcs, groundFromBackground(bg))`로 image-ground 배치를 산출하면
+  - Then (a) `dims.world` = 배경 `logical_size`(= 2× native, 예 `3344×1882`)이고, (b) 모든 orc target이 walkable `safeArea` 내부(`GROUND_MARGIN=104.4` 여유로 **원본 크기** sprite body 포함)에 있으며, (c) 동일 입력에 동일 target(순수·결정적, `Math.random`/`Date.now` 없음)이고, (d) slot peers가 **status로 키**되어 서로 다른 window의 동일 status orc도 distinct ground slot을 받으며, (e) `target.zoneIndex`가 window rank를 추적하고(keyboard 그룹 보존), sprite scale은 `GROUND_SPRITE_SCALE = MAP_SPRITE_SCALE`(=0.9, 원본 크기)·`GROUND_PITCH_FACTOR=1.0`이 asset·placeholder에 동일 적용된다(zero layout shift). 좌표 필드는 `Orc`/snapshot/WS 어디에도 없다(INV-1).
+
+- **SPEC-301-AC-23** (R-UI-006, R-UI-008) — ground geometry + 등록 ratio 게이트(scale 불변) (구현·`web/tests/ground.test.ts`)
+  - Given default polygon(`orccamp-default`, 2× world `3344×1882`)과 작은 polygon fixture에서
+  - When ground geometry/게이트 함수를 산출하면
+  - Then (a) `shoelaceArea(polygon)` = `1771900` px²(2× world)이고, (b) `groundRatio` ≈ `0.282`(stored `0.2815`와 1e-3 이내, **`world_scale`에 불변**)이며, (c) `safe_area` 4코너가 모두 polygon 내부(`pointInPolygon`)이고, (d) `meetsGroundRatio(default)` = accept(`ratio ≥ REFERENCE_GROUND_RATIO`=0.281), 작은 polygon = reject + 사유(`ground_ratio … < reference`)이며 ratio는 stored가 아니라 polygon에서 **재계산**되고, (e) `groundFromBackground`는 polygon 보유 배경에 GroundContext(`world={3344,1882}`, `safeArea={1080,950,1320,800}`)를, 미보유/null 배경에 `null`(→ zone-grid)을 반환하며, (f) manifest `scene.backdrop.background_ref="orccamp-default"`가 `logical_size=[3344,1882]`와 게이트를 통과하는 ground를 가진다.
+
+- **SPEC-301-AC-24** (R-UI-004, R-P1-004, INV-1) — drag-and-drop 이동·드롭 후 재개·드래그 idle anim (구현·`web/tests/dragMove.test.tsx`·`roaming.test.ts`·`spriteResolver.test.ts`)
+  - Given live 맵의 orc fixture에서 orc sprite 위 pointer 제스처(down→move>`DRAG_START_PX`→up)와, threshold 미만의 tap을 각각 가하면
+  - When `OrcSprite` 드래그 핸들러 → `CampMap.onMoveOrc` → `RoamingController.place()` + `ui.orcPositions` 업데이트가 실행되면
+  - Then (a) 드래그 중 sprite는 포인터를 따라가고(`BASE_SCALE=1` → screen Δ = logical Δ) `oc-orc--dragging`이 적용되며 `resolveSprite({dragging:true, direction})`이 **`idle` 애니메이션을 드래그 시작 facing 방향**으로 출력하고(8방향), (b) 드롭은 walkable bound로 `PATROL_MARGIN` clamp된 위치를 새 home으로 **즉시 snap**하고 그 orc를 **`pinned`**(cell bound 미부여)으로 표시해 — **`active`는 드롭 지점을 중심으로 patrol을 재개하고 `non-active`는 드롭 지점에 정확히 머물며**(rest/wander offset·옛 cell bound-clamp 미적용 → **드래그 전 위치로 복원되거나 어긋나지 않음**) status 애니메이션을 재생하며, (c) 드롭 직후 click은 억제돼 **선택을 유발하지 않고**, threshold 미만 tap은 기존대로 선택하며, (d) 새 home은 `ui.orcPositions[orcId]`로 보관돼 live snapshot refresh를 가로질러 유지되고(같은 home+pinned 재-sync는 no-op) orc 소멸 시 prune되며, (e) 위치는 포인터에서만 오므로 `Math.random`/`Date.now` 미사용(INV-1)이고 서버 `Orc`/snapshot에 좌표 필드를 추가하지 않는다.
 
 ## 5. Traceability
 
 | 요구사항 | 다루는 방식 | 검증 AC |
 | --- | --- | --- |
-| R-UI-003 | camp scene을 zone/station/slot 공간 맵으로 실현(window=lane·pane=slot 의미 보존, SPEC-201-AC-03 scene 배치 supersede), 결정적 배치·feasible geometry·zero layout shift·keyboard + **입체(깊이) scene**(backdrop+parallax·결정적 terrain field·scenery scatter·depth z-order·lighting/shadow placement) | SPEC-301-AC-01, AC-02, AC-03, AC-08, AC-09, AC-12, AC-14, AC-15, AC-16, AC-17, AC-18 |
-| R-UI-006 | background/props/tiles/sprite 누락 시 placeholder parity(위치·status·interaction·a11y 불변, uniform `mapSpriteScale` 토글 parity, no layout shift) + **rich-map depth fallback**(Wang terrain/backdrop/decor/shadow/lighting CSS fallback, 단일 평면 tile 회귀 방지) | SPEC-301-AC-08, AC-10, AC-14, AC-20 |
+| R-UI-003 | camp scene을 **image-ground(단일 배경 이미지=world, native·drag-pan)** 공간 맵으로 실현, orc를 walkable `safe_area`에 결정적 배치 + legacy zone/station/slot fallback(window=lane·pane=slot 의미 보존, SPEC-201-AC-03 scene 배치 supersede), zero layout shift·keyboard·scene z-order·lighting/shadow placement. (Wang terrain field AC-15·backdrop parallax AC-16은 superseded) | SPEC-301-AC-01, AC-02, AC-03, AC-08, AC-09, AC-12, AC-14, AC-17, AC-18, AC-22, AC-23 |
+| R-UI-006 | background image/props/sprite 누락 시 placeholder parity(위치·status·interaction·a11y 불변, uniform sprite scale 토글 parity, no layout shift) + **배경 이미지→CSS gradient fallback**(빈 화면 회귀 방지) | SPEC-301-AC-08, AC-10, AC-14, AC-20, AC-22 |
 | R-ORC-005 | activity bubble에 `summarySource`/estimated 마커 + 상시 status label/confidence 동반(단정 금지) | SPEC-301-AC-06 |
-| R-P1-004 | status별 sprite animation을 공간 맵으로 확장: `roaming` walk-cycle 진입·8방향·reduced-motion·공유 clock(state-entry anchored) + depth 모션(parallax·decor/lighting) reduced-motion 정지 | SPEC-301-AC-04, AC-05, AC-07, AC-13, AC-19 |
-| R-P1-005 (substrate) | backdrop이 manifest/asset-pack 구동 비-제약 레이어로 분리(§2.8a) → pack 교체로 scene 배경 교체 가능. **per-camp 전환 UI·설정은 [[SPEC-500-settings-persistence]] forward**(소유 주장 아님) | SPEC-301-AC-16, AC-20 |
-| **R-UI-008** | orc 위치+애니메이션으로 활동을 공간 표현, 위치는 기존 필드의 결정적 함수(서버 좌표 불추가) + terrain field/scenery도 client-derived 결정적(서버 좌표 불추가) | SPEC-301-AC-01, AC-02, AC-03, AC-12, AC-14, AC-15, AC-18 |
+| R-P1-004 | status별 sprite animation을 공간 맵으로 확장: `roaming` walk-cycle 진입·8방향·reduced-motion·공유 clock(state-entry anchored) + scene 모션(decor/lighting) reduced-motion 정지 + **drag-and-drop 이동(드래그 중 idle anim·드롭 후 활동/대기 재개)** | SPEC-301-AC-04, AC-05, AC-07, AC-13, AC-19, AC-24 |
+| R-UI-004 (interaction) | orc **drag-and-drop 재배치**(pointer 드래그→드롭, tap=선택 보존, 드롭=재배치+활동/대기 재개), client UI 상태(`ui.orcPositions`)로 보관·refresh 가로질러 유지 | SPEC-301-AC-24 |
+| R-P1-005 (substrate) | 단일 배경 이미지(`scene.backdrop`→`backgrounds[ref]`, image-ground/zone-grid)가 manifest/asset-pack 구동 → pack/background 교체로 scene 배경 교체 가능. 신규 배경은 ground-ratio 게이트(§2.8f) 통과 필요. **per-camp 전환 UI·설정은 [[SPEC-500-settings-persistence]] forward**(소유 주장 아님) | SPEC-301-AC-20, AC-23 |
+| **R-UI-008** | orc 위치+애니메이션으로 활동을 공간 표현, 위치는 기존 필드의 결정적 함수(서버 좌표 불추가; image-ground=f(status,paneId)/zone-grid=f(windowIndex,status,paneId)) | SPEC-301-AC-01, AC-02, AC-03, AC-12, AC-14, AC-22, AC-23 |
 | **R-P1-013** | status 변화 시 roaming으로 이동·8방향 direction(P1 movement) | SPEC-301-AC-04, AC-05 |
 | 비기능: 성능 (20/100) | 단일 공유 clock·fixed-aspect·완화 전략(가설 임계) + depth 레이어 정적·budget 비가산 | SPEC-301-AC-11, AC-13, AC-21 |
-| 비기능: 접근성 (keyboard/reduced-motion) | zone roving-tabindex·snap + parallax/decor/lighting reduced-motion 정지 (값은 [[SPEC-202-design-accessibility]]) | SPEC-301-AC-07, AC-09, AC-19 |
+| 비기능: 접근성 (keyboard/reduced-motion) | zone roving-tabindex·snap + decor/lighting reduced-motion 정지 (값은 [[SPEC-202-design-accessibility]]) | SPEC-301-AC-07, AC-09, AC-19 |
 
 > **소유/부수 분담**: 본 spec은 R-UI-003(공간 배치)·R-P1-004(movement animation)의 **맵/이동 측면**을 소유하고, sprite 메커니즘(SPEC-300)·화면 콘텐츠/selection(SPEC-201)·접근성 수치값(SPEC-202)은 **참조**한다(이중 ownership 아님). R-UI-008/R-P1-013은 [[08-Decisions|D-035]]로 [[02-Requirements]]에 **채택 완료**됐다(R-UI-008 = P0 spatial-activity, R-P1-013 = P1 roaming). 전체 매트릭스 롤업은 [[SPEC-900-traceability-rollup]].
 
@@ -459,18 +566,18 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
     > `- 영향: R-UI-008/R-P1-013 신설, [[SPEC-301-camp-map-movement]] 소유, [[SPEC-300-asset-rendering]] Q4 해소·[[SPEC-201-dashboard-screens]] AC-03 scene 배치 supersede.`
 - **C2 — SPEC-202 K2(roving tabindex) 구체화(coordination)**: [[SPEC-202-design-accessibility]] K2는 "orc sprite layer = roving tabindex"를 규정한다. 본 spec은 이를 **zone 단위 그룹**(zone당 single tab stop, Tab=zone 간 / Arrow=zone 내)으로 구체화한다(§2.7, AC-09). 의미 충돌은 아니며 K2의 granularity 보강이다. SPEC-202 게이트에서 정합 확인 권장.
 - **C3 — SPEC-201 §2.3 lane/slot ↔ 맵 의미 일치**: [[SPEC-201-dashboard-screens]] §2.3은 window=lane·pane=slot을 소유한다. 본 spec의 zone=window·slot=paneId는 그 의미를 **공간으로 보존**한다(lane→zone, slot 정렬은 paneId rank). SPEC-201 §2.3에 "camp detail 배치는 SPEC-301 공간 맵이 소유, lane/slot 의미 보존"을 cross-ref로 추가했다(아래 NOTE). 두 spec의 정렬 키(SPEC-201은 `paneIndex` 표시 정렬, 본 spec은 `paneId` rank 배치)는 **표시 정렬 vs 공간 배치**로 역할이 다르며, 배치는 reindex 불변(D-017)을 위해 `paneId`를 쓴다.
-- **C4 — manifest `scene`/Wang tileset 선언 의존(미탑재)**: 본 spec §2.8 depth 배치는 [[SPEC-300-asset-rendering]] §2.5 manifest `scene`(backdrop/decor/shadow)·corner-Wang tileset 선언을 소비한다. 그 선언이 manifest에 **아직 없으므로**(SPEC-300 §6 C4 — Wang tileset 생성 + version bump 필요) 추가 전까지 §3.4 CSS fallback(gradient terrain·CSS shadow·CSS lighting·decor 생략)으로 동작한다(placeholder parity로 기능 검증 가능, **단일 평면 tile 회귀는 fallback에서도 방지**). asset 생성/패키징(asset-runtime/release)과 정합 필요. **검토 필요.**
-- **C5 — 신규 R-UI-009·D-036 채택 제안(F-rich-map)**: rich/depth map 렌더링(자동 타일링·backdrop+parallax·scenery·lighting·shadow)은 현재 R-UI-003(scene)·R-UI-006(parity)로 **부수 충족**되나, "입체감 있는 다층 scene"을 명시한 `R-*`가 없다. SPEC-301의 R-UI-008/R-P1-013 선례([[08-Decisions|D-035]])처럼 정식 승격을 **제안**한다. **write scope(`docs/specs/`) 밖**이므로 drop-in만 제시하고 [[02-Requirements]]·[[08-Decisions]] 반영은 orchestrator/user에 위임한다(채택 전까지 R-UI-003/006으로 부수 충족, 채택 즉시 frontmatter `requirements`에 `R-UI-009` 추가·[[SPEC-900-traceability-rollup]] §2.4 갱신).
+- **C4 — Wang tileset 의존 철회(RESOLVED — image-ground로 대체, 2026-06-29)**: ~~§2.8 depth 배치가 corner-Wang tileset/terrain field에 의존한다~~는 이전 요구는 **철회**됐다. camp 배경이 **단일 배경 이미지(image-ground)**로 전환돼 Wang tileset·terrain field가 더 이상 필요 없다([[SPEC-300-asset-rendering]] §6 C4 RESOLVED 정합). manifest는 `scene.backdrop.background_ref="orccamp-default"`(image-ground)·`scene.decor`(zone-grid fallback용)·`scene.shadow`와 `backgrounds.orccamp-default`(`logical_size`·`ground.polygon`·`safe_area`)를 이미 보유한다. 신규 배경 등록은 §2.8f ground-ratio 게이트를 통과해야 하며 owner는 `scene-placement-engineer`다. **잔여 조치 없음.**
+- **C5 — 신규 R-UI-009·D-036 채택 제안(F-rich-map) — image-ground로 모델 변경**: "입체감 있는 다층 scene"을 명시한 `R-*`가 없어 정식 승격을 **제안**한 항목이다. 단 **구현 모델이 corner-Wang/parallax depth toolkit에서 image-ground(단일 배경 이미지)로 변경**됐으므로 아래 drop-in 텍스트는 **갱신이 필요**하다(원안의 "corner-Wang 자동 타일링·backdrop+parallax"는 superseded). 현재 R-UI-003(scene)·R-UI-006(parity)로 부수 충족된다. **write scope(`docs/specs/`) 밖**이므로 drop-in만 제시하고 [[02-Requirements]]·[[08-Decisions]] 반영은 orchestrator/user에 위임한다(채택 즉시 frontmatter `requirements`에 `R-UI-009` 추가·[[SPEC-900-traceability-rollup]] §2.4 갱신).
 
   적용 대상: `docs/product/02-Requirements.md`(R-UI 그룹), `docs/product/08-Decisions.md`(말미).
 
-  - **R-UI-009 (PROPOSED, P1)** — `02-Requirements.md` R-UI 그룹:
-    > `- **R-UI-009**: camp scene은 깊이감(입체감)을 위한 다층 렌더링(corner-Wang 자동 타일링 지형, 비-제약 backdrop/horizon + parallax, 결정적 산재 scenery, per-sprite ground shadow, dusk lighting)을 제공해야 하며, 모든 레이어는 결정적(런타임 무작위 없음)·placeholder-parity·zero-layout-shift·reduced-motion-safe여야 하고 status/label/raw tmuxTarget을 가리지 않는다.`
-  - **D-036 (PROPOSED)** — `08-Decisions.md` 말미(`D-035` 다음):
-    > `## D-036: rich camp map(입체 scene)은 client-derived 결정적 레이어이며 asset-pack(manifest)으로 구동된다`
-    > `- 결정: camp map의 입체감은 (1) corner-based Wang 자동 타일링 지형, (2) 비-제약 backdrop + parallax, (3) 결정적 scenery scatter, (4) per-sprite ground shadow, (5) dusk lighting(CSS)으로 구성한다. terrain field·scenery·accent는 client에서 기존 좌표/seed의 결정적 함수이며 서버 좌표나 런타임 무작위를 쓰지 않는다(D-035 정합). Wang tileset/backdrop/decor/shadow는 manifest 선언으로 소비한다(D-013 SSOT). 모든 레이어는 placeholder parity·zero layout shift·reduced-motion-safe이고 status/label을 가리지 않는다.`
-    > `- 근거: 단일 평면 tile 회귀 해소(입체감), read-only·privacy·data-contract SSOT 보존, web-only.`
-    > `- 영향: R-UI-009 신설, [[SPEC-300-asset-rendering]] §2.5/§2.6/§3.9·[[SPEC-301-camp-map-movement]] §2.8/§3.5 소유. asset 생성: corner-Wang tileset + manifest `scene` 선언 version bump 필요.`
+  - **R-UI-009 (PROPOSED, P1 — image-ground 갱신안)** — `02-Requirements.md` R-UI 그룹:
+    > `- **R-UI-009**: camp scene은 단일 배경 이미지(image-ground; 이미지=world, native 해상도, drag-pan)를 ground로 사용하고 orc를 배경의 walkable 영역(ground polygon/safe_area)에 결정적으로 배치해야 하며, 신규 배경은 walkable ground 비율이 기준값(REFERENCE_GROUND_RATIO) 이상이어야 등록 가능하고, 모든 레이어는 결정적(런타임 무작위 없음)·placeholder-parity·zero-layout-shift·reduced-motion-safe여야 하며 status/label/raw tmuxTarget을 가리지 않는다.`
+  - **D-036 (PROPOSED — image-ground 갱신안)** — `08-Decisions.md` 말미(`D-035` 다음):
+    > `## D-036: camp map은 image-ground(단일 배경 이미지=world) 모델이며 client-derived 결정적 배치다`
+    > `- 결정: camp 배경은 타일/zone-grid가 아니라 단일 배경 이미지다. 배경에 logical_size(native px)와 walkable ground polygon이 있으면 이미지가 곧 world(native, drag-pan)이고 orc는 walkable safe_area에 배치된다. ground polygon이 없으면 legacy zone-grid로 fallback한다. 신규 배경은 ground 비율 게이트(groundRatio ≥ REFERENCE_GROUND_RATIO)를 통과해야 한다. 배치·ground 산정은 client의 결정적 함수이며 서버 좌표·런타임 무작위를 쓰지 않는다(D-035 정합). 배경/scene asset은 manifest 선언으로 소비한다(D-013 SSOT). corner-Wang 자동 타일링·backdrop parallax는 폐기(superseded).`
+    > `- 근거: 단일 평면 tile/타일링 복잡도 제거(단일 배경 이미지가 풍부한 scenery 제공), read-only·privacy·data-contract SSOT 보존, web-only.`
+    > `- 영향: R-UI-009 신설, [[SPEC-300-asset-rendering]] §2.5/§2.6/§3.9·[[SPEC-301-camp-map-movement]] §2.1a/§2.8/§3.4/§3.5 소유. 씬 배치 owner = scene-placement-engineer. 구 corner-Wang/parallax AC(SPEC-300-AC-14/15·SPEC-301-AC-15/16)는 superseded.`
 
 ### Open Questions (검토 필요)
 
@@ -479,4 +586,5 @@ asset(background/props/tiles/sprite)이 없거나 일부 누락돼도 **동일 l
 - **Q3 — roaming 보간 파라미터**: §3.1-6 `ROAM_SPEED`/`ROAM_MIN_MS`/`ROAM_MAX_MS`/easing, §3.1-1 `ε`, 최초 등장 spawn 방식(snap vs walk-in), ambient wander 활성화/`WANDER_R`(§3.1-8)는 가설·선택. reduced-motion에서는 모두 비활성(확정).
 - **Q4 — DOM↔canvas 전환 임계**: §2.7 canvas P2 escape hatch로 전환할 정확한 성능 임계(§3.3 예산 미달 시점)와 canvas 경로의 a11y/selection DOM overlay 설계는 [[SPEC-200-frontend-architecture]]·[[SPEC-007-test-validation]] FE 측정 계층(forward)과 함께 확정. MVP는 DOM.
 - **Q5 — overlay/bubble anchor 좌표 규약**: status overlay(64×64)·speech bubble의 sprite anchor 기준 정확 offset은 [[SPEC-300-asset-rendering]] Q1(overlay anchor)과 공동 확정 필요. 본 spec은 z-순서·비가림(§2.3-1, §2.6)까지 고정.
-- **Q6 — depth 튜닝 값(가설)**: §2.8b terrain 분류 규칙(moss/dirt 영역), §2.8c decor scatter seed·`DECOR_MAX`·category 상한, §2.8a parallax `P`(가설 0.3), §2.8d lighting vignette/ambient 강도(C1/C2 대비 보존)는 prototype/QA 보정 대상이다. **구조 규칙(결정성·label 비가림·placeholder parity·reduced-motion 정지·`pointer-events:none`)은 확정**이고 값만 가설이다. terrain field가 station 앵커(§2.3)·slot ring(§2.4)과 시각적으로 충돌하지 않도록(예: 작업장 바닥 patch가 ring sprite 가독성을 해치지 않게) 공동 튜닝 필요.
+- **Q6 — scene 튜닝 값(가설, image-ground 갱신)**: §2.8c decor scatter seed·`DECOR_MAX`(zone-grid fallback 한정), §2.8d lighting vignette/ambient 강도(C1/C2 대비 보존)는 prototype/QA 보정 대상이다. **구조 규칙(결정성·label 비가림·placeholder parity·reduced-motion 정지·`pointer-events:none`)은 확정**이고 값만 가설이다. (구 terrain 분류·parallax `P` 튜닝 항목은 image-ground 전환으로 무효.)
+- **Q7 — image-ground 튜닝·정밀 polygon 배치(가설, 신규)**: §2.1a `GROUND_SPRITE_SCALE = MAP_SPRITE_SCALE`(=0.9, 원본 크기) + `world_scale`(=2, world 확대로 원본 크기 sprite 수용)·§2.8f `REFERENCE_GROUND_RATIO`(=0.281), walkable 영역에 많은 orc가 모일 때(예: 한 status에 50 orc) safe_area 내 fan-out 가독성 vs "모두 표시(read-only)" trade-off, 그리고 **현재 polygon 내접 rect(safe_area) 보수적 clamp 대신 polygon 자체에 정밀 배치**로 walkable 면적을 더 쓰는 향후 개선은 prototype/QA 보정·후속 작업 대상이다. 구조 규칙(world=2× native·고정 스케일·drag-pan only·center-on-mount·결정적·ratio 게이트·status-keyed slot)은 확정. owner = `scene-placement-engineer`.

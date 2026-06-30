@@ -37,6 +37,14 @@ export interface MapDims {
 // (hypothesis range [0.7, 1.0]). This replaces the old 0.20 that shrank orcs to fit the
 // background safe_area; placement is now decoupled from the background (F2).
 export const MAP_SPRITE_SCALE = 0.9;
+// §2.1 image-ground mode — sprites render at the SAME original size as the zone-grid model
+// (orcs must read at their original pixels). Room is made by enlarging the WORLD instead: the
+// background image is declared at 2× its native size (a fixed 2× "zoom", no zoom controls) so
+// the walkable ground is large enough to hold original-size sprites without overlap.
+export const GROUND_SPRITE_SCALE = MAP_SPRITE_SCALE;
+// Slot/ring fan-out pitch in image-ground mode is the zone-grid pitch scaled by the sprite-size
+// ratio (= 1 now that ground sprites are full size; the larger 2× world gives the spacing room).
+export const GROUND_PITCH_FACTOR = GROUND_SPRITE_SCALE / MAP_SPRITE_SCALE;
 // Layout reference footprint: the maximum native frame edge (232) scaled. Position math
 // must NOT depend on per-character frame_size (INV-1: position is a function of
 // windowIndex/status/paneId only), so ring/stack pitch use this constant footprint.
@@ -86,6 +94,52 @@ export const ARRIVE_EPSILON = 1; // px
 // gently in place rather than skating around (Q3 tuning; reduced-motion bypasses all).
 export const WANDER_R = 10; // logical px (hypothesis range ≈8–14, subtle)
 export const WANDER_FREQ = 0.00055; // base angular speed (rad/ms); slow, gentle drift
+
+// §3.1-10 — active PATROL loop + non-active random rest (DEFAULT OFF, opt-in via CampMap).
+// An ACTIVE orc continuously patrols around its station home: dwell (play the 'active' anim)
+// → roam to a seeded nearby waypoint → dwell → … Per-orc seeded leg/dwell DURATIONS and
+// WAYPOINTS desync the fleet (no two orcs step in lockstep) while staying a PURE, deterministic
+// function of (paneId, shared-clock t) — no Math.random / Date.now (INV-1). Radii are bounded
+// well inside the inter-station spacing so the active patrol band never reaches a non-active
+// station (the spatial mechanism for "non-active orcs never overlap the active ones").
+export const PATROL_LEG_MIN_MS = 850;
+export const PATROL_LEG_MAX_MS = 1650;
+export const PATROL_DWELL_MIN_MS = 1300;
+export const PATROL_DWELL_MAX_MS = 3200;
+export const PATROL_R_MIN = 0.25 * SCALED_FOOTPRINT; // ≈52 — waypoint ring around the home post
+export const PATROL_R_MAX = 0.6 * SCALED_FOOTPRINT; // ≈125
+// Non-active seeded REST displacement radius (renderedPos-only jitter, like wander): keeps each
+// waiting orc at a distinct, natural-looking spot near its station instead of a neat ring.
+export const REST_R = 0.4 * SCALED_FOOTPRINT; // ≈84
+// Half-footprint inset used to clamp patrol/rest positions inside the walkable bound (so the
+// whole sprite, not just its anchor, stays in-bounds — parity with layout's GROUND_MARGIN).
+export const PATROL_MARGIN = SCALED_FOOTPRINT / 2; // ≈104
+// §2.4b/§3.1-10 cell-collapse floor — the MINIMUM reachable patrol band (± from cell center) that
+// is preserved even when a cell is smaller than a full sprite (crowded camp / narrowed layout). The
+// half-footprint PATROL_MARGIN clamp alone collapses every waypoint onto the center once a cell
+// drops below 2×PATROL_MARGIN ≈ 209px in a dimension, freezing the active orc in place; flooring the
+// band at this radius keeps a visible patrol at the cost of a small, bounded overlap (accepted only
+// where the cell can't hold a full sprite anyway). Comfortable cells are unaffected (natural ring).
+export const PATROL_MIN_BAND = 0.16 * SCALED_FOOTPRINT; // ≈33
+// §2.4b (#51) — personal-space bubble. Each orc owns one cell of a grid laid over the walkable map
+// (scene/spacing.ts); patrol/rest clamp to that cell with PATROL_MARGIN, so the whole sprite box
+// stays inside its cell and adjacent orcs never overlap. The grid ALSO gives the map-wide spread
+// (#50) — cells distribute orcs across the whole map instead of huddling at one post.
+
+// §2.6b (#50/#52) — intermittent ambient "speech": each orc occasionally pops a speech bubble whose
+// text mixes a WoW-inspired orcish lexicon (scene/orcish.ts) with a random combo of its preview/summary
+// words. Deterministic on (orcId, shared clock t): a seeded PERIOD with a seeded phase, the bubble
+// visible for DUR within each period. OFF under reduced-motion (no autoplay) and for terminated orcs.
+// Tuned sparse so a 100-pane camp chatters gently, not noisily.
+export const SPEECH_PERIOD_MIN_MS = 9000;
+export const SPEECH_PERIOD_MAX_MS = 18000;
+export const SPEECH_DUR_MS = 3200; // how long each utterance stays up
+export const SPEECH_WORDS_MIN = 1;
+export const SPEECH_WORDS_MAX = 3;
+// §2.6b (#52) — ACTIVE orcs are "talking while they work": longer utterances (more work words, always
+// bookended by an orcish opener + closer and peppered with grunts) so the bubble fills ~2–3 lines.
+export const SPEECH_WORDS_ACTIVE_MIN = 4;
+export const SPEECH_WORDS_ACTIVE_MAX = 7;
 
 export const MVP_DIRECTION = 'south';
 

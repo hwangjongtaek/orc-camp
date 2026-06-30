@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
+  availableCharacterPool,
+  characterKeyForIndex,
+  CHARACTER_POOL,
   formatFrame,
   resolveSprite,
   type OrcRenderInput,
@@ -101,6 +104,18 @@ describe('resolveSprite (SPEC-300)', () => {
     expect(unknown.anchor).toEqual([114, 204]);
   });
 
+  it('§3.1-11: dragging forces the IDLE animation in the drag-start direction (over status/roaming)', () => {
+    // an ACTIVE orc being dragged WEST shows the idle (not active/roaming) loop facing west.
+    const s = resolveSprite(
+      input({ status: 'active', movementState: 'roaming', dragging: true, direction: 'west' }),
+      env({}),
+    );
+    expect(s.mode).toBe('animated');
+    expect(s.animationState).toBe('idle');
+    expect(s.direction).toBe('west');
+    expect(s.framePaths?.[0]).toBe('/pack/sprites/orc-claude-storm-shaman/C/animations/idle/west/frame_000.png');
+  });
+
   it('AC-02: status=active → animated, fps/frames/path from manifest', () => {
     const s = resolveSprite(input({ status: 'active' }), env({}));
     expect(s.mode).toBe('animated');
@@ -122,11 +137,20 @@ describe('resolveSprite (SPEC-300)', () => {
     expect(s.overlayPath).toContain('unknown-charm.png');
   });
 
-  it('AC-05: terminated → static fallback + ghost, no frame sequence', () => {
+  it('AC-05 (#52): terminated → animated IDLE loop + ghost overlay (no longer frozen)', () => {
     const s = resolveSprite(input({ status: 'terminated' }), env({}));
+    expect(s.mode).toBe('animated');
+    expect(s.animationState).toBe('idle');
+    expect(s.framePaths?.length).toBe(7);
+    expect(s.framePaths?.[0]).toContain('animations/idle/south/frame_000.png');
+    expect(s.loop).toBe(true);
+    expect(s.overlayPath).toContain('terminated-ghost.png');
+  });
+
+  it('AC-05/#52: terminated under reduced-motion still freezes (static)', () => {
+    const s = resolveSprite(input({ status: 'terminated' }), env({ prefersReducedMotion: true }));
     expect(s.mode).toBe('static');
     expect(s.framePaths).toBeNull();
-    expect(s.staticFramePath).toContain('animations/idle/south/frame_000.png');
     expect(s.overlayPath).toContain('terminated-ghost.png');
   });
 
@@ -161,5 +185,50 @@ describe('resolveSprite (SPEC-300)', () => {
     const s = resolveSprite(input({}), env({ manifest: null }));
     expect(s.mode).toBe('placeholder');
     expect(s.frameSize).toEqual([232, 232]);
+  });
+});
+
+describe('SPEC-300 §2.3 sequential character assignment', () => {
+  it('explicit characterKey WINS over agentType (orc chosen by order, not agent type)', () => {
+    // agentType is claude-code (→ storm-shaman) but the sequential key picks the codex character.
+    const s = resolveSprite(
+      input({ agentType: 'claude-code', characterKey: 'orc-codex-field-engineer' }),
+      env({}),
+    );
+    expect(s.characterKey).toBe('orc-codex-field-engineer');
+  });
+
+  it('two same-agent orcs with different keys resolve to different characters', () => {
+    const a = resolveSprite(input({ agentType: 'claude-code', characterKey: 'orc-claude-storm-shaman' }), env({}));
+    const b = resolveSprite(input({ agentType: 'claude-code', characterKey: 'orc-codex-field-engineer' }), env({}));
+    expect(a.characterKey).not.toBe(b.characterKey);
+  });
+
+  it('a characterKey absent from the manifest falls back to the agentType mapping', () => {
+    const s = resolveSprite(
+      input({ agentType: 'codex', characterKey: 'orc-not-in-manifest' }),
+      env({}),
+    );
+    expect(s.characterKey).toBe('orc-codex-field-engineer');
+  });
+
+  it('availableCharacterPool keeps pool order, filtered to manifest presence', () => {
+    const m = manifest(); // ships storm-shaman, field-engineer, unknown, mascot (no iron-commander)
+    const pool = availableCharacterPool(m);
+    expect(pool).toEqual(
+      CHARACTER_POOL.filter((k) => m.characters[k]),
+    );
+    expect(pool).toContain('orc-claude-storm-shaman');
+    expect(pool).not.toContain('orc-iron-commander'); // not in this test manifest
+    expect(availableCharacterPool(null)).toEqual([]);
+  });
+
+  it('characterKeyForIndex cycles the pool (sequential, wraps around)', () => {
+    const pool = ['a', 'b', 'c'];
+    expect(characterKeyForIndex(0, pool)).toBe('a');
+    expect(characterKeyForIndex(1, pool)).toBe('b');
+    expect(characterKeyForIndex(2, pool)).toBe('c');
+    expect(characterKeyForIndex(3, pool)).toBe('a'); // wrap
+    expect(characterKeyForIndex(0, [])).toBeUndefined();
   });
 });

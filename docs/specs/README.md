@@ -36,6 +36,7 @@ Epic은 [[07-Roadmap]] Milestone과 [[02-Requirements]] `R-*`를 따라 분해�
 | [[SPEC-005-data-contract]] | scan 출력 데이터 계약 | R-CLI-004, R-TMUX-005/006, R-ORC-003/004/005 | spec-author + backend | approved |
 | [[SPEC-006-privacy-redaction]] | Privacy·redaction·read-only | R-PRIV-001~005, R-TMUX-001(enforce)/004, R-OBS-003 | security-privacy-eng | approved |
 | [[SPEC-007-test-validation]] | 테스트 전략·PoC 측정 | (slice 수용 기준 + PoC 지표) | qa-test-strategist | approved |
+| [[SPEC-008-usage-collection]] | 세션 로그 usage 수집 privacy 계약(token/cost 집계, SPEC-006 자매·확장; R-P2-008 forward 게이트) | R-PRIV-007(proposed), R-PRIV-002/004/005, R-OBS-003, R-P2-008 | security-privacy-eng | draft |
 
 ### Epic 2 — Local Server & API
 
@@ -58,6 +59,10 @@ Epic은 [[07-Roadmap]] Milestone과 [[02-Requirements]] `R-*`를 따라 분해�
 | Spec | 제목 | 다루는 요구사항 | 담당 | status |
 | --- | --- | --- | --- | --- |
 | [[SPEC-300-asset-rendering]] | 런타임 asset 소비·sprite 상태머신·fallback | R-UI-003/006, R-P1-004 | Asset/Realtime Eng | approved |
+| [[SPEC-301-camp-map-movement]] | camp 공간 맵·결정적 배치·roaming movement | R-UI-008, R-P1-013 | Asset/Realtime Eng | approved |
+| [[SPEC-302-mascot-prestige-tiers]] | character 누적 token/cost 기반 외형 tier resolution (delivered 5종: mascot·shaman·codex·unknown·iron-commander) | R-P2-008(proposed), R-P1-004/005 | Asset/Realtime Eng | draft |
+| [[SPEC-303-epic-monster-npc]] | 배경별 epic 보스 몬스터 ambient NPC(full-polygon roaming·dwell/error FSM·비-상호작용·비-load-bearing) + 자산 [[16-Epic-Monster-NPC]] | R-UI-010(proposed), R-P1-004, R-UI-008 | Scene Placement Eng | draft |
+| [[SPEC-304-character-avatar-portraits]] | character avatar portraits — Detail panel 우측 BG식 2:3 흉상(정적·비-load-bearing·CSS frame·결정적 resolve·placeholder parity, 5 base + 15 tier) + 자산 [[17-Character-Avatar-Portraits]] | R-UI-011(proposed), R-UI-004, R-P1-004, R-P2-008(proposed), R-UI-006 | Asset/Realtime Eng + UI/UX | draft |
 
 ### Epic 5 — Control Actions
 

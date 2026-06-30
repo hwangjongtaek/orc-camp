@@ -14,6 +14,9 @@
   --oc-color-text-muted: #d8c9a3; /* bone */
   --oc-color-danger: #c94c4c; /* danger */
   --oc-color-warning: #d6a43f; /* warning */
+  --oc-color-tier-1: #8a6d3b; /* prestige T1 — bronze (SPEC-302) */
+  --oc-color-tier-2: #b8860b; /* prestige T2 — gold */
+  --oc-color-tier-3: #b5532a; /* prestige T3 — ember-red */
   --oc-color-border: rgba(216, 201, 163, 0.24); /* assumption: bone @ 24% */
   --oc-color-on-primary: #1a1206; /* text on ember */
   --oc-color-on-danger: #ffffff; /* text on danger */
@@ -83,4 +86,8 @@
   --oc-map-viewport-h: 72vh;
   --oc-map-viewport-min-h: 460px;
   --oc-map-tile-size: 64px;
+  /* Camp-detail split layout (50/50 & 30/70 modes): the height of the side-by-side map|dock row
+     (they divide the WIDTH). Offset leaves room for the sticky header + detail header + chips. */
+  --oc-detail-split-h: calc(100dvh - 210px);
+  --oc-detail-split-min-h: 540px;
 }

@@ -2,7 +2,7 @@
 spec: SPEC-300
 title: 런타임 asset 소비·sprite 상태머신·fallback
 status: approved
-updated: 2026-06-28
+updated: 2026-06-29
 requirements: [R-UI-003, R-UI-006, R-P1-004, R-P1-005]
 decisions: [D-007, D-009, D-013]
 tags:
@@ -37,7 +37,8 @@ tags:
 - **direction/state fallback**: 요청 direction/state 부재 시 `south`/`idle`로 강등(mascot `error`는 south-only 등).
 - **character fallback chain**: character key 미해석 시 `orc-high-warchief-mascot`(universal mascot) → placeholder.
 - **license 게이트(미해소, [[08-Decisions|D-009]])**: 런타임은 asset pack을 **로컬 경로에서 참조만** 하고, 외부 재배포(npm 번들)는 license 확정 전까지 하지 않는다([[SPEC-700-packaging-release]] 공동).
-- **scene asset 렌더 메커니즘(신규, §2.5/§2.6/§3.9)**: ① corner-based Wang tileset 소비(각 cell의 4 corner terrain을 샘플 → corner mask로 타일 선택, flat-variant tileset은 accent/fallback), ② backdrop/horizon 레이어 이미지 resolve(`scene.backdrop` → `backgrounds[ref]`), ③ decor/scenery prop resolve(`scene.decor`, station/header 예약 prop 제외), ④ per-sprite ground shadow resolve(CSS 타원 기본 / asset), ⑤ 이들의 manifest 선언 계약(§2.5)과 asset 누락 시 CSS fallback(§3.9, placeholder parity).
+- **scene asset 렌더 메커니즘(§2.5/§2.6/§3.9, image-ground 갱신)**: ① **단일 배경 이미지 full-cover 소비**(`scene.backdrop` → `backgrounds[ref].file`, image-ground = world 전체; corner-Wang 자동 타일링은 superseded), ② decor/scenery prop resolve(`scene.decor`, station/header 예약 prop 제외 — zone-grid fallback 한정), ③ per-sprite ground shadow resolve(CSS 타원 기본 / asset), ④ 이들의 manifest 선언 계약(§2.5)과 asset 누락 시 CSS fallback(§3.9, placeholder parity).
+- **epic monster NPC 렌더(§2.7/§3.10, [[SPEC-303-epic-monster-npc]]·[[16-Epic-Monster-NPC]])**: active background의 512×512 boss 몬스터 variant를 `monsters` manifest에서 resolve해 **비-상호작용 단일 sprite 레이어**로 그린다. 표시 animation(`roaming`/`active`/`waiting`/`idle`/`error`)은 orc `status`가 아니라 [[SPEC-303-epic-monster-npc]] 컨트롤러가 정한다(status-less FSM). asset 미생성/누락 시 **렌더 생략**(non-load-bearing — orc placeholder parity와 다름).
 - 다루는 요구사항: R-UI-003(scene 내 orc 렌더 + 입체 scene asset 렌더), R-UI-006(placeholder parity), R-P1-004(agent별 sprite variant·상태별 animation), R-P1-005(camp background/asset-pack 교체의 asset 소비 substrate — backdrop·tileset이 manifest/asset-pack 구동; 전환 UI 자체는 [[SPEC-500-settings-persistence]] forward).
 
 ### Out of scope (다른 spec으로)
@@ -54,7 +55,7 @@ tags:
 | `roaming`(이동) 애니메이션 활성화·8방향 movement | P1 movement | 본 spec §3.7 pre-flag, P1 |
 | control 상징(`orc-iron-commander`, `interrupt-hand`) UI | control flow | [[SPEC-400-control-actions]] |
 
-> **`roaming`·`terminated`는 status enum이 아니다(확정)**: status enum은 [[SPEC-004-status-inference]]의 7종(`active`/`waiting`/`idle`/`stale`/`error`/`unknown`/`terminated`)이다. `roaming`은 manifest에 존재하는 **시각(이동) animation state**일 뿐 status enum 값이 아니며 MVP에서 status로부터 진입하지 않는다(§3.2, §3.7). `terminated`는 status enum 값이지만 manifest상 전용 애니메이션이 없는 **정적 표현**이다(§3.3).
+> **`roaming`·`terminated`는 status enum이 아니다(확정)**: status enum은 [[SPEC-004-status-inference]]의 7종(`active`/`waiting`/`idle`/`stale`/`error`/`unknown`/`terminated`)이다. `roaming`은 manifest에 존재하는 **시각(이동) animation state**일 뿐 status enum 값이 아니며 MVP에서 status로부터 진입하지 않는다(§3.2, §3.7). `terminated`는 status enum 값이지만 manifest상 전용 애니메이션이 없어 **idle 애니메이션으로 대체 재생**한다(#52; ghost overlay로 표식, reduced-motion에서는 정적; §3.3).
 
 ## 2. Contract
 
@@ -92,7 +93,7 @@ manifest의 character entry 형태(실제 `manifest.json`):
   "<characterKey>": {
     "root": "sprites/<characterKey>/<Char>",          // pack root 기준 상대 경로
     "frame_size": [232, 232],                          // [w, h] — character마다 다름 (232/228/236)
-    "anchor": [116, 208], "scale": 1,                  // 발 위치 기준점 (frame 내 px)
+    "anchor": [116, 175], "scale": 1,                  // 발 위치(실제 content 최하단) 기준점 — frame 내 px. 그림자도 이 앵커에 그려져 발에 밀착
     "directions": ["south","east","north","west","south-east","north-east","north-west","south-west"],
     "animations": {
       "<state>": { "frames": 7, "fps": 4, "frame_pattern": "frame_%03d.png",
@@ -118,7 +119,7 @@ manifest의 character entry 형태(실제 `manifest.json`):
 | status overlay 아이콘 | `packRoot + "/" + manifest.objects["status-ui"].root + "/" + items[<key>].file` (size `[64,64]`) |
 
 - **frame count·fps는 항상 manifest에서 읽는다**: `frames`(보통 7, `roaming` 9)와 `fps`(idle 4 / active 8 / waiting 4 / error 6 / stale 3 / roaming 8). 코드에 하드코딩하지 않는다. `frame_pattern`은 `frame_%03d.png`(0-padding 3자리)이므로 7-frame이면 `frame_000.png`~`frame_006.png`이다.
-- **frame_size는 character마다 다르다(확정 처리)**: `orc-high-warchief-mascot`/`orc-claude-storm-shaman`/`orc-codex-field-engineer` = `[232,232]` anchor `[116,208]`; `orc-unknown` = `[228,228]` anchor `[114,204]`; `orc-iron-commander` = `[236,236]` anchor `[118,212]`. layout 박스·anchor 배치는 **그 character의** frame_size/anchor를 쓴다(전역 상수 금지).
+- **frame_size는 character마다 다르다(확정 처리)**: `orc-high-warchief-mascot`/`orc-claude-storm-shaman`/`orc-codex-field-engineer` = `[232,232]` anchor `[116,175]`; `orc-unknown` = `[228,228]` anchor `[114,172]`; `orc-iron-commander` = `[236,236]` anchor `[118,176]`. layout 박스·anchor 배치는 **그 character의** frame_size/anchor를 쓴다(전역 상수 금지). **anchor y는 frame 내 실제 발 content 최하단(트림 측정값)에 맞춘다** — 과거 anchor가 빈 패딩(예 208/204/212)에 있어 sprite·그림자가 발보다 ~30px 아래에 놓여 "공중부양"처럼 보이던 버그를 수정했다.
 - **렌더 스케일(확정)**: `image-rendering: pixelated`(nearest-neighbor)로 그린다. logical 크기는 `frame_size × scale`(현재 scale=1). anchor는 sprite를 ground 좌표에 정렬하는 기준점(frame 내 px)이며 좌표 배치는 [[SPEC-201-dashboard-screens]]가 소비한다.
 
 ### 2.3 매핑 계약 (확정 표)
@@ -132,7 +133,9 @@ manifest의 character entry 형태(실제 `manifest.json`):
 | `unknown` | `orc-unknown` | 228 | manifest delivered(§6 C1). 미해석 시 mascot fallback(§3.1) |
 | (mascot / selected camp leader / README·empty) | `orc-high-warchief-mascot` | 232 | universal fallback character도 겸함 |
 
-> `orc-iron-commander`(236)는 manifest에 있으나 **agent session orc가 아니라 control/interrupt 상징**이다. 본 spec의 orc 렌더 매핑은 이를 사용하지 않는다([[SPEC-400-control-actions]] 소관).
+> `orc-iron-commander`(236)는 manifest에 있으나 [[SPEC-400-control-actions]]의 control/interrupt 상징이기도 하다. agentType→character **1차 매핑**에는 쓰지 않지만, 아래 (a′) **sequential 배치 pool**에는 시각 다양성용 roaming orc로 포함한다.
+
+**(a′) sequential character 배치(확정, #49)** — `agentType → character`는 이제 **1차 결정자가 아니라 fallback**이다. 동일 agentType orc가 똑같이 보이지 않도록, CampMap은 camp의 orc를 **읽기 순서(windowIndex/paneIndex asc)대로** 큐레이트된 `CHARACTER_POOL`을 **순환**시켜 각 orc에 `characterKey`를 부여한다(`characterKeyForIndex(i, pool)`; pool = `availableCharacterPool(manifest)` = manifest에 실재하는 pool 항목, pool 순서 유지). 해석 우선순위(`resolveCharacter`): **명시 `characterKey`(manifest에 존재) → `agentType→character`(a) → mascot fallback(§3.1)**. `characterKey`는 `renderedPos`/layout과 무관한 **시각 선택**이므로 §2.5 position·zero layout shift·placeholder parity를 바꾸지 않는다. `CHARACTER_POOL` 순서(가설, QA 보정): `orc-claude-storm-shaman` → `orc-codex-field-engineer` → `orc-iron-commander` → `orc-high-warchief-mascot` → `orc-unknown`. (manifest 없음/placeholder 경로에서는 pool이 비어 `characterKey=undefined` → (a) 매핑으로 강등.)
 
 **(b) `status → animation state`** — manifest의 모든 agent character는 `idle`/`active`/`waiting`/`error`/`stale`(+`roaming`)를 가진다:
 
@@ -144,7 +147,7 @@ manifest의 character entry 형태(실제 `manifest.json`):
 | `error` | `error` | mascot은 `error` south-only → direction fallback(§3.2) |
 | `stale` | `stale` | |
 | `unknown` | `idle` | 전용 `unknown` 애니메이션 없음 → `idle`로 표현(+ overlay로 구분) |
-| `terminated` | **(정적)** `reduced_motion.fallback_frame` 고정 | 전용 애니메이션 없음(coverage:none), death/fall 금지(§3.3) |
+| `terminated` | **`idle`**(#52, animated loop) | 전용 애니메이션 없음(coverage:none)→idle 대체, ghost overlay 표식, death/fall 금지, reduced-motion freeze(§3.3) |
 | *(시각 전용)* `roaming` | `roaming` | status enum 아님. MVP 미진입, P1 movement(§3.7) |
 
 **(c) `status → effect overlay`** (`objects/status-ui`, size `[64,64]`):
@@ -187,13 +190,15 @@ interface SpriteRenderState {
 
 - 같은 입력(`OrcRenderInput` + `RenderEnvironment`)은 항상 같은 `SpriteRenderState`를 만든다(결정성, 테스트 가능성).
 
-### 2.5 scene asset manifest 계약 (terrain Wang·backdrop·decor·shadow)
+### 2.5 scene asset manifest 계약 (background image·decor·shadow; terrain Wang은 superseded)
 
-맵 scene을 **입체(깊이)** 있게 렌더하기 위해 renderer가 소비하는 **scene asset 선언 shape**를 고정한다. *어디에·어떤 지형·어디에 scenery·parallax·z*는 [[SPEC-301-camp-map-movement]] §2.8 소유이고, 본 절·§2.6은 **선언된 asset을 resolve·렌더하는 메커니즘**만 소유한다.
+맵 scene을 **입체(깊이)** 있게 렌더하기 위해 renderer가 소비하는 **scene asset 선언 shape**를 고정한다. *어디에·어디에 scenery·z*는 [[SPEC-301-camp-map-movement]] §2.8 소유이고, 본 절·§2.6은 **선언된 asset을 resolve·렌더하는 메커니즘**만 소유한다. **씬 배치 산출물(ground 산정·placement·비율 게이트)의 owner는 `scene-placement-engineer`**(`.claude/agents/scene-placement-engineer.md`)다.
 
-> **SSOT/미탑재(확정)**: 아래 선언의 권위는 `asset-packs/orc-camp-default/manifest.json`이다([[08-Decisions|D-013]]). 현재 manifest에는 `tilesets`의 flat-variant 2종(`orc-camp-terrain-square-topdown`/`orc-warbase-terrain-square-topdown`, 32×32, 16 flat 타일)과 `backgrounds.warbase-sunset-dashboard`만 있고 **corner-Wang tileset·`scene` 선언은 아직 없다**(§6 C4 — 추가 필요, `generation_status.state="closed"`이므로 version bump 동반). 선언이 없으면 renderer는 §3.9 CSS fallback으로 동작한다(placeholder parity, 기능 검증은 asset과 독립).
+> **SUPERSEDED — Wang/타일 지면 → 단일 배경 이미지(image-ground, 확정·구현, 2026-06-29)**: camp 배경은 더 이상 **per-zone corner-Wang 자동 타일링/zone-grid 지형이 아니다**. 대신 **단일 배경 이미지**가 곧 ground다(`BackdropLayer`, `web/src/components/scene/BackdropLayer.tsx`: 배경 이미지를 world 전체에 full-cover로 페인트). 배경 이미지가 `logical_size` + walkable `ground` polygon을 가지면 [[SPEC-301-camp-map-movement]] §2.1 **image-ground 모드**(이미지가 native 해상도 world, 뷰포트 drag-pan)로 동작한다. 따라서 **§2.5a corner-Wang tileset 선언·§2.6a Wang 자동 타일링·terrain field 렌더는 superseded**(런타임에서 미사용)이며 아래 (a)는 **legacy 기록**으로만 보존한다(zone-grid fallback에서도 이제 CSS gradient ground만 쓰고 Wang 타일링은 그리지 않는다). manifest의 `tilesets`(flat-variant 2종)·`WangDef` 타입은 잔존하나 scene 렌더는 소비하지 않는다.
 
-**(a) corner-based Wang tileset 선언** — 단일 평면 tile 반복 대신 자동 타일링(전이) 지형:
+> **SSOT(확정)**: 아래 선언의 권위는 `asset-packs/orc-camp-default/manifest.json`이다([[08-Decisions|D-013]]). 현재 manifest는 `scene.backdrop.background_ref="orccamp-default"`(image-ground, 아래 (b))·`scene.decor`·`scene.shadow`를 선언하며, `backgrounds`에 `orccamp-default`(default, `logical_size [1672,941]`·`ground.polygon`·`safe_area` 보유 → image-ground)와 legacy `warbase-sunset-dashboard`(ground polygon 없음 → zone-grid fallback)를 가진다. 선언/이미지가 없으면 renderer는 §3.9 CSS fallback으로 동작한다(placeholder parity, 기능 검증은 asset과 독립).
+
+**(a) corner-based Wang tileset 선언 — SUPERSEDED(legacy 기록)** — image-ground(단일 배경 이미지)가 지형을 대체했다. 아래는 폐기된 자동 타일링 모델의 기록이며 런타임은 소비하지 않는다(§2.6a도 superseded):
 
 ```jsonc
 "tilesets": {
@@ -225,22 +230,25 @@ interface SpriteRenderState {
 - 16 타일 = 2 terrain × 4 corner의 2⁴ 조합 전수. key는 `corner_order`(`NW,NE,SE,SW`) 순으로 각 corner의 terrain index(0/1)를 이어붙인 4-bit 문자열이다.
 - flat-variant tileset은 그대로 유지하며 **accent**(§2.6d)·**L1 fallback**(§3.9)으로 재사용한다(폐기 아님).
 
-**(b) backdrop/horizon 레이어 선언** (`scene.backdrop`) — 기존 background를 비-제약 backdrop으로 재사용:
+**(b) background image 레이어 선언** (`scene.backdrop`) — 단일 배경 이미지 = ground(image-ground, 확정·구현):
 
 ```jsonc
+// 실제 manifest(scene.backdrop) — image-ground 기본
 "scene": {
   "backdrop": {
-    "background_ref": "warbase-sunset-dashboard", // backgrounds key 참조(재사용)
-    "role": "horizon",
-    "fit": "cover-width",      // world 폭에 맞춰 스케일(종횡비 보존)
-    "vertical_anchor": "top",  // world 상단(지평선)에 고정
-    "repeat_x": true,          // world가 backdrop보다 넓으면 가로 타일/거울
-    "parallax": 0.3            // scroll 대비 backdrop 이동 비율(가설; 스크롤 결합·z는 SPEC-301 소유)
+    "background_ref": "orccamp-default", // backgrounds key 참조(default = ground 보유 이미지)
+    "role": "background",
+    "fit": "native",            // image-ground: 이미지를 native 해상도로(=world), 스케일 다운 없음
+    "vertical_anchor": "center",
+    "repeat_x": false,
+    "parallax": 0               // 단일 ground 이미지 = world이므로 parallax 없음(0)
   }
 }
 ```
 
-- backdrop은 **비-제약(non-constraining)**이다: world/zone/station 좌표([[SPEC-301-camp-map-movement]] §2.1~2.5 상수)는 backdrop 치수와 무관하며(F2 재결정 정합) backdrop은 sprite sizing을 제약하지 않는다.
+- **image-ground(확정)**: `background_ref`가 `logical_size` + `ground` polygon을 가진 배경(예: `orccamp-default`)을 가리키면 그 이미지가 곧 world다([[SPEC-301-camp-map-movement]] §2.1). 이미지는 world 전체를 **full-cover**(`background-size: cover`, centered)로 페인트하며, world = `logical_size`(native px)이므로 cover는 1:1 native 표시다. `fit="native"`/`parallax=0`/`repeat_x=false`가 이를 반영한다.
+- **legacy 호환(zone-grid)**: `ground` polygon이 없는 배경(예: `warbase-sunset-dashboard`)을 가리키면 zone-grid world([[SPEC-301-camp-map-movement]] §2.2)에 동일 이미지를 full-cover로 깐다(배경 자체는 비-제약: world/zone/station 좌표는 배경 치수와 무관, F2 재결정 정합).
+- **이전(superseded) 모델**: 구 `scene.backdrop`는 `role="horizon"`·`fit="cover-width"`·`vertical_anchor="top"`·`repeat_x=true`·`parallax=0.3`의 **비-제약 지평선 + parallax**였다(Wang terrain 위 깊이 레이어). image-ground 도입으로 backdrop이 곧 ground가 되며 이 horizon/parallax 모델은 **superseded**다(parallax 변환은 image-ground에서 비활성).
 
 **(c) decor/scenery set 선언** (`scene.decor`) — 결정적 산재 장식:
 
@@ -271,7 +279,7 @@ interface SpriteRenderState {
   "shadow": {
     "mode": "css",                 // "css"(기본) | "asset"
     "asset_ref": null,             // 선택: ui/...의 타원 그림자 sprite key
-    "css": { "shape": "ellipse", "opacity": 0.35, "footprint_ratio": 0.6 } // 가설 튜닝
+    "css": { "shape": "ellipse", "opacity": 0.35, "footprint_ratio": 0.46 } // 타원 그림자(발 밀착, 과대 방지) — 높이는 너비×0.3
   }
 }
 ```
@@ -282,23 +290,42 @@ interface SpriteRenderState {
 
 ### 2.6 scene asset resolution 메커니즘 (확정)
 
-renderer는 [[SPEC-301-camp-map-movement]]가 제공한 배치 입력(terrain field·world/zone rect·decor placement·sprite ground 좌표)을 받아 아래 **결정적** 메커니즘으로 asset을 그린다. 모두 `image-rendering: pixelated`.
+renderer는 [[SPEC-301-camp-map-movement]]가 제공한 배치 입력(world rect·sprite ground 좌표; legacy zone-grid에서는 zone rect·decor placement)을 받아 아래 **결정적** 메커니즘으로 asset을 그린다. 모두 `image-rendering: pixelated`. terrain field 입력은 image-ground에서 더 이상 쓰이지 않는다((a) superseded).
 
-**(a) Wang corner 자동 타일링(확정)**:
+> **image-ground 레이어 정책(확정·구현)**: image-ground 모드에서는 배경 이미지가 자체 scenery를 가지므로 renderer는 **CSS Decor/Station 레이어를 렌더하지 않는다**((c) decor·station prop은 zone-grid fallback에서만). lighting/shadow/label/overlay는 유지한다((e), [[SPEC-301-camp-map-movement]] §2.7 z-stack ⑤·⑧~⑫).
 
-1. 가시 world grid의 각 cell `(i,j)`에 대해, SPEC-301 §2.8b의 `terrainAt(cornerX, cornerY) → terrainIndex`로 cell의 4 corner terrain index를 구한다(corner는 인접 cell이 공유하는 격자점).
-2. `wang.corner_order`(`NW,NE,SE,SW`) 순으로 각 corner index를 4-bit mask 문자열로 조립한다(예: NW=moss(0), NE=dirt(1), SE=dirt(1), SW=moss(0) → `"0110"`).
-3. `wang.tiles[mask]` 타일을 cell 위치(logical `tile_size`)에 그린다.
-4. **결정성(확정)**: 동일 terrain field → 동일 타일 선택. **런타임 무작위(`Math.random`)·wall-clock 금지**(INV-1 정합). 동일 cell 입력은 항상 동일 타일.
-5. mask가 `wang.tiles`에 없으면(불완전 tileset) `wang.base_tile_ids[base_terrain]`로 강등한다(누락 없이 base 채움).
+**(a) Wang corner 자동 타일링 — SUPERSEDED(legacy 기록, 런타임 미사용)**: image-ground(단일 배경 이미지, (b))가 지형을 대체했다. 폐기된 모델은 가시 world grid의 각 cell 4 corner terrain index(`terrainAt`)를 `wang.corner_order`로 4-bit mask로 조립해 `wang.tiles[mask]`를 결정적으로 선택하는 자동 타일링이었다. **현재 renderer는 어떤 Wang/타일 지면도 그리지 않는다**(per-zone TerrainLayer 컴포넌트 부재). zone-grid fallback에서도 지면은 CSS gradient(§3.9)만 쓴다.
 
-**(b) backdrop resolution(확정)**: `scene.backdrop.background_ref`로 `backgrounds[ref].file`을 resolve해 `fit`/`vertical_anchor`/`repeat_x`대로 backdrop 레이어 이미지를 그린다. backdrop의 z-위치·scroll-결합 parallax 변환은 [[SPEC-301-camp-map-movement]] §2.8a/§3.5 소유(본 spec은 이미지 resolve·fit만).
+**(b) background image resolution(확정·구현)**: `scene.backdrop.background_ref`로 `backgrounds[ref].file`을 resolve해 **world 전체를 덮는 단일 배경 이미지**로 그린다(`BackdropLayer`: `background-size: cover`, centered, `image-rendering: pixelated`). 배경이 `logical_size` + `ground` polygon을 가지면 world = `logical_size`(native)이므로 cover는 native 1:1 표시이고 뷰포트가 drag-pan으로 탐색한다([[SPEC-301-camp-map-movement]] §2.1/§2.7 image-ground). 배경 이미지가 없으면 CSS gradient ground로 강등한다(§3.9). parallax 변환은 image-ground에서 비활성(`parallax=0`); legacy parallax는 superseded.
 
-**(c) decor resolution(확정)**: SPEC-301 §2.8c `decorPlacements`가 제공한 각 `DecorInstance{ref, x, y}`에 대해 `objects[group].items[name]`(64×64)을 resolve해 그 위치에 그린다. decor는 **`pointer-events:none`**(상호작용 미개입; placement·z는 SPEC-301)·label보다 낮은 z다. asset 누락 시 §3.9.
+**(c) decor resolution(확정 — zone-grid fallback 한정)**: legacy zone-grid 모드에서만, SPEC-301 §2.8c `decorPlacements`가 제공한 각 `DecorInstance{ref, x, y}`에 대해 `objects[group].items[name]`(64×64)을 resolve해 그 위치에 그린다(`pointer-events:none`·label보다 낮은 z, asset 누락 시 §3.9). **image-ground 모드에서는 CSS decor 레이어를 렌더하지 않는다**(배경 이미지가 scenery 보유 — §2.6 intro).
 
-**(d) accent tile(확정·선택)**: flat-variant tileset의 `variation-*`/특수 타일을 Wang ground 위 **정적 accent**로 특정 cell에 덧그릴 수 있다. accent cell 선택은 SPEC-301 §2.8b의 seeded 규칙으로 **결정적**이어야 한다(무작위 금지).
+**(d) accent tile — SUPERSEDED(legacy 기록)**: flat-variant tileset을 Wang ground 위 정적 accent로 덧그리던 모델은 Wang ground 제거((a) superseded)로 폐기됐다(런타임 미사용).
 
 **(e) shadow resolution(확정)**: `scene.shadow.mode`가 `css`면 sprite footprint(`frame_size × mapSpriteScale`, [[SPEC-301-camp-map-movement]] §2.1)에 `footprint_ratio`를 적용한 CSS 타원을 sprite anchor 아래에 그린다. `asset`이면 `asset_ref` sprite를 같은 위치에 그린다. **placeholder sprite(§3.6)도 동일하게 shadow를 받는다**(parity). shadow 위치/z는 SPEC-301 §2.7/§2.8e.
+
+### 2.7 epic monster NPC asset resolution (확정 — [[SPEC-303-epic-monster-npc]]·[[16-Epic-Monster-NPC]])
+
+camp scene마다 환경에 어울리는 **Epic boss monster**(512×512)를 ambient NPC로 그린다. 본 절은 그
+**asset/manifest resolution**을, §3.10은 **렌더/상태머신**을 소유한다. 행동(roaming·random anim·교차
+error)은 [[SPEC-303-epic-monster-npc]], 생성·prompt·schema는 [[16-Epic-Monster-NPC]]가 소유한다.
+
+1. **variant resolution(결정적)**: 현재 active background 키 `bg`로 (i) `backgrounds[bg].epic_monster`
+   (monster key)를 우선 보고, 없으면 (ii) `monsters` 중 `background == bg`인 엔트리를 고른다. 둘 다 없으면
+   몬스터를 **렌더하지 않는다**(scene당 0 또는 1마리, [[16-Epic-Monster-NPC]] §6).
+2. **status 필터(확정)**: status enum SSOT는 [[16-Epic-Monster-NPC]] §6(`"planned" | "available" | "deprecated"`)다.
+   `monsters[key].status != "available"`(예: `"planned"`)이거나 `pixellab_character_id` 미설정이면 **미생성**으로
+   보고 렌더 생략(non-load-bearing, §3.10-5). 생성 runbook이 status를 `"available"`로 올리면 렌더된다. 생성
+   전까지 scene에 몬스터는 없다.
+3. **frame/anchor/scale**: `monsters[key]`의 `frame_size`(512×512), `anchor`, `scale`을 그 variant 값으로
+   해석한다(오크 character 해석과 동일 메커니즘, §2.2). 화면 렌더 스케일·background별 축소(necropolis 최소
+   polygon)는 [[SPEC-303-epic-monster-npc]] feasibility가 정한다.
+4. **animation 경로 조립**: `monsters[key].animations[state].folders[direction]/frame_%03d.png`를 §2.2와
+   동일하게 조립한다. `state ∈ {roaming, active, waiting, idle, error}`(status enum 아님 — §3.10).
+   `roaming`은 8방향, dwell 4종은 MVP south-only(`coverage:"south-only"`).
+5. **loader 호환**: `monsters`/`backgrounds.*.epic_monster`는 manifest loader([[SPEC-300-asset-rendering]]
+   §2.2, cast 기반)가 **미소비 키로 무시**하므로 additive하게 추가해도 기존 character/scene 해석을 바꾸지
+   않는다(테스트 green 유지 — `web/src/assets/manifest.ts` `AssetManifest` 캐스트).
 
 ## 3. Behavior rules
 
@@ -310,11 +337,13 @@ renderer는 [[SPEC-301-camp-map-movement]]가 제공한 배치 입력(terrain fi
 4. mascot도 없거나 `manifest == null`이면 **placeholder mode**로 간다(§3.6).
 5. placeholder가 아닌 한, `frameSize`/`anchor`는 **해석된 character의** 값을 쓴다(232/228/236 각각).
 
+> **forward(R-P2-008, [[SPEC-302-mascot-prestige-tiers]])**: character key가 **`prestige` 블록을 가진 character**(현 pack delivered 5종 `orc-high-warchief-mascot`·`orc-claude-storm-shaman`·`orc-codex-field-engineer`·`orc-unknown`·`orc-iron-commander`)로 해석된 경우, §3.2(animation state) **이전에** [[SPEC-302-mascot-prestige-tiers]] §3.2~3.3가 그 orc의 누적 token/cost로 **prestige tier variant**를 골라 base character를 교체할 수 있다(미가용 시 base 폴백). tier가 결정한 variant root 위에서 본 절 이후(§3.2~3.5)가 그대로 동작한다. tier 자산·`Orc.usage` 수집은 forward이며, 미도입 시 본 절 동작은 불변(항상 base). **결정성 예외**: SPEC-302 tier 판정은 `(orc id, character key)`별 단조 latch(가변 상태)를 쓰므로, §2.4 결정성("같은 입력→같은 `SpriteRenderState`")은 **latch 상태를 입력의 일부로 포함**해 성립한다(SPEC-302 §3.2). tier 미도입 시에는 본 절이 순수 함수로 §2.4를 그대로 만족.
+
 ### 3.2 animation state 해석 (status→state, direction/state fallback) (확정)
 
 1. `status`를 §2.3(b)로 animation state에 매핑한다.
-2. `status == 'terminated'` → animation 없이 정적 처리(§3.3). `mode='static'`.
-3. 그 외 state에 대해 direction을 정한다. **MVP는 `direction='south'`**(§3.7). P1 movement에서 8방향으로 확장.
+2. `status == 'terminated'` → **idle 애니메이션 재생**(#52, §3.3): `STATUS_TO_STATE['terminated']='idle'` → `mode='animated'`(+ ghost overlay). reduced-motion이면 §3.5 freeze(static). (이전: `mode='static'` 고정.)
+3. 그 외 state에 대해 direction을 정한다. **MVP는 `direction='south'`**(§3.7). P1 movement에서 8방향으로 확장. **요청 direction 존중(#50, 확장)**: 입력에 `direction`이 주어지면 `roaming`(이동)뿐 아니라 **arrived 상태(예: active dwell)에서도** 그 방향 폴더로 렌더한다(없으면 §3.2-4로 south fallback). `direction` 미지정 시에는 종전대로 south다. 이로써 [[SPEC-301-camp-map-movement]] §3.1-10의 "roam 후 dwell facing을 cycle별 random 8방향"이 실현된다.
 4. **direction fallback(확정)**: `character.animations[state].folders[direction]`이 없으면 `south`로 강등한다(예: `orc-high-warchief-mascot.error`는 `coverage:"south-only"` → south만 존재).
 5. **state fallback(확정)**: 매핑된 state가 character에 아예 없으면 `idle`로 강등한다. `idle`도 없으면(비정상) placeholder(§3.6).
 6. `prefersReducedMotion == true`이면 어떤 state든 정적 처리로 전환한다(§3.5). `mode='static'`.
@@ -335,7 +364,7 @@ renderer는 [[SPEC-301-camp-map-movement]]가 제공한 배치 입력(terrain fi
    │                                   ▼  │  ▼                     ▼
    └──────────────────────────────── stale   error ◄── status=error ─┘
 
-  (any state) ── status=terminated ──► [TERMINATED: static fallback frame + terminated-ghost, NO animation]
+  (any state) ── status=terminated ──► [TERMINATED: idle anim loop + terminated-ghost (#52); reduced-motion → static]
   (prefers-reduced-motion) ──────────► [STATIC: reduced_motion.fallback_frame, NO frame advance]
 ```
 
@@ -344,9 +373,10 @@ renderer는 [[SPEC-301-camp-map-movement]]가 제공한 배치 입력(terrain fi
 1. **재생**: `mode='animated'`이면 `framePaths`(frame 0..frames-1)를 manifest `fps`로 순환(loop) 재생한다. 한 frame의 표시 시간 = `1000/fps` ms.
 2. **전이 시 리셋**: `status` 변화로 animation state가 바뀌면 새 state의 frame 0부터 재생을 시작한다(이전 frame index 이월 금지). 같은 state로 유지되면 재생 위상은 유지한다(매 snapshot마다 frame 0 리셋 금지 — 깜빡임 방지).
 3. **`unknown` status**: `idle` animation을 재생하되 overlay는 `unknown-charm`을 합성한다(§2.3c). status를 색상/포즈 단독으로 단정하지 않는다.
-4. **`terminated` lifecycle(확정, manifest 명시)**:
-   - animation을 재생하지 않는다. `mode='static'`, `staticFramePath = reduced_motion.fallback_frame`(south/idle frame_000), `overlayPath = terminated-ghost`.
-   - **death/fall 애니메이션 사용 금지**: manifest `animations.terminated.coverage="none"`, `note: "PixelLab falling-back-death is deprecated ... must not be used."`. 따라서 별도 사망 시퀀스를 합성하지 않는다.
+4. **`terminated` lifecycle(#52 갱신, manifest 명시)**:
+   - **idle 애니메이션을 재생한다(멈춤 아님)**: `STATUS_TO_STATE['terminated']='idle'` → `mode='animated'`, idle frame 시퀀스 loop, `overlayPath = terminated-ghost`(여전히 ghost로 표식). 전용 `terminated` 애니메이션(`coverage:"none"`)은 없으므로 idle로 대체한다. (이전: 정적 fallback frame 고정 — #52에서 "idle 상태로 애니메이션 적용"으로 변경.)
+   - **reduced-motion에서는 정적**: `prefers-reduced-motion`이면 §3.5대로 idle fallback frame 1장으로 freeze(+ ghost overlay). 즉 idle 애니메이션은 normal-motion 한정.
+   - **death/fall 애니메이션 사용 금지**: manifest `animations.terminated.coverage="none"`, `note: "PixelLab falling-back-death is deprecated ... must not be used."`. 별도 사망 시퀀스를 합성하지 않는다(idle 호흡만). 이동은 여전히 정적(snap, [[SPEC-301-camp-map-movement]] §3.1-5) — roaming하지 않는다.
    - terminated orc는 [[SPEC-004-status-inference]] §3.7 retention 동안 snapshot에 남아 있으므로 sprite도 그동안 정적 ghost로 유지된다. snapshot에서 빠지면 sprite instance(`orcId`)를 제거한다(렌더는 retention 시간을 직접 계산하지 않는다).
 5. **결정성**: 동일 status 입력 시퀀스는 동일 전이·동일 `SpriteRenderState` 시퀀스를 만든다.
 
@@ -396,20 +426,53 @@ placeholder 규칙(확정):
 
 ### 3.9 scene asset fallback / placeholder parity (R-UI-006, 확정)
 
-terrain/backdrop/decor/shadow asset이 없거나 일부 누락돼도 동일 layout·배치·interaction이 유지된다(R-UI-006, [[SPEC-301-camp-map-movement]] §3.4와 공동). 배치 좌표(world/zone/station/slot·terrain field·decor placement)는 asset과 무관하게 SPEC-301이 산출하므로 fallback은 **시각 표현만** 바꾼다.
+background image/decor/shadow asset이 없거나 일부 누락돼도 동일 layout·배치·interaction이 유지된다(R-UI-006, [[SPEC-301-camp-map-movement]] §3.4와 공동). 배치 좌표(world/ground/safe_area/slot·sprite ground)는 asset과 무관하게 SPEC-301이 산출하므로 fallback은 **시각 표현만** 바꾼다.
 
 | 대상 | L0 정상 | L1 부분 누락 | L2 미탑재 |
 | --- | --- | --- | --- |
-| terrain | corner-Wang 자동 타일링(§2.6a) | flat-variant `moss-ground` 타일링 + **결정적 accent 필수**(단일 tile 반복 금지) | CSS gradient ground |
-| backdrop | `scene.backdrop` 이미지 layer(§2.6b) | (`background_ref` 누락) backdrop 생략, terrain은 정상 | CSS 수직 dusk gradient(또는 생략) |
-| decor | prop sprite(§2.6c) | 일부 ref 누락 → 해당 instance만 생략(non-load-bearing) | 전부 생략(또는 CSS marker, 선택) |
+| background(ground) | 단일 배경 이미지 full-cover(§2.6b, image-ground/zone-grid) | — | CSS gradient ground |
+| decor (zone-grid fallback 한정) | prop sprite(§2.6c) | 일부 ref 누락 → 해당 instance만 생략(non-load-bearing) | 전부 생략(또는 CSS marker, 선택) |
 | shadow | CSS 타원/asset(§2.6e) | — | CSS 타원(항상 가능) |
+
+> **superseded**: 구 terrain row(corner-Wang/flat-variant 타일링 + accent)·backdrop horizon+parallax row는 image-ground 전환으로 폐기됐다(§2.5/§2.6 supersede). 지면 fallback은 이제 **배경 이미지 → CSS gradient** 2단계다.
 
 규칙(확정):
 
-1. 어떤 fallback 단계에서도 zone/station/slot 좌표·sprite box·scroll 위치가 변하지 않는다(zero layout shift, [[SPEC-202-design-accessibility]] AC-17, [[SPEC-301-camp-map-movement]] §3.2).
-2. decor·backdrop·shadow는 **장식**이므로 누락이 status/label/raw target 가독성을 떨어뜨리지 않는다(이들은 항상 상위 z, [[SPEC-301-camp-map-movement]] §2.7·[[SPEC-202-design-accessibility]] A7).
-3. terrain은 asset 없이도 CSS로 그려져 **"단일 평면 tile" 회귀를 방지**한다(최소 gradient ground; flat-variant 있으면 base 타일링 + 필수 accent; Wang 있으면 자동 타일링). **모든 CSS fallback 레이어(terrain gradient·dusk lighting·shadow·station marker)는 `--oc-color-*` 토큰만 사용하고 raw hex literal을 쓰지 않는다([[SPEC-202-design-accessibility]] AC-01/B1).**
+1. 어떤 fallback 단계에서도 ground/safe_area/slot 좌표·sprite box·scroll 위치가 변하지 않는다(zero layout shift, [[SPEC-202-design-accessibility]] AC-17, [[SPEC-301-camp-map-movement]] §3.2).
+2. decor·background·shadow는 **장식/배경**이므로 누락이 status/label/raw target 가독성을 떨어뜨리지 않는다(상태 텍스트는 항상 상위 z, [[SPEC-301-camp-map-movement]] §2.7·[[SPEC-202-design-accessibility]] A7).
+3. 배경 이미지가 없어도 ground는 CSS gradient로 그려진다(빈 화면 회귀 방지). **모든 CSS fallback 레이어(gradient ground·dusk lighting·shadow·station marker)는 `--oc-color-*` 토큰만 사용하고 raw hex literal을 쓰지 않는다([[SPEC-202-design-accessibility]] AC-01/B1).**
+
+### 3.10 epic monster sprite 렌더 (status-less FSM·non-interactive·non-load-bearing) (확정 — [[SPEC-303-epic-monster-npc]])
+
+> **적용 단계(2026-06-30)**: [[SPEC-303-epic-monster-npc]] §3 적용 단계에 따라 **Phase 1(현재)은 `roaming`만 표시**한다(연속 roaming, 8방향). `idle`/`active`/`waiting`/`error` 자산은 manifest에 존재하나 **Phase 2에서 적용**한다. 아래 FSM은 전체 설계이며 Phase 1에서는 `displayedState`가 항상 `roaming`이다.
+
+§2.7로 resolve한 몬스터를 그리는 규칙. **animation 선택 권한은 orc `status`가 아니라
+[[SPEC-303-epic-monster-npc]] 컨트롤러**(이동·dwell·교차)에 있다는 점이 오크 sprite(§3.2~§3.3)와 본질적
+차이다.
+
+1. **status-less FSM**: 표시 state는 컨트롤러가 매 tick 제공하는 `displayedState ∈ {roaming, active,
+   waiting, idle, error}`다. §3.2의 `status → state` 표를 **타지 않는다**(몬스터는 status가 없다). 받은
+   state로 §2.7-4 경로를 조립해 `mode='animated'`로 manifest `fps` loop 재생한다(재생/전이 리셋 규칙은
+   §3.3-1·§3.3-2 재사용: state가 바뀌면 frame 0부터, 같으면 위상 유지).
+   - `roaming` = 컨트롤러가 준 8방향 `direction`(이동 벡터 quantize, [[SPEC-301-camp-map-movement]] §3.1-2).
+   - dwell(`active`/`waiting`/`idle`) = [[SPEC-303-epic-monster-npc]]가 seeded-random으로 고른 state,
+     direction은 south MVP(dwell south-only).
+   - `error` = 오크 footprint 교차 latch 동안 재생(최우선, §3.10-2). `error-burst` overlay(§3.4)를 옵션으로
+     합성할 수 있다.
+2. **state 우선순위(확정)**: `error`(교차 latch) > `roaming`(이동 중) > dwell(`active`/`waiting`/`idle`).
+   컨트롤러가 이 우선순위로 단일 `displayedState`를 확정해 전달하므로 renderer는 그대로 그린다.
+3. **direction/state fallback**: §3.2-4/§3.2-5 그대로 — `folders[direction]` 부재 시 `south` 강등,
+   state 부재 시 `idle` 강등, `idle`도 없으면 미렌더(§3.10-5, placeholder 아님).
+4. **reduced motion(확정)**: `prefers-reduced-motion`이면 §3.5처럼 `reduced_motion.fallback_frame`
+   (idle/south rotation) **1장으로 고정**, frame 진행·roaming·교차 error animation **전부 정지**. 몬스터는
+   정적으로 남아 입체감만 유지한다([[SPEC-301-camp-map-movement]] §3.5-4 scene 정적 페인트와 정합).
+5. **non-load-bearing fallback(확정 — orc placeholder parity와 다름)**: 몬스터는 데이터를 운반하지 않으므로
+   **asset/variant 미생성·누락 시 placeholder 없이 단순 렌더 생략**한다. 이는 orc의 §3.6 placeholder
+   parity(상태 정보 보존 위해 박스 필수)와 **명시적으로 다르다**(몬스터 부재로 잃는 정보 없음). layout/배치
+   불변(몬스터는 §2.7 외 어떤 좌표 계약에도 참여하지 않음, [[SPEC-303-epic-monster-npc]] 비-상호작용).
+6. **non-interactive(확정)**: 몬스터 레이어는 `pointer-events:none`, tab order/keyboard nav 제외, 선택
+   marker·inspector·status overlay·라벨·speech bubble을 갖지 않는다. z-순서는 [[SPEC-301-camp-map-movement]]
+   §2.7 z-stack이 정한다(orc와의 depth 처리 포함). 오크 선택/hover hit area를 가리지 않는다.
 
 ## 4. Acceptance criteria
 
@@ -418,7 +481,7 @@ terrain/backdrop/decor/shadow asset이 없거나 일부 누락돼도 동일 layo
 - **SPEC-300-AC-01** (R-P1-004) — manifest resolution, 3 frame size
   - Given `manifest`가 로드되고 `agentType ∈ {claude-code, codex, unknown}` 각각의 orc fixture에서
   - When renderer가 `SpriteRenderState`를 산출하면
-  - Then `characterKey`는 각각 `orc-claude-storm-shaman`/`orc-codex-field-engineer`/`orc-unknown`이고, `frameSize`는 각각 `[232,232]`/`[232,232]`/`[228,228]`, `anchor`는 `[116,208]`/`[116,208]`/`[114,204]`로 **해당 character의 manifest 값**과 일치한다.
+  - Then `characterKey`는 각각 `orc-claude-storm-shaman`/`orc-codex-field-engineer`/`orc-unknown`이고, `frameSize`는 각각 `[232,232]`/`[232,232]`/`[228,228]`, `anchor`는 `[116,175]`/`[116,175]`/`[114,172]`로 **해당 character의 manifest 값**(발 content 최하단)과 일치한다.
 
 - **SPEC-300-AC-02** (R-P1-004) — status→animation state·fps·frame 경로
   - Given `agentType=claude-code`, `status=active`, reduced-motion 아님인 fixture에서
@@ -435,10 +498,10 @@ terrain/backdrop/decor/shadow asset이 없거나 일부 누락돼도 동일 layo
   - When renderer가 산출하면
   - Then `animationState='idle'`(전용 unknown 애니메이션을 만들지 않음)이고 `overlayPath`는 `unknown-charm`이다.
 
-- **SPEC-300-AC-05** (R-P1-004, R-UI-003) — `terminated` 정적 + ghost, death/fall 금지
+- **SPEC-300-AC-05** (R-P1-004, R-UI-003) — `terminated` idle 애니메이션 + ghost (#52), death/fall 금지
   - Given `status=terminated`인 orc fixture에서
   - When renderer가 산출하면
-  - Then `mode='static'`, `framePaths=null`, `staticFramePath`는 그 character의 `reduced_motion.fallback_frame`(south/idle frame_000), `overlayPath`는 `terminated-ghost`이며, 어떤 death/fall frame 시퀀스도 산출되지 않는다(`animations.terminated.coverage=="none"`).
+  - Then `mode='animated'`, `animationState='idle'`, `framePaths`는 idle frame 시퀀스(loop), `overlayPath`는 `terminated-ghost`이며, 어떤 death/fall frame 시퀀스도 산출되지 않는다(`animations.terminated.coverage=="none"`로 idle 대체). **단 `prefers-reduced-motion`이면 `mode='static'`(idle fallback frame freeze) + ghost**.
 
 - **SPEC-300-AC-06** (R-P1-004, R-UI-003) — reduced motion freeze
   - Given `prefersReducedMotion == true`이고 임의의 비-terminated status를 가진 orc 집합 fixture에서
@@ -482,25 +545,21 @@ terrain/backdrop/decor/shadow asset이 없거나 일부 누락돼도 동일 layo
 
 > 아래 AC-14~18은 **scene asset 렌더 메커니즘**(§2.5/§2.6/§3.9)을 검증한다. *배치 좌표·terrain field·decor placement* fixture는 [[SPEC-301-camp-map-movement]] §2.8이 제공하며, 본 AC는 그 입력에 대한 **asset resolve·타일 선택·fallback**을 검증한다(placement 자체는 SPEC-301-AC-15~21).
 
-- **SPEC-300-AC-14** (R-UI-003) — Wang corner 자동 타일링 결정성
-  - Given `wang_corner` tileset이 로드되고 SPEC-301이 제공한 terrain corner field fixture에서
-  - When renderer가 각 cell의 4 corner를 `wang.corner_order`로 mask 조립해 타일을 선택하면
-  - Then 각 cell 타일은 `wang.tiles[mask]`와 일치하고, 동일 terrain field에 대해 매 호출 동일 타일 집합이 산출되며(결정적), `Math.random`·wall-clock 등 런타임 무작위가 0건이고, mask 미존재 시 `base_tile_ids[base_terrain]`로 강등된다(누락 없음).
+- **SPEC-300-AC-14** (R-UI-003) — Wang corner 자동 타일링 결정성 — **(superseded — image-ground)**
+  - image-ground(단일 배경 이미지)가 Wang 자동 타일링을 대체했고 런타임은 어떤 Wang 타일도 그리지 않는다(§2.5/§2.6a superseded). 지형 렌더 검증은 **SPEC-300-AC-16(background image full-cover)** + **[[SPEC-301-camp-map-movement]] SPEC-301-AC-22/23(image-ground world·ground-ratio gate)**로 대체된다. AC ID는 추적 안정성을 위해 보존하나 더 이상 게이트하지 않는다.
 
-- **SPEC-300-AC-15** (R-UI-006, R-UI-003) — terrain fallback chain (단일 평면 tile 회귀 방지)
-  - Given (i) Wang tileset 있음, (ii) Wang 없고 flat-variant만 있음, (iii) 어떤 tileset도 없음 fixture 각각에서
-  - When renderer가 ground를 그리면
-  - Then (i) corner 자동 타일링, (ii) `moss-ground` 타일링 + **결정적 accent(필수, 단일 tile 반복 금지)**, (iii) CSS gradient ground로 강등되며, 세 경우 모두 world/zone/station 좌표와 layout이 동일하고(zero layout shift), 어느 경우에도 "단일 tile 무한 반복"만으로 끝나지 않는다(최소 gradient/타일 variety 유지).
+- **SPEC-300-AC-15** (R-UI-006, R-UI-003) — terrain fallback chain — **(superseded — image-ground)**
+  - per-zone Wang/flat terrain 타일링이 제거돼 fallback 체인은 **배경 이미지 → (없으면) CSS gradient ground** 2단계로 단순화됐다. "단일 평면 tile 회귀 방지"는 더 이상 적용 대상이 아니다(타일 모델 자체 폐기). placeholder parity·zero layout shift 검증은 **SPEC-300-AC-16** + **SPEC-301-AC-20(image-ground placeholder parity)**가 대체한다.
 
-- **SPEC-300-AC-16** (R-UI-003, R-P1-005) — backdrop layer resolution (비-제약)
-  - Given `scene.backdrop.background_ref="warbase-sunset-dashboard"` 선언과 큰 world fixture에서
-  - When renderer가 backdrop을 resolve하면
-  - Then `backgrounds[ref].file`을 `fit=cover-width`/`vertical_anchor=top`/`repeat_x`대로 그리고, `background_ref` 부재 시 terrain은 정상 렌더되며, world/zone/station 좌표가 backdrop 치수와 **무관하게 동일**하다(backdrop이 sprite/placement를 제약하지 않음).
+- **SPEC-300-AC-16** (R-UI-003, R-P1-005) — background image full-cover resolution (image-ground·비-제약)
+  - Given `scene.backdrop.background_ref` 선언과 (i) `ground` polygon 보유 배경(`orccamp-default`, image-ground)·(ii) polygon 없는 legacy 배경(`warbase-sunset-dashboard`, zone-grid) fixture 각각에서
+  - When renderer가 background를 resolve하면
+  - Then `backgrounds[ref].file`을 **world 전체 full-cover**(`background-size: cover`, centered, `image-rendering: pixelated`)로 그리고, (i)에서는 world = `logical_size`(native)라 cover가 native 1:1 표시이며, `background_ref`/이미지 부재 시 CSS gradient ground로 강등되고, 두 경우 모두 world/zone/sprite 좌표가 배경 치수와 **무관하게 동일**하다(배경이 sprite/placement를 제약하지 않음, F2).
 
-- **SPEC-300-AC-17** (R-UI-003, R-UI-006) — decor resolution + station-prop 제외
-  - Given `scene.decor` 선언과 SPEC-301 decor placement fixture에서
+- **SPEC-300-AC-17** (R-UI-003, R-UI-006) — decor resolution + station-prop 제외 (zone-grid fallback 한정)
+  - Given `scene.decor` 선언(`exclude_reserved=true`·`reserved[]` 명시)과 SPEC-301 decor placement fixture(legacy zone-grid)에서
   - When renderer가 decor를 resolve하면
-  - Then decor ref는 `objects[group].items[*]`로 resolve되고, station/zone-header 예약 prop(`workbench`/`campfire`/`bedroll`/`notice-board`/`stone-marker`/`utility-totem`/`locked-chest`/`command-tent`/`banner-pole`)은 decor set에 **포함되지 않으며**, 일부 ref asset 누락 시 해당 instance만 생략되고(non-load-bearing) layout·다른 decor·sprite 배치가 불변이다.
+  - Then decor ref는 `objects[group].items[*]`로 resolve되고, station/zone-header 예약 prop(`workbench`/`campfire`/`bedroll`/`notice-board`/`stone-marker`/`utility-totem`/`locked-chest`/`command-tent`/`banner-pole`)은 decor set에 **포함되지 않으며**, 일부 ref asset 누락 시 해당 instance만 생략되고(non-load-bearing) layout·다른 decor·sprite 배치가 불변이다. (image-ground 모드는 CSS decor 레이어를 렌더하지 않으므로 본 AC는 zone-grid fallback에 한정 — §2.6 intro.)
 
 - **SPEC-300-AC-18** (R-UI-003, R-UI-006) — per-sprite ground shadow (depth + parity)
   - Given `scene.shadow.mode ∈ {css, asset}` fixture와 asset/placeholder sprite 각각에서
@@ -511,10 +570,10 @@ terrain/backdrop/decor/shadow asset이 없거나 일부 누락돼도 동일 layo
 
 | 요구사항 | 다루는 방식 | 검증 AC |
 | --- | --- | --- |
-| R-UI-003 | camp scene 내 orc sprite 렌더(manifest resolve·frame_size/anchor·terminated 정적·placeholder) + **입체 scene asset 렌더**(Wang 자동 타일링·backdrop·decor·shadow), 배치 좌표는 SPEC-301 공동 | SPEC-300-AC-05, AC-06, AC-09, AC-12, AC-14, AC-15, AC-16, AC-17, AC-18 |
-| R-UI-006 | asset 미탑재/누락 시 placeholder, layout size를 frame_size로 고정·동일 interaction·license 비재배포에서도 동작 + **scene asset(terrain/backdrop/decor/shadow) fallback parity**(§3.9) | SPEC-300-AC-08, AC-09, AC-10, AC-13, AC-15, AC-17, AC-18 |
+| R-UI-003 | camp scene 내 orc sprite 렌더(manifest resolve·frame_size/anchor·terminated 정적·placeholder) + **단일 배경 이미지(image-ground) full-cover·decor(zone-grid fallback)·shadow**, 배치 좌표는 SPEC-301 공동. (Wang 자동 타일링 AC-14/15는 superseded) | SPEC-300-AC-05, AC-06, AC-09, AC-12, AC-16, AC-17, AC-18 |
+| R-UI-006 | asset 미탑재/누락 시 placeholder, layout size를 frame_size로 고정·동일 interaction·license 비재배포에서도 동작 + **배경 이미지→CSS gradient fallback parity**(§3.9). (terrain fallback chain AC-15는 superseded) | SPEC-300-AC-08, AC-09, AC-10, AC-13, AC-16, AC-17, AC-18 |
 | R-P1-004 | agentType별 sprite variant(character 매핑)+status별 animation state·fps frame 재생·effect overlay·reduced-motion·전이 | SPEC-300-AC-01, AC-02, AC-03, AC-04, AC-05, AC-06, AC-07, AC-11 |
-| R-P1-005 (substrate) | camp background/asset-pack 교체의 **asset 소비 substrate**: backdrop(`scene.backdrop`→`backgrounds`)·Wang/flat tileset이 manifest/asset-pack 구동이라 pack 교체로 scene이 바뀜. **per-camp 전환 UI·설정은 [[SPEC-500-settings-persistence]] forward**(본 spec은 소유 주장 아님) | SPEC-300-AC-14, AC-16 |
+| R-P1-005 (substrate) | camp background/asset-pack 교체의 **asset 소비 substrate**: 단일 배경 이미지(`scene.backdrop`→`backgrounds[ref]`, image-ground/zone-grid)가 manifest/asset-pack 구동이라 pack/background 교체로 scene이 바뀜. **per-camp 전환 UI·설정은 [[SPEC-500-settings-persistence]] forward**(본 spec은 소유 주장 아님) | SPEC-300-AC-16 |
 
 > R-UI-005(loading/empty/stale 등 화면 상태)와 접근성 비기능(색상 단독 금지·keyboard)은 [[SPEC-201-dashboard-screens]]·[[SPEC-202-design-accessibility]] 소유이며, 본 spec은 sprite 측 status overlay·reduced-motion·placeholder 라벨로 **지원**한다(소유 주장 아님). 전체 매트릭스 롤업은 [[SPEC-900-traceability-rollup]].
 
@@ -522,10 +581,10 @@ terrain/backdrop/decor/shadow asset이 없거나 일부 누락돼도 동일 layo
 
 ### Conflicts / Upstream (청사진 보정 필요)
 
-- **C1 — `orc-unknown`·`orc-iron-commander`는 더 이상 "미생성 gap"이 아니다(중요)**: [[14-MVP-PoC-Scope]] "런타임 Asset 계약" 표와 [[11-PixelLab-Asset-Setup]] character 우선순위 표는 `orc-unknown`(`unknown`→mascot 잠정 fallback)·`orc-iron-commander`를 **미생성 gap**으로 기술한다. 그러나 SSOT인 `manifest.json`([[08-Decisions|D-013]])은 두 character를 **이미 delivery**했다(`orc-unknown` `[228,228]` anchor `[114,204]`, `orc-iron-commander` `[236,236]` anchor `[118,212]`, 각 6 state + roaming, 8방향, exports zip/sha256 포함, `generation_status.character_count=5`). 본 spec은 SSOT 우선 원칙에 따라 `unknown → orc-unknown`을 1차 매핑으로 채택하고 mascot은 character fallback으로 강등했다(§2.3a, §3.1). **upstream 정정 필요**: 14-MVP/11-PixelLab의 "gap" 문구를 "delivered, runtime 소비 가능"으로 갱신하고, 매핑을 mascot→orc-unknown으로 바꾸는 결정을 [[08-Decisions]]에 `D-0xx`로 남길 것을 제안한다. **검토 필요.**
+- **C1 — `orc-unknown`·`orc-iron-commander`는 더 이상 "미생성 gap"이 아니다(중요)**: [[14-MVP-PoC-Scope]] "런타임 Asset 계약" 표와 [[11-PixelLab-Asset-Setup]] character 우선순위 표는 `orc-unknown`(`unknown`→mascot 잠정 fallback)·`orc-iron-commander`를 **미생성 gap**으로 기술한다. 그러나 SSOT인 `manifest.json`([[08-Decisions|D-013]])은 두 character를 **이미 delivery**했다(`orc-unknown` `[228,228]` anchor `[114,172]`, `orc-iron-commander` `[236,236]` anchor `[118,176]`, 각 6 state + roaming, 8방향, exports zip/sha256 포함, `generation_status.character_count=5`). 본 spec은 SSOT 우선 원칙에 따라 `unknown → orc-unknown`을 1차 매핑으로 채택하고 mascot은 character fallback으로 강등했다(§2.3a, §3.1). **upstream 정정 필요**: 14-MVP/11-PixelLab의 "gap" 문구를 "delivered, runtime 소비 가능"으로 갱신하고, 매핑을 mascot→orc-unknown으로 바꾸는 결정을 [[08-Decisions]]에 `D-0xx`로 남길 것을 제안한다. **검토 필요.**
 - **C2 — 14-MVP의 "(idle 4 / active 8 / waiting 4 / error 6 / stale 3)" 표기 모호**: [[14-MVP-PoC-Scope]] PoC 렌더 subset 문장의 괄호 수치는 **frame count가 아니라 manifest `fps`** 값이다(실제 frame count는 대부분 7, `roaming` 9). 본 spec은 frame count·fps를 모두 manifest에서 resolve하도록 §2.2에서 고정했다. 14-MVP 문구에 "(= fps)"를 명시해 frame count로 오독되지 않게 보정 권장.
 - **C3 — scene 좌표·anchor 소비 경계**: 본 spec은 `frame_size`/`anchor`/`scale`을 노출만 하고, background `safe_area [390,520,890,330]` 내 orc 배치 좌표·간격·겹침 해소는 [[SPEC-201-dashboard-screens]]/[[SPEC-301-camp-map-movement]] 소유다. SPEC-301이 anchor 기준 배치(`mapSpriteScale`·world 좌표)를 본 spec §2.2와 정합화한다(SPEC-301 §2.1).
-- **C4 — manifest에 corner-Wang tileset·`scene` 선언 추가 필요(중요·미탑재)**: SSOT인 `manifest.json`([[08-Decisions|D-013]])에 §2.5가 요구하는 `tilesets.orc-camp-terrain-wang-topdown`(type `wang_corner`)·`scene.backdrop`·`scene.decor`·`scene.shadow` 선언이 **없다**(현재 flat-variant tileset 2종·`backgrounds.warbase-sunset-dashboard`만 존재). `generation_status.state="closed"`이므로 **(a) corner-based Wang tileset(16 타일, 32×32, moss↔dirt) 생성** + **(b) manifest version bump으로 §2.5 shape 추가**가 필요하다(asset 생성·패키징 단계 소관, write scope 밖). 추가 전까지 renderer는 §3.9 CSS fallback으로 동작하므로 기능 검증은 asset과 독립적으로 가능하다. **검토 필요**(asset-runtime/release engineer 협업).
+- **C4 — corner-Wang tileset 요구 철회(RESOLVED — image-ground로 대체, 2026-06-29)**: ~~manifest에 corner-Wang tileset이 필요하다~~는 이전 요구는 **철회**됐다. camp 배경이 **단일 배경 이미지(image-ground)**로 전환돼(§2.5/§2.6 supersede) corner-Wang tileset·terrain field가 더 이상 필요 없다. manifest는 이제 `scene.backdrop.background_ref="orccamp-default"`(image-ground)·`scene.decor`·`scene.shadow`와 `backgrounds.orccamp-default`(`logical_size`·`ground.polygon`·`safe_area`)를 **이미 보유**한다([[08-Decisions|D-013]] SSOT). `tilesets`의 flat-variant 2종·`WangDef` 타입은 잔존하나 scene 렌더는 소비하지 않는다. **잔여 조치 없음**(asset 생성 게이트가 1건 해소됨). 신규 배경 추가 시에는 [[SPEC-301-camp-map-movement]] §2.8 ground-ratio 게이트(`groundRatio ≥ REFERENCE_GROUND_RATIO`)를 통과해야 하며 owner는 `scene-placement-engineer`다.
 
 ### Open Questions
 
@@ -534,5 +593,5 @@ terrain/backdrop/decor/shadow asset이 없거나 일부 누락돼도 동일 layo
 - **Q3 — animation 위상 동기화 모델**: §3.3-2의 "전이 시 frame 0 리셋 / 유지 시 위상 보존"을 RAF 기반 시계로 구현할지, snapshot 주기(1~5s, [[08-Decisions|D-014]])와 독립된 렌더 루프로 둘지 [[SPEC-200-frontend-architecture]]와 정합 필요(snapshot 주기보다 frame 재생이 빠르므로 렌더 루프는 snapshot과 분리되어야 한다).
 - **Q4 — `roaming`/8방향 진입 조건(P1) — 해소됨**: ~~`roaming`은 status가 아닌 이동 표현이므로, P1 movement에서 어떤 신호로 진입·direction을 정할지 미정.~~ [[SPEC-301-camp-map-movement]] §3.1이 해소: `roaming`은 별도 신호(cwd 변경 등) 없이 **렌더된 위치가 target position `f(windowIndex,status,paneId,mapDims)`와 달라질 때**(주로 `status` 변화로 station이 옮겨질 때) 진입하고, **direction = 이동 벡터(target−rendered)를 8방향으로 quantize**(폴더 부재 시 `south` fallback, §3.2-4)한다. 새 서버 데이터/신호를 도입하지 않는 기존 `Orc` 필드의 순수 함수다. MVP는 여전히 정적 south(§3.7)이며 movement는 P1.
 - **Q5 — license 확정 의존**: §3.8 비-재배포는 manifest `license="unknown"` 동안 유효하다. license 확정(commercial/redistribution 허용) 시 [[SPEC-700-packaging-release]]가 asset 번들 포함을 결정하면 본 spec의 L2 placeholder 경로는 배포본에서 비활성(정상 asset 경로)로 전환된다. **SPEC-700과 공동 검토 필요.**
-- **Q6 — Wang `corner_order`/terrain index 규약 정합**: §2.5a의 `corner_order=[NW,NE,SE,SW]`·`terrains=[moss,dirt]`·4-bit mask key 형식은 PixelLab가 산출하는 corner-Wang tileset의 **실제 corner 의미·타일 인덱싱**과 cross-check가 필요하다(생성 산출 metadata 확인 후 mask→file 매핑 확정). 코드는 mask→file을 manifest에서 resolve하므로 규약 차이는 manifest 선언으로 흡수한다. **검토 필요.**
-- **Q7 — accent/variation tile 사용 정책**: §2.6d의 flat-variant 16 타일(특히 `variation-08~15`) 중 어느 것을 Wang ground 위 정적 accent로 쓸지·빈도는 [[SPEC-301-camp-map-movement]] §2.8b seeded 규칙과 공동 튜닝 대상(가설). 구조(결정적·무작위 금지)는 확정.
+- ~~**Q6 — Wang `corner_order`/terrain index 규약 정합**~~ — **CLOSED(image-ground supersede)**: corner-Wang tileset이 단일 배경 이미지로 대체돼(§2.5/§2.6 supersede) corner_order/mask 정합 검토는 불요.
+- ~~**Q7 — accent/variation tile 사용 정책**~~ — **CLOSED(image-ground supersede)**: Wang ground 위 accent tile 모델이 폐기돼 정책 결정이 불요(§2.6d superseded).

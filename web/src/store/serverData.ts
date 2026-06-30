@@ -86,7 +86,13 @@ export function fromSnapshot(data: ScanResult, snapshotVersion: number): ServerD
     campsById[camp.id] = campMeta(camp);
     const orcIds: string[] = [];
     for (const orc of camp.orcs) {
-      orcsById[orc.id] = orc;
+      // SPEC-302 §2.2/§3.7 — normalize the (forward, often absent) usage AND uptime axes to null so
+      // the prestige tier seam (SPEC-302 §3.2/§3.7) sees a stable `OrcUsage | null` / `number | null`
+      // regardless of wire omission (the server adds `uptimeSec` in parallel — code defensively).
+      const needsNormalize = orc.usage === undefined || orc.uptimeSec === undefined;
+      orcsById[orc.id] = needsNormalize
+        ? { ...orc, usage: orc.usage ?? null, uptimeSec: orc.uptimeSec ?? null }
+        : orc;
       orcIds.push(orc.id);
     }
     orcIdsByCamp[camp.id] = sortOrcIds(orcsById, orcIds);
@@ -122,4 +128,19 @@ export function selectCamp(server: ServerData, campId: string): Camp | null {
     .map((id) => server.orcsById[id])
     .filter((o): o is Orc => o !== undefined);
   return { ...meta, orcs };
+}
+
+/**
+ * SPEC-304 §2.2 — the ordered, existing orc ids of the camp that contains `orcId`, in the SAME
+ * order CampMap derives its `orcs` (windowIndex/paneIndex sort, filtered to existing orcs). The
+ * inspector uses this with `characterKeyMap` so the portrait's character matches the on-map sprite.
+ * Returns [] if the orc isn't found in any camp.
+ */
+export function campOrcIdsForOrc(server: ServerData, orcId: string): string[] {
+  for (const ids of Object.values(server.orcIdsByCamp)) {
+    if (ids.includes(orcId)) {
+      return ids.filter((id) => server.orcsById[id] !== undefined);
+    }
+  }
+  return [];
 }

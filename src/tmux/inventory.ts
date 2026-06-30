@@ -160,7 +160,9 @@ export function parsePaneLine(
     command: f[4]!,
     rawTitle: f[5]!,
     rawCwd: f[6]!,
-    lastActivityAt: epochToIso(f[7]!, now),
+    // pane_activity (f[7]) is empty on some tmux builds → fall back to window_activity (f[11]);
+    // epochToIso then falls back to `now()` only if BOTH are blank (SPEC-002 §2.6 D-022).
+    lastActivityAt: epochToIso(f[7]!.trim() !== '' ? f[7]! : (f[11] ?? ''), now),
     panePid: toIntOrNull(f[8]!),
     paneDead: f[9] === '1',
     paneActive: f[10] === '1',
@@ -458,6 +460,9 @@ export async function collectInventory(
         ppid: n.ppid,
         depth: n.depth,
         command: redact(n.command).text,
+        // etimeSec is NON-SENSITIVE (process start time) — carried through verbatim (no redaction),
+        // powers SPEC-302 §3.7 uptime. Absent stays absent.
+        ...(n.etimeSec !== undefined ? { etimeSec: n.etimeSec } : {}),
       }));
       const depth0 = processTree.find((n) => n.depth === 0) ?? null;
       cmdline = depth0 ? depth0.command : null; // pane_pid node argv (redacted)

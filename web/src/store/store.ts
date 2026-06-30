@@ -22,10 +22,39 @@ import {
   type ServerData,
 } from './serverData';
 import { deriveViewState, totalOrcCount, type ViewState } from './viewStatus';
+import {
+  reconcilePrestigeLatch,
+  type DisplayedTier,
+  type OrcTierObservation,
+  type PrestigeLatch,
+} from '../assets/prestige';
 
 export type WsStatus = 'idle' | 'connecting' | 'open' | 'disconnected' | 'reconnecting';
 export type BootstrapPhase = 'pending' | 'ws-open' | 'snapshot-applied' | 'live';
 export type RefreshState = 'idle' | 'refreshing' | 'throttled';
+
+/**
+ * Camp-detail layout split between the camp MAP and the tabbed dock. 'full' stacks them (map at
+ * full width, dock below); 'split' and 'dock' place them SIDE BY SIDE and divide the WIDTH (map
+ * left, dock right):
+ *   - 'full'  : map at full width, dock below it — the original layout.
+ *   - 'split' : map | dock side by side, 50 / 50 width.
+ *   - 'dock'  : map 30 % | dock 70 % width (dock-dominant, for reading the panel).
+ * Persisted to localStorage so the choice survives reloads (a pure UI preference).
+ */
+export type LayoutMode = 'full' | 'split' | 'dock';
+const LAYOUT_MODE_KEY = 'oc.layoutMode';
+const LAYOUT_MODES: readonly LayoutMode[] = ['full', 'split', 'dock'];
+
+function readLayoutMode(): LayoutMode {
+  try {
+    const v = localStorage.getItem(LAYOUT_MODE_KEY);
+    if (v && (LAYOUT_MODES as readonly string[]).includes(v)) return v as LayoutMode;
+  } catch {
+    /* localStorage unavailable (SSR / private mode) → fall through to default */
+  }
+  return 'full';
+}
 
 export interface ConnectionSlice {
   wsStatus: WsStatus;
@@ -42,6 +71,16 @@ export interface UiSlice {
   selectedCampId: string | null;
   selectedOrcId: string | null;
   inspectorOpen: boolean;
+  /** Active camp background ref override (manifest backgrounds key); null = manifest scene default. */
+  backgroundRef: string | null;
+  /** Camp-detail map/dock split mode (persisted). See {@link LayoutMode}. */
+  layoutMode: LayoutMode;
+  /**
+   * SPEC-301 §3.1-11 — user drag-and-drop placements, by orcId, in logical WORLD coordinates.
+   * A dropped orc re-anchors here (overriding its computed cell home) and resumes active/waiting
+   * at the drop point. Client-only UI state; pruned when the orc disappears.
+   */
+  orcPositions: Record<string, { x: number; y: number }>;
 }
 
 export type ToastSeverity = 'info' | 'warn' | 'error';
@@ -49,6 +88,17 @@ export interface Toast {
   id: string;
   severity: ToastSeverity;
   message: string;
+}
+
+/**
+ * SPEC-302 §3.2 — prestige tier display state (CLIENT state; never written into scan/snapshot data).
+ * `latch` holds the monotonic judged tier per composite (orc id, resolvedCharacterKey); the scene
+ * (CampMap) reconciles it each snapshot via {@link StoreState.reconcilePrestige}, and consumers read
+ * `displayedTierById[orcId]` (defaulting to 0 = base). Recomputed from scratch on reload/restart.
+ */
+export interface PrestigeSlice {
+  latch: PrestigeLatch;
+  displayedTierById: Record<string, DisplayedTier>;
 }
 
 export interface StoreState {
@@ -59,6 +109,7 @@ export interface StoreState {
   settings: SettingsResponse | null;
   reducedMotion: boolean;
   toasts: Toast[];
+  prestige: PrestigeSlice;
 
   // --- server-state writers (reconcile only) ---
   applySnapshot: (res: SnapshotResponse) => void;
@@ -78,6 +129,14 @@ export interface StoreState {
   setSelectedCamp: (campId: string | null) => void;
   setSelectedOrc: (orcId: string | null) => void;
   setInspectorOpen: (open: boolean) => void;
+  setBackgroundRef: (ref: string | null) => void;
+  setLayoutMode: (mode: LayoutMode) => void;
+  /** SPEC-301 §3.1-11 — set (or clear, with null) a user drag-drop placement for an orc. */
+  setOrcPosition: (orcId: string, pos: { x: number; y: number } | null) => void;
+
+  // --- prestige (SPEC-302 §3.2) ---
+  /** Reconcile the monotonic tier latch against the camp's currently-rendered orcs (composite-keyed). */
+  reconcilePrestige: (observations: OrcTierObservation[]) => void;
 
   // --- misc ---
   setSettings: (settings: SettingsResponse | null) => void;
@@ -103,14 +162,35 @@ const initialUi: UiSlice = {
   selectedCampId: null,
   selectedOrcId: null,
   inspectorOpen: false,
+  backgroundRef: null,
+  layoutMode: readLayoutMode(),
+  orcPositions: {},
 };
 
-/** Drop the orc selection if the selected orc no longer exists (SPEC-200 §3.3). */
-function reconcileSelection(server: ServerData, ui: UiSlice): UiSlice {
-  if (ui.selectedOrcId !== null && !server.orcsById[ui.selectedOrcId]) {
-    return { ...ui, selectedOrcId: null, inspectorOpen: false };
+/** Prune drag-drop placements whose orc no longer exists (keeps the map from leaking stale homes). */
+function prunePositions(
+  server: ServerData,
+  positions: UiSlice['orcPositions'],
+): UiSlice['orcPositions'] {
+  const ids = Object.keys(positions);
+  if (ids.length === 0) return positions;
+  let changed = false;
+  const next: UiSlice['orcPositions'] = {};
+  for (const id of ids) {
+    if (server.orcsById[id]) next[id] = positions[id]!;
+    else changed = true;
   }
-  return ui;
+  return changed ? next : positions;
+}
+
+/** Drop the orc selection if the selected orc no longer exists (SPEC-200 §3.3); prune stale placements. */
+function reconcileSelection(server: ServerData, ui: UiSlice): UiSlice {
+  const orcPositions = prunePositions(server, ui.orcPositions);
+  const base = orcPositions === ui.orcPositions ? ui : { ...ui, orcPositions };
+  if (base.selectedOrcId !== null && !server.orcsById[base.selectedOrcId]) {
+    return { ...base, selectedOrcId: null, inspectorOpen: false };
+  }
+  return base;
 }
 
 export const useStore = create<StoreState>()((set, get) => ({
@@ -121,6 +201,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   settings: null,
   reducedMotion: false,
   toasts: [],
+  prestige: { latch: {}, displayedTierById: {} },
 
   applySnapshot: (res) => {
     set((state) => {
@@ -208,6 +289,32 @@ export const useStore = create<StoreState>()((set, get) => ({
   },
   setInspectorOpen: (inspectorOpen) => {
     set((state) => ({ ui: { ...state.ui, inspectorOpen } }));
+  },
+  setBackgroundRef: (backgroundRef) => {
+    set((state) => ({ ui: { ...state.ui, backgroundRef } }));
+  },
+  setLayoutMode: (layoutMode) => {
+    try {
+      localStorage.setItem(LAYOUT_MODE_KEY, layoutMode);
+    } catch {
+      /* localStorage unavailable → keep the in-memory preference only */
+    }
+    set((state) => ({ ui: { ...state.ui, layoutMode } }));
+  },
+  setOrcPosition: (orcId, pos) => {
+    set((state) => {
+      const orcPositions = { ...state.ui.orcPositions };
+      if (pos) orcPositions[orcId] = pos;
+      else delete orcPositions[orcId];
+      return { ui: { ...state.ui, orcPositions } };
+    });
+  },
+
+  reconcilePrestige: (observations) => {
+    set((state) => {
+      const { next, displayedTierById } = reconcilePrestigeLatch(state.prestige.latch, observations);
+      return { prestige: { latch: next, displayedTierById } };
+    });
   },
 
   setSettings: (settings) => set({ settings }),

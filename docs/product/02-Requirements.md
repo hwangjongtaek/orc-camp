@@ -78,6 +78,8 @@
 - **R-UI-006**: PixelLab.ai asset이 없어도 placeholder pixel asset으로 동일한 layout과 interaction이 동작해야 한다.
 - **R-UI-007**: camp/orc metaphor와 별개로 raw tmux target을 항상 확인할 수 있어야 한다.
 - **R-UI-008**: camp detail은 orc의 위치와 애니메이션으로 현재 활동(status)을 공간적으로 표현해야 하며, 각 orc의 위치는 기존 Orc 필드(windowIndex/status/paneId)의 결정적 함수여야 하고 새로운 server 좌표 데이터(x/y 등)를 도입하지 않는다.
+- **R-UI-010** (proposed, 미승인): camp detail은 활성 배경 환경에 어울리는 **epic 보스 몬스터를 ambient NPC로 1마리** 띄울 수 있어야 한다. 몬스터는 **비-상호작용**(선택/inspector/keyboard 대상 아님)·**비-load-bearing**(데이터 비운반, 자산 미가용 시 placeholder 없이 미렌더)이며, 배경의 walkable **`ground.polygon` 전체**를 결정적으로 roaming하면서 도착 시 무작위(seeded) dwell 애니메이션(active/waiting/idle)을 재생하고, **orc와 footprint 교차 시 `error` 애니메이션으로 래치**된다. 좌표·상태는 client-derived 결정적 함수(서버 좌표 불추가, INV-1)이고 reduced-motion에서 정지하며, orc 배치/zero-layout-shift를 교란하지 않는다. 런타임 거동 [[SPEC-303-epic-monster-npc]], 자산 모델 [[16-Epic-Monster-NPC]], 배경별 art concept [[background-tile-merge-guide]] §6, 결정 [[08-Decisions|D-037]]. 자산 *생성*은 `PIXELLAB_AUTH_HEADER` 보류로 deferred. (`R-UI-009`는 image-ground 정식 승격용으로 예약돼 있어 본 항목은 R-UI-010을 사용한다 — [[SPEC-301-camp-map-movement]] §6 C5.)
+- **R-UI-011** (proposed, 미승인): camp detail의 orc inspector(Details)는 선택된 orc의 **character 정체성을 Baldur's Gate 풍 세로 2:3 흉상(bust) portrait**로 패널 **우측**에 표시할 수 있어야 한다. portrait는 **정적 이미지**(애니메이션 없음)이고 character 식별을 돕는 **보조(비-load-bearing) 표현**으로, 어떤 status도 사실로 단언하지 않는다(status는 기존 StatusBadge가 소유). 표시 character는 sprite와 **동일한 결정적 resolve**(sequential `characterKey` → `agentType→character` → mascot 폴백, [[SPEC-300-asset-rendering]] §2.3)로 정하고, prestige tier가 resolved되면([[SPEC-302-mascot-prestige-tiers]]) 그 tier portrait를 쓴다. 장식 frame은 **web UI(CSS)가 소유**(이미지에 미포함)하며, 자산 미가용·manifest 부재 시 **placeholder로 graceful 강등**하고 portrait 유무가 **layout을 흔들지 않는다**(zero-layout-shift). 좁은 화면(mobile sheet)에서는 portrait가 metadata **위로 stack**된다. 런타임/배치 계약 [[SPEC-304-character-avatar-portraits]], 자산 모델·prompt [[17-Character-Avatar-Portraits]], 결정 [[08-Decisions|D-038]]. 자산 *생성*은 deferred(PixelLab 우선 시도 + 외부 image-gen 폴백). (`R-UI-004` inspector 보강의 식별-portrait 축이며, `R-P1-004` agent별 character variant·`R-P2-008` tier와 정합.)
 
 #### Terminal Preview와 Privacy
 
@@ -87,6 +89,7 @@
 - **R-PRIV-004**: terminal output 전체 저장은 기본 비활성화해야 한다.
 - **R-PRIV-005**: debug log에는 captured terminal output 원문을 기본 저장하지 않아야 한다.
 - **R-PRIV-006**: 사용자는 terminal preview 노출 여부와 preview line count를 조정할 수 있어야 한다.
+- **R-PRIV-007** (proposed, 미승인): agent 세션 transcript/usage 로그 파일(Claude Code/Codex 세션 JSONL 등)에서 누적 token/cost를 수집할 때, 시스템은 **집계 스칼라(cumulative tokens/cost·source·measuredAt)만** 추출해야 하며 transcript 원문(대화 본문·tool 입출력·코드·파일 경로·secret)을 저장·log·직렬화·반환·캐시하면 안 된다. 파일 접근은 고정 allowlist root에 confine되고(디스크 광범위 스캔 금지), symlink escape·타 사용자 소유 파일을 거부하며, byte/line/time bounded read로 read-only로만 수행하고, 부재·불가·모호 시 추측 없이 `usage=null`로 degrade해야 한다(misattribution 금지). 이는 tmux capture를 넘어서는 새 read surface이므로 [[SPEC-006-privacy-redaction]] 불변식의 확장으로 [[SPEC-008-usage-collection]]([[08-Decisions|D-039]], CONDITIONAL GO)이 1차 소유한다. R-P2-008(prestige tier)의 데이터 의존이며 그 채택 시 착수하는 forward다.
 
 #### Control Action
 
@@ -153,6 +156,7 @@
 - **R-P2-005**: agent action replay와 timeline 분석을 제공한다.
 - **R-P2-006**: workflow automation과 agent handoff를 제공한다.
 - **R-P2-007**: enterprise policy pack, audit export, remote access policy를 제공한다.
+- **R-P2-008** (proposed, 미승인): delivered character(`orc-high-warchief-mascot`·`orc-claude-storm-shaman`·`orc-codex-field-engineer`·`orc-unknown`·`orc-iron-commander` 5종)가 그 orc의 **누적 LLM token/cost**에 따라 외형 prestige tier(갑옷/의장·장비·`active` 연출 강화)를 단계적으로 바꾼다. `orc-iron-commander`도 pool roaming skin으로 배정된 orc의 usage로 tier를 가지며, 그 control/interrupt 상징 역할은 tier와 무관한 별개 축이다([[SPEC-400-control-actions]]). 자산 모델 [[15-Character-State-Model]], 런타임 계약 [[SPEC-302-mascot-prestige-tiers]], 결정 [[08-Decisions|D-036]]. 데이터 의존(`Orc.usage` 신규 수집)은 forward.
 
 ## 비기능 요구사항
 

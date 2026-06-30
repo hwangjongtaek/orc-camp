@@ -7,7 +7,7 @@
   "generation_status": {
     "state": "closed",
     "closed_at": "2026-06-26",
-    "note": "Character/sprite generation for this version is closed. v0.2.0 is a manifest-wiring bump (SPEC-300 §6 C4 / SPEC-301 C4): it adds the corner-Wang terrain tileset declaration (the orc-camp-terrain-wang-topdown.png sheet was already generated) plus the scene.backdrop/decor/shadow consumption contract (SPEC-300 §2.5). No new character assets were generated. Further improvements happen via asset pack version bumps. Deferred enhancements are tracked in docs/13-PixelLab-Asset-Registry.md (Deferred to Future Versions).",
+    "note": "Character/sprite generation for this version is closed. v0.2.0 is a manifest-wiring bump (SPEC-300 §6 C4 / SPEC-301 C4): it adds the corner-Wang terrain tileset declaration (the orc-camp-terrain-wang-topdown.png sheet was already generated) plus the scene.backdrop/decor/shadow consumption contract (SPEC-300 §2.5). No new character assets were generated. Further improvements happen via asset pack version bumps. Deferred enhancements are tracked in docs/13-PixelLab-Asset-Registry.md (Deferred to Future Versions). v0.2.0 also adds the SPEC-304 character avatar `portraits` block: 20 BG-style 2:3 busts (5 base + 15 prestige tiers), owner-provided external pixel art downscaled to 512x512 lossless WebP (dark background baked — framed by web CSS, not transparent; the earlier PixelLab create_map_object probe set was superseded). Per-file SHA-256 + tier(suffix) mapping are tracked in docs/13-PixelLab-Asset-Registry.md (item 12). Runtime consumes a character's tier portrait via the prestige seam (web/src/assets/prestige.ts → displayedTierForOrc; SPEC-302 usage→tier is forward).",
     "character_count": 5,
     "deferred_enhancements_ref": "docs/13-PixelLab-Asset-Registry.md#deferred-to-future-versions-보강-여지"
   },
@@ -78,6 +78,59 @@
     "ui_assets": "generation/ui-assets.json",
     "warbase_assets": "generation/warbase-assets.json"
   },
+  "portraits": {
+    "version": 1,
+    "root": "portraits",
+    "frame_aspect": "2:3",
+    "source_size": [512, 512],
+    "items": {
+      "orc-high-warchief-mascot": {
+        "file": "orc-high-warchief-mascot.webp",
+        "source_size": [512, 512],
+        "tiers": {
+          "veteran": { "file": "tiers/veteran/orc-high-warchief-mascot-veteran.webp" },
+          "champion": { "file": "tiers/champion/orc-high-warchief-mascot-champion.webp" },
+          "warlord": { "file": "tiers/warlord/orc-high-warchief-mascot-warlord.webp" }
+        }
+      },
+      "orc-claude-storm-shaman": {
+        "file": "orc-claude-storm-shaman.webp",
+        "source_size": [512, 512],
+        "tiers": {
+          "adept": { "file": "tiers/adept/orc-claude-storm-shaman-adept.webp" },
+          "tempest": { "file": "tiers/tempest/orc-claude-storm-shaman-tempest.webp" },
+          "archon": { "file": "tiers/archon/orc-claude-storm-shaman-archon.webp" }
+        }
+      },
+      "orc-codex-field-engineer": {
+        "file": "orc-codex-field-engineer.webp",
+        "source_size": [512, 512],
+        "tiers": {
+          "senior": { "file": "tiers/senior/orc-codex-field-engineer-senior.webp" },
+          "artificer": { "file": "tiers/artificer/orc-codex-field-engineer-artificer.webp" },
+          "forgewright": { "file": "tiers/forgewright/orc-codex-field-engineer-forgewright.webp" }
+        }
+      },
+      "orc-unknown": {
+        "file": "orc-unknown.webp",
+        "source_size": [512, 512],
+        "tiers": {
+          "seasoned": { "file": "tiers/seasoned/orc-unknown-seasoned.webp" },
+          "veteran": { "file": "tiers/veteran/orc-unknown-veteran.webp" },
+          "elder": { "file": "tiers/elder/orc-unknown-elder.webp" }
+        }
+      },
+      "orc-iron-commander": {
+        "file": "orc-iron-commander.webp",
+        "source_size": [512, 512],
+        "tiers": {
+          "enforcer": { "file": "tiers/enforcer/orc-iron-commander-enforcer.webp" },
+          "marshal": { "file": "tiers/marshal/orc-iron-commander-marshal.webp" },
+          "sovereign": { "file": "tiers/sovereign/orc-iron-commander-sovereign.webp" }
+        }
+      }
+    }
+  },
   "characters": {
     "orc-high-warchief-mascot": {
       "display_name": "Orc High Warchief Mascot",
@@ -86,7 +139,7 @@
       "root": "sprites/orc-high-warchief-mascot/Orc_High_Warchief_Mascot",
       "frame_size": [232, 232],
       "scale": 1,
-      "anchor": [116, 208],
+      "anchor": [116, 175],
       "view": "low top-down",
       "directions": [
         "south",
@@ -209,6 +262,195 @@
         "fallback_state": "idle",
         "fallback_direction": "south",
         "fallback_frame": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_000.png"
+      },
+      "prestige": {
+        "note": "Design SSOT docs/assets/15-Character-State-Model.md §2.2; runtime resolution SSOT docs/specs/SPEC-302-mascot-prestige-tiers.md. thresholds = manifest copy of SPEC-302 §3.1. Phased rollout (SPEC-302 §3.6): T1=available (introduced first; 8-frame v3 animations in progress 2026-06-29), T2/T3=staged (rotations generated + owner-IP-approved but rollout held — excluded from resolution, downward-fallback to highest available tier; flip to available progressively as their animations land). All 3 rotation sets exist; runtime uses static_tier (SPEC-302 §3.4) for an available tier until its animations are wired, and falls back to base (tier 0) for any non-available tier (SPEC-302 §3.3).",
+        "axis": "cumulative_tokens",
+        "thresholds": {
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
+        },
+        "tiers": [
+          {
+            "tier": 1,
+            "label": "Ironclad Veteran",
+            "suffix": "-veteran",
+            "status": "available",
+            "pixellab_character_id": "e1e3b502-38bc-49d9-ac7f-3a4259ff26d3",
+            "root": "sprites/orc-high-warchief-mascot/tiers/veteran/Orc_High_Warchief_Mascot_Veteran",
+            "frame_size": [232, 232],
+            "scale": 1,
+            "anchor": [116, 175],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "note": "ember-aura active effect (SPEC-302 §3.4; doc-15 §4.4)",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "coverage": "south-only",
+                "folders": {
+                  "south": "animations/error/south"
+                }
+              }
+            },
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "animations/idle/south/frame_000.png"
+            }
+          },
+          {
+            "tier": 2,
+            "label": "Ember Champion",
+            "suffix": "-champion",
+            "status": "staged",
+            "pixellab_character_id": "55edad33-8b53-4a4d-a2af-0a9e75f503ee",
+            "root": "sprites/orc-high-warchief-mascot/tiers/champion/Orc_High_Warchief_Mascot_Champion",
+            "frame_size": [232, 232],
+            "scale": 1,
+            "anchor": [116, 175],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            },
+            "ip_review": "passed (owner approval 2026-06-29)"
+          },
+          {
+            "tier": 3,
+            "label": "Legendary Warlord",
+            "suffix": "-warlord",
+            "status": "staged",
+            "pixellab_character_id": "c748be94-f87a-4b68-a4f1-c7207cfd1c11",
+            "root": "sprites/orc-high-warchief-mascot/tiers/warlord/Orc_High_Warchief_Mascot_Warlord",
+            "frame_size": [232, 232],
+            "scale": 1,
+            "anchor": [116, 175],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            },
+            "ip_review": "passed (owner approval 2026-06-29)"
+          }
+        ]
       }
     },
     "orc-claude-storm-shaman": {
@@ -218,7 +460,7 @@
       "root": "sprites/orc-claude-storm-shaman/Orc_Claude_Storm_Shaman",
       "frame_size": [232, 232],
       "scale": 1,
-      "anchor": [116, 208],
+      "anchor": [116, 175],
       "view": "low top-down",
       "directions": [
         "south",
@@ -347,6 +589,151 @@
         "fallback_state": "idle",
         "fallback_direction": "south",
         "fallback_frame": "animations/breathing_idle_loop_for_a_calm_storm_shaman_strate/south/frame_000.png"
+      },
+      "prestige": {
+        "note": "Prestige tiers for orc-claude-storm-shaman. SSOT docs/assets/15-Character-State-Model.md + docs/specs/SPEC-302-mascot-prestige-tiers.md. Phase 1 (2026-06-30): T1=available (8-dir rotation + idle/active/roaming v3 animations; waiting/stale/error -> static_tier per SPEC-302 §3.4). T2/T3=staged = Phase 2 (T2/T3 animations + T3 extreme active + blocking IP review; deferred on generation budget; SPEC-302 §3.6). thresholds = copy of SPEC-302 §3.1.",
+        "axis": "cumulative_tokens",
+        "thresholds": {
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
+        },
+        "tiers": [
+          {
+            "tier": 1,
+            "label": "Storm Adept",
+            "suffix": "-adept",
+            "status": "available",
+            "pixellab_character_id": "50882ad6-8a82-4551-9c32-d83279cbb586",
+            "root": "sprites/orc-claude-storm-shaman/tiers/adept/Orc_Claude_Storm_Shaman_Adept",
+            "frame_size": [232, 232],
+            "scale": 1,
+            "anchor": [116, 175],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              }
+            },
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "animations/idle/south/frame_000.png"
+            }
+          },
+          {
+            "tier": 2,
+            "label": "Tempest Shaman",
+            "suffix": "-tempest",
+            "status": "staged",
+            "pixellab_character_id": "b4a58ffe-8d11-455e-9d24-65494e44f9ab",
+            "root": "sprites/orc-claude-storm-shaman/tiers/tempest/Orc_Claude_Storm_Shaman_Tempest",
+            "frame_size": [232, 232],
+            "scale": 1,
+            "anchor": [116, 175],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            }
+          },
+          {
+            "tier": 3,
+            "label": "Stormcaller Archon",
+            "suffix": "-archon",
+            "status": "staged",
+            "pixellab_character_id": "573066bf-c80d-40e8-815c-a7fcde3c7b7c",
+            "root": "sprites/orc-claude-storm-shaman/tiers/archon/Orc_Claude_Storm_Shaman_Archon",
+            "frame_size": [232, 232],
+            "scale": 1,
+            "anchor": [116, 175],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            },
+            "ip_review": "blocking"
+          }
+        ]
       }
     },
     "orc-codex-field-engineer": {
@@ -356,7 +743,7 @@
       "root": "sprites/orc-codex-field-engineer/Orc_Codex_Field_Engineer",
       "frame_size": [232, 232],
       "scale": 1,
-      "anchor": [116, 208],
+      "anchor": [116, 175],
       "view": "low top-down",
       "directions": [
         "south",
@@ -485,6 +872,150 @@
         "fallback_state": "idle",
         "fallback_direction": "south",
         "fallback_frame": "animations/breathing_idle_loop_subtle_chest_breathing_and_tin/south/frame_000.png"
+      },
+      "prestige": {
+        "note": "Prestige tiers for orc-codex-field-engineer. SSOT docs/assets/15-Character-State-Model.md + docs/specs/SPEC-302-mascot-prestige-tiers.md. Phase 1 (2026-06-30): T1=available (8-dir rotation + idle/active/roaming v3 animations; waiting/stale/error -> static_tier per SPEC-302 §3.4). T2/T3=staged = Phase 2 (T2/T3 animations + T3 extreme active + blocking IP review; deferred on generation budget; SPEC-302 §3.6). thresholds = copy of SPEC-302 §3.1.",
+        "axis": "cumulative_tokens",
+        "thresholds": {
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
+        },
+        "tiers": [
+          {
+            "tier": 1,
+            "label": "Senior Engineer",
+            "suffix": "-senior",
+            "status": "available",
+            "pixellab_character_id": "baf019e9-3450-44c6-8dae-4dc4efdbfb56",
+            "root": "sprites/orc-codex-field-engineer/tiers/senior/Orc_Codex_Field_Engineer_Senior",
+            "frame_size": [232, 232],
+            "scale": 1,
+            "anchor": [116, 175],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              }
+            },
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "animations/idle/south/frame_000.png"
+            }
+          },
+          {
+            "tier": 2,
+            "label": "Master Artificer",
+            "suffix": "-artificer",
+            "status": "staged",
+            "pixellab_character_id": "6b86fb49-7cf7-4e8a-9783-394c1bc361a3",
+            "root": "sprites/orc-codex-field-engineer/tiers/artificer/Orc_Codex_Field_Engineer_Artificer",
+            "frame_size": [232, 232],
+            "scale": 1,
+            "anchor": [116, 175],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            }
+          },
+          {
+            "tier": 3,
+            "label": "Grand Forgewright",
+            "suffix": "-forgewright",
+            "status": "staged",
+            "pixellab_character_id": "18e1005f-c4e1-4e4a-9a2a-4f3956f703af",
+            "root": "sprites/orc-codex-field-engineer/tiers/forgewright/Orc_Codex_Field_Engineer_Forgewright",
+            "frame_size": [232, 232],
+            "scale": 1,
+            "anchor": [116, 175],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            }
+          }
+        ]
       }
     },
     "orc-unknown": {
@@ -494,7 +1025,7 @@
       "root": "sprites/orc-unknown/Orc_Unknown_Grunt",
       "frame_size": [228, 228],
       "scale": 1,
-      "anchor": [114, 204],
+      "anchor": [114, 172],
       "view": "low top-down",
       "directions": [
         "south",
@@ -623,6 +1154,152 @@
         "fallback_state": "idle",
         "fallback_direction": "south",
         "fallback_frame": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_000.png"
+      },
+      "prestige": {
+        "note": "Prestige tiers for orc-unknown. SSOT docs/assets/15-Character-State-Model.md + docs/specs/SPEC-302-mascot-prestige-tiers.md. Phase 1 (2026-06-30): T1=available (8-dir rotation + idle/active/roaming v3 animations; waiting/stale/error -> static_tier per SPEC-302 §3.4). T2/T3=staged = Phase 2 (T2/T3 animations + T3 extreme active + blocking IP review; deferred on generation budget; SPEC-302 §3.6). thresholds = copy of SPEC-302 §3.1.",
+        "axis": "cumulative_tokens",
+        "thresholds": {
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
+        },
+        "tiers": [
+          {
+            "tier": 1,
+            "label": "Fel-Touched Hunter",
+            "suffix": "-feltouched",
+            "status": "available",
+            "pixellab_character_id": "84692d27-58c3-4cb6-9def-f1945a107c94",
+            "root": "sprites/orc-unknown/tiers/feltouched/Orc_Unknown_Grunt_Feltouched",
+            "frame_size": [228, 228],
+            "scale": 1,
+            "anchor": [114, 172],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              }
+            },
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "animations/idle/south/frame_000.png"
+            }
+          },
+          {
+            "tier": 2,
+            "label": "Fel Reaver",
+            "suffix": "-felreaver",
+            "status": "staged",
+            "pixellab_character_id": "50828e10-a3c7-4153-b2b7-917559fc8068",
+            "root": "sprites/orc-unknown/tiers/felreaver/Orc_Unknown_Grunt_Felreaver",
+            "frame_size": [228, 228],
+            "scale": 1,
+            "anchor": [114, 172],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            },
+            "ip_review": "blocking"
+          },
+          {
+            "tier": 3,
+            "label": "Fel Ascendant",
+            "suffix": "-felascendant",
+            "status": "staged",
+            "pixellab_character_id": "740ad695-ba90-472a-a05e-6c5aaf7ac307",
+            "root": "sprites/orc-unknown/tiers/felascendant/Orc_Unknown_Grunt_Felascendant",
+            "frame_size": [228, 228],
+            "scale": 1,
+            "anchor": [114, 172],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            },
+            "ip_review": "blocking"
+          }
+        ]
       }
     },
     "orc-iron-commander": {
@@ -632,7 +1309,7 @@
       "root": "sprites/orc-iron-commander/Orc_Iron_Commander",
       "frame_size": [236, 236],
       "scale": 1,
-      "anchor": [118, 212],
+      "anchor": [118, 176],
       "view": "low top-down",
       "directions": [
         "south",
@@ -761,6 +1438,152 @@
         "fallback_state": "idle",
         "fallback_direction": "south",
         "fallback_frame": "animations/idle_breathing_loop_subtle_chest_breathing_slight/south/frame_000.png"
+      },
+      "prestige": {
+        "note": "Prestige tiers for orc-iron-commander. SSOT docs/assets/15-Character-State-Model.md + docs/specs/SPEC-302-mascot-prestige-tiers.md. Phase 1 (2026-06-30): T1=available (8-dir rotation + idle/active/roaming v3 animations; waiting/stale/error -> static_tier per SPEC-302 §3.4). T2/T3=staged = Phase 2 (T2/T3 animations + T3 extreme active + blocking IP review; deferred on generation budget; SPEC-302 §3.6). thresholds = copy of SPEC-302 §3.1.",
+        "axis": "cumulative_tokens",
+        "thresholds": {
+          "tier1": { "min_tokens": 100000, "min_cost_usd": 3 },
+          "tier2": { "min_tokens": 500000, "min_cost_usd": 15 },
+          "tier3": { "min_tokens": 2000000, "min_cost_usd": 60 }
+        },
+        "tiers": [
+          {
+            "tier": 1,
+            "label": "Iron Enforcer",
+            "suffix": "-enforcer",
+            "status": "available",
+            "pixellab_character_id": "94c3142f-777f-4b9f-82e7-db10ac7477de",
+            "root": "sprites/orc-iron-commander/tiers/enforcer/Orc_Iron_Commander_Enforcer",
+            "frame_size": [236, 236],
+            "scale": 1,
+            "anchor": [118, 176],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              }
+            },
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "animations/idle/south/frame_000.png"
+            }
+          },
+          {
+            "tier": 2,
+            "label": "Siege Marshal",
+            "suffix": "-marshal",
+            "status": "staged",
+            "pixellab_character_id": "7c2eacea-9f1d-4706-a104-739712400b3f",
+            "root": "sprites/orc-iron-commander/tiers/marshal/Orc_Iron_Commander_Marshal",
+            "frame_size": [236, 236],
+            "scale": 1,
+            "anchor": [118, 176],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            },
+            "ip_review": "blocking"
+          },
+          {
+            "tier": 3,
+            "label": "Iron Sovereign",
+            "suffix": "-sovereign",
+            "status": "staged",
+            "pixellab_character_id": "7ca301a7-5127-4d71-a836-2f0b4ddd516d",
+            "root": "sprites/orc-iron-commander/tiers/sovereign/Orc_Iron_Commander_Sovereign",
+            "frame_size": [236, 236],
+            "scale": 1,
+            "anchor": [118, 176],
+            "directions": ["south", "east", "north", "west", "south-east", "north-east", "north-west", "south-west"],
+            "rotations": {
+              "south": "rotations/south.png",
+              "east": "rotations/east.png",
+              "north": "rotations/north.png",
+              "west": "rotations/west.png",
+              "south-east": "rotations/south-east.png",
+              "north-east": "rotations/north-east.png",
+              "north-west": "rotations/north-west.png",
+              "south-west": "rotations/south-west.png"
+            },
+            "animations": {},
+            "reduced_motion": {
+              "fallback_state": "idle",
+              "fallback_direction": "south",
+              "fallback_frame": "rotations/south.png"
+            },
+            "ip_review": "blocking"
+          }
+        ]
       }
     }
   },
@@ -776,7 +1599,131 @@
       "safe_area": [390, 520, 890, 330],
       "sha256": "d26a79b64988d2c001d40d3a2d0236136d19c6ec701245e19585daf2121a4160",
       "bytes": 2613264,
-      "usage": "camp detail background; place orc sprites in the lower-center safe area and keep UI panels on edges"
+      "usage": "legacy camp detail background; superseded as default by orccamp-default"
+    },
+    "orccamp-default": {
+      "display_name": "Orc Camp Default Background",
+      "epic_monster": "monster-mosshide-behemoth",
+      "file": "backgrounds/orccamp-default-background.webp",
+      "source_reference": "merged from 4x 1672x941 tiles (orc-camp-bg-tile-a..d) — see docs/design/background-tile-merge-guide.md",
+      "generation_source": "image generation (4-tile mosaic, feathered merge)",
+      "native_size": [3344, 1882],
+      "world_scale": 1,
+      "logical_size": [3344, 1882],
+      "aspect_ratio": "16:9",
+      "safe_area": [1080, 950, 1320, 800],
+      "ground": {
+        "polygon": [[1080, 910], [2400, 910], [3000, 1380], [2660, 1800], [880, 1800], [580, 1270]],
+        "area": 1771900,
+        "ratio": 0.2815
+      },
+      "sha256": "b4c9d50599478060d22f49c989676c0e84ba845d1aa4f0d09c68dfcc792b2424",
+      "bytes": 1596770,
+      "usage": "default camp background (image-ground mode): WORLD = native 3344x1882 (no renderer upscale, world_scale=1) so it is crisp. Built by merging 4x 1672x941 tiles (2x2, feathered overlap) into ~3004x1652 then fitting to 3344x1882. Fixed scale (no zoom), drag-pan only. Place orc sprites inside ground.polygon (cracked-dirt courtyard), clamp targets to the inscribed safe_area. ground.ratio is scale-invariant (0.2815)."
+    },
+    "necropolis-camp": {
+      "display_name": "Necropolis (Undead Camp)",
+      "epic_monster": "monster-bonewraith-revenant",
+      "file": "backgrounds/necropolis-camp-background.webp",
+      "source_reference": "merged from 4x 1672x941 tiles (necropolis-pg-tile-a..d) — see docs/design/background-tile-merge-guide.md theme 5",
+      "generation_source": "image generation (4-tile mosaic, feathered merge)",
+      "native_size": [3344, 1882],
+      "world_scale": 1,
+      "logical_size": [3344, 1882],
+      "aspect_ratio": "16:9",
+      "safe_area": [920, 720, 1360, 680],
+      "ground": {
+        "polygon": [[800, 710], [2420, 710], [2470, 1130], [2170, 1560], [1140, 1600], [620, 1130]],
+        "area": 1378900,
+        "ratio": 0.2191,
+        "gate": { "reference_ratio": 0.2815, "pass": false, "shortfall": 0.0624, "exception": true, "accepted": "user-approved 2026-06-29 — gothic courtyard is genuinely smaller; kept as a documented per-background exception (SPEC-301 §2.8f)" }
+      },
+      "sha256": "e8a1d1f23e3b93e75992eda9ea486197cbe2a661832472d3ab4898d72871c738",
+      "bytes": 1430374,
+      "usage": "alternate camp background (image-ground): gothic undead necropolis night. WORLD = native 3344x1882, world_scale=1. Cobblestone courtyard with central skull sigil is the walkable ground (measured by scene-placement-engineer). ground.ratio 0.2191 is below the gate (0.2815) but kept as a user-approved documented exception (gate.exception=true, SPEC-301 §2.8f): the gothic courtyard is genuinely smaller. Functional: orcs clamp to safe_area (1360x680, ~18 orc capacity)."
+    },
+    "froststeel-camp": {
+      "display_name": "Froststeel (Snow Warcamp)",
+      "epic_monster": "monster-frostfang-colossus",
+      "file": "backgrounds/froststeel-camp-background.webp",
+      "source_reference": "merged from 4x 1672x941 tiles (frost-bg-tile-{a,b,c,d}-3) — feathered merge (ox=406, oy=230) → 2938x1652 → fit world 3344x1882 → WebP q92; see docs/design/background-tile-merge-guide.md theme 1",
+      "generation_source": "image generation (4-tile mosaic, feathered merge)",
+      "native_size": [3344, 1882],
+      "world_scale": 1,
+      "logical_size": [3344, 1882],
+      "aspect_ratio": "16:9",
+      "safe_area": [820, 720, 1480, 840],
+      "ground": {
+        "polygon": [[720, 640], [1180, 510], [2080, 510], [2640, 760], [2720, 1240], [2360, 1740], [900, 1740], [540, 1160]],
+        "area": 2277700,
+        "ratio": 0.3619,
+        "gate": { "reference_ratio": 0.2815, "pass": true }
+      },
+      "sha256": "b3d2cab2386e127fdf35c89b304b34dbd31e04233c31c34a117294f8995e76a5",
+      "bytes": 1889592,
+      "usage": "alternate camp background (image-ground): Froststeel night snow warcamp (aurora, moon, ice-blue, glacier fortress, frozen pond). WORLD = native 3344x1882, world_scale=1. The large open snow courtyard (center, spanning upper-center to lower foreground) is the walkable ground. ground.ratio 0.3619 PASSES the ratio gate (>= 0.2815). Selectable via the detail-panel background switcher."
+    },
+    "emberforge-camp": {
+      "display_name": "Emberforge (Volcanic Stronghold)",
+      "epic_monster": "monster-magma-colossus",
+      "file": "backgrounds/emberforge-camp-background.webp",
+      "source_reference": "merged from 4x 1672x941 tiles (emberforge-bg-tile-{a,b,c,d}) — feathered merge (ox=506, oy=230) → fit world 3344x1882 → WebP q92; see docs/design/background-tile-merge-guide.md theme 2",
+      "generation_source": "image generation (4-tile mosaic, feathered merge)",
+      "native_size": [3344, 1882],
+      "world_scale": 1,
+      "logical_size": [3344, 1882],
+      "aspect_ratio": "16:9",
+      "safe_area": [760, 700, 1440, 700],
+      "ground": {
+        "polygon": [[600, 440], [2050, 405], [2410, 630], [2470, 1090], [2160, 1560], [900, 1590], [470, 1170], [440, 660]],
+        "area": 2077575,
+        "ratio": 0.3301,
+        "gate": { "reference_ratio": 0.2815, "pass": true }
+      },
+      "sha256": "41b1400917a30125d4aa80a75904887ec80d091e7ca62c5c18e1eb73a03229ed",
+      "bytes": 1590820,
+      "usage": "alternate camp background (image-ground): Emberforge volcanic stronghold (eruption horizon, blood-red sun, lava channels, forge-citadel + anvil, magma cannons). WORLD = native 3344x1882, world_scale=1. The wide open obsidian plaza (center, between the back-ridge city, the right forge complex, and the foreground lava channel + bridges) is the walkable ground. ground.ratio 0.3301 PASSES the ratio gate (>= 0.2815). Selectable via the detail-panel background switcher."
+    },
+    "mirebog-camp": {
+      "display_name": "Mirebog (Swamp Warcamp)",
+      "epic_monster": "monster-bog-leviathan",
+      "file": "backgrounds/mirebog-camp-background.webp",
+      "source_reference": "merged from 4x 1672x941 tiles (mirebog-bg-tile-{a,b,c,d}) — feathered merge (ox=585, oy=230) → 2759x1652 → fit world 3344x1882 → WebP q92; see docs/design/background-tile-merge-guide.md theme 3",
+      "generation_source": "image generation (4-tile mosaic, feathered merge)",
+      "native_size": [3344, 1882],
+      "world_scale": 1,
+      "logical_size": [3344, 1882],
+      "aspect_ratio": "16:9",
+      "safe_area": [820, 660, 1360, 760],
+      "ground": {
+        "polygon": [[700, 450], [2230, 440], [2430, 700], [2500, 1150], [2180, 1620], [940, 1660], [600, 1240], [580, 700]],
+        "area": 2060600,
+        "ratio": 0.3274,
+        "gate": { "reference_ratio": 0.2815, "pass": true }
+      },
+      "sha256": "c73a57508923e7758acf8fdbef2d39f5e0d36539c25268ffb89ee5935963cca2",
+      "bytes": 1522294,
+      "usage": "alternate camp background (image-ground): Mirebog swamp warcamp at dusk (foggy green-grey sky, hazy sun, half-sunken ziggurat-temple silhouette, right stilt-village on timber piles, boardwalks/jetties, coracles, croc pen, glowing mushrooms, swamp totems, will-o-wisp lanterns). WORLD = native 3344x1882, world_scale=1. The large open muddy clearing (center, ringed by the bog clutter and the foreground boardwalks) is the walkable ground. ground.ratio 0.3274 PASSES the ratio gate (>= 0.2815). Selectable via the detail-panel background switcher."
+    },
+    "sunscorch-camp": {
+      "display_name": "Sunscorch (Desert Warcamp)",
+      "file": "backgrounds/sunscorch-camp-background.webp",
+      "source_reference": "merged from 4x 1672x941 tiles (sunscorch-bg-tile-{a,b,c,d}) — feathered merge (ox=400, oy=230) → 2944x1652 → fit world 3344x1882 → WebP q92; see docs/design/background-tile-merge-guide.md theme 4",
+      "generation_source": "image generation (4-tile mosaic, feathered merge)",
+      "native_size": [3344, 1882],
+      "world_scale": 1,
+      "logical_size": [3344, 1882],
+      "aspect_ratio": "16:9",
+      "safe_area": [1120, 760, 1120, 720],
+      "ground": {
+        "polygon": [[1340, 400], [2120, 360], [2420, 700], [2450, 1150], [2200, 1620], [940, 1680], [620, 1180], [760, 860], [1240, 650]],
+        "area": 1842000,
+        "ratio": 0.2927,
+        "gate": { "reference_ratio": 0.2815, "pass": true }
+      },
+      "sha256": "d6c2c3ba7ff0f91ecdb59381fde7c057fe649f040685ed5d017450749e6699b9",
+      "bytes": 1885244,
+      "usage": "alternate camp background (image-ground): Sunscorch desert warcamp at bright midday (pale-blue sky, harsh sun, half-buried bone-colossus + ziggurat silhouettes, left war-bazaar of market tents, right water cistern + arena fighting-pit + beast-lines of pack lizards, dunes/cactus/bone piles/supply wagons). WORLD = native 3344x1882, world_scale=1. The large open sun-baked sand arena (center, skirting right of the left bazaar and clear of the right cistern/arena complex) is the walkable ground. ground.ratio 0.2927 PASSES the ratio gate (>= 0.2815). Selectable via the detail-panel background switcher."
     }
   },
   "tilesets": {
@@ -882,12 +1829,12 @@
   },
   "scene": {
     "backdrop": {
-      "background_ref": "warbase-sunset-dashboard",
-      "role": "horizon",
-      "fit": "cover-width",
-      "vertical_anchor": "top",
-      "repeat_x": true,
-      "parallax": 0.3
+      "background_ref": "orccamp-default",
+      "role": "background",
+      "fit": "native",
+      "vertical_anchor": "center",
+      "repeat_x": false,
+      "parallax": 0
     },
     "decor": {
       "source_objects": ["props", "wartable-warbase"],
@@ -916,7 +1863,7 @@
     "shadow": {
       "mode": "css",
       "asset_ref": null,
-      "css": { "shape": "ellipse", "opacity": 0.35, "footprint_ratio": 0.6 }
+      "css": { "shape": "ellipse", "opacity": 0.35, "footprint_ratio": 0.46 }
     }
   },
   "objects": {
@@ -1315,6 +2262,620 @@
         "file": "ui/frames/camp-card-frame-needs-review.png",
         "size": [192, 112],
         "reason": "Generated as a campfire-like illustration instead of a reusable empty card frame."
+      }
+    }
+  },
+  "monsters": {
+    "monster-mosshide-behemoth": {
+      "display_name": "Mosshide Behemoth",
+      "status": "available",
+      "pixellab_character_id": "5975f4f2-8733-4980-bcd1-002179d15d61",
+      "background": "orccamp-default",
+      "body_type": "quadruped",
+      "role": "epic ambient boss NPC",
+      "root": "sprites/monsters/monster-mosshide-behemoth",
+      "frame_size": [
+        256,
+        256
+      ],
+      "scale": 1,
+      "anchor": [
+        128,
+        186
+      ],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "roaming": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/roaming/south",
+            "east": "animations/roaming/east",
+            "north": "animations/roaming/north",
+            "west": "animations/roaming/west",
+            "south-east": "animations/roaming/south-east",
+            "north-east": "animations/roaming/north-east",
+            "north-west": "animations/roaming/north-west",
+            "south-west": "animations/roaming/south-west"
+          }
+        },
+        "idle": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "coverage": "south-only",
+          "folders": {
+            "south": "animations/idle/south"
+          }
+        },
+        "active": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 5,
+          "frame_pattern": "frame_%03d.png",
+          "coverage": "south-only",
+          "folders": {
+            "south": "animations/active/south"
+          }
+        },
+        "waiting": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "coverage": "south-only",
+          "folders": {
+            "south": "animations/waiting/south"
+          }
+        },
+        "error": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "coverage": "south-only",
+          "folders": {
+            "south": "animations/error/south"
+          }
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "rotations/south.png"
+      }
+    },
+    "monster-frostfang-colossus": {
+      "display_name": "Frostfang Colossus",
+      "status": "available",
+      "pixellab_character_id": "48a4e03f-0aef-431f-bbda-742f999d7cb3",
+      "background": "froststeel-camp",
+      "body_type": "quadruped",
+      "role": "epic ambient boss NPC",
+      "root": "sprites/monsters/monster-frostfang-colossus",
+      "frame_size": [
+        252,
+        252
+      ],
+      "scale": 1,
+      "anchor": [
+        126,
+        181
+      ],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "roaming": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/roaming/south",
+            "east": "animations/roaming/east",
+            "north": "animations/roaming/north",
+            "west": "animations/roaming/west",
+            "south-east": "animations/roaming/south-east",
+            "north-east": "animations/roaming/north-east",
+            "north-west": "animations/roaming/north-west",
+            "south-west": "animations/roaming/south-west"
+          }
+        },
+        "idle": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/idle/south"
+          },
+          "coverage": "south-only"
+        },
+        "active": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 5,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/active/south"
+          },
+          "coverage": "south-only"
+        },
+        "waiting": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting/south"
+          },
+          "coverage": "south-only"
+        },
+        "error": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/error/south"
+          },
+          "coverage": "south-only"
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "rotations/south.png"
+      }
+    },
+    "monster-magma-colossus": {
+      "display_name": "Magma Colossus",
+      "status": "available",
+      "pixellab_character_id": "b8423581-9602-4ad5-ba5b-93ef5bb17f3e",
+      "background": "emberforge-camp",
+      "body_type": "quadruped",
+      "role": "epic ambient boss NPC",
+      "root": "sprites/monsters/monster-magma-colossus",
+      "frame_size": [
+        244,
+        244
+      ],
+      "scale": 1,
+      "anchor": [
+        122,
+        175
+      ],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "roaming": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/roaming/south",
+            "east": "animations/roaming/east",
+            "north": "animations/roaming/north",
+            "west": "animations/roaming/west",
+            "south-east": "animations/roaming/south-east",
+            "north-east": "animations/roaming/north-east",
+            "north-west": "animations/roaming/north-west",
+            "south-west": "animations/roaming/south-west"
+          }
+        },
+        "idle": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/idle/south"
+          },
+          "coverage": "south-only"
+        },
+        "active": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 5,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/active/south"
+          },
+          "coverage": "south-only"
+        },
+        "waiting": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting/south"
+          },
+          "coverage": "south-only"
+        },
+        "error": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/error/south"
+          },
+          "coverage": "south-only"
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "rotations/south.png"
+      }
+    },
+    "monster-bog-leviathan": {
+      "display_name": "Bog Leviathan",
+      "status": "available",
+      "pixellab_character_id": "f5b0a130-cf5d-4c25-a948-dc967f3bc1e3",
+      "background": "mirebog-camp",
+      "body_type": "quadruped",
+      "role": "epic ambient boss NPC",
+      "root": "sprites/monsters/monster-bog-leviathan",
+      "frame_size": [
+        252,
+        252
+      ],
+      "scale": 1,
+      "anchor": [
+        126,
+        180
+      ],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "roaming": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/roaming/south",
+            "east": "animations/roaming/east",
+            "north": "animations/roaming/north",
+            "west": "animations/roaming/west",
+            "south-east": "animations/roaming/south-east",
+            "north-east": "animations/roaming/north-east",
+            "north-west": "animations/roaming/north-west",
+            "south-west": "animations/roaming/south-west"
+          }
+        },
+        "idle": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/idle/south"
+          },
+          "coverage": "south-only"
+        },
+        "active": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 5,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/active/south"
+          },
+          "coverage": "south-only"
+        },
+        "waiting": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting/south"
+          },
+          "coverage": "south-only"
+        },
+        "error": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/error/south"
+          },
+          "coverage": "south-only"
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "rotations/south.png"
+      }
+    },
+    "monster-duneplate-scourge": {
+      "display_name": "Duneplate Scourge",
+      "status": "available",
+      "pixellab_character_id": "7a6071fb-d0e8-4073-8955-e35dab19f680",
+      "background": "sunscorch-camp",
+      "body_type": "quadruped",
+      "role": "epic ambient boss NPC",
+      "root": "sprites/monsters/monster-duneplate-scourge",
+      "frame_size": [
+        256,
+        256
+      ],
+      "scale": 1,
+      "anchor": [
+        128,
+        184
+      ],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "roaming": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/roaming/south",
+            "east": "animations/roaming/east",
+            "north": "animations/roaming/north",
+            "west": "animations/roaming/west",
+            "south-east": "animations/roaming/south-east",
+            "north-east": "animations/roaming/north-east",
+            "north-west": "animations/roaming/north-west",
+            "south-west": "animations/roaming/south-west"
+          }
+        },
+        "idle": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/idle/south"
+          },
+          "coverage": "south-only"
+        },
+        "active": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 5,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/active/south"
+          },
+          "coverage": "south-only"
+        },
+        "waiting": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting/south"
+          },
+          "coverage": "south-only"
+        },
+        "error": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/error/south"
+          },
+          "coverage": "south-only"
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "rotations/south.png"
+      }
+    },
+    "monster-bonewraith-revenant": {
+      "display_name": "Bonewraith Revenant",
+      "status": "available",
+      "pixellab_character_id": "2197cb44-86c6-411a-9427-3b7ce9145f9e",
+      "background": "necropolis-camp",
+      "body_type": "humanoid",
+      "role": "epic ambient boss NPC",
+      "root": "sprites/monsters/monster-bonewraith-revenant",
+      "frame_size": [
+        248,
+        248
+      ],
+      "scale": 1,
+      "anchor": [
+        124,
+        185
+      ],
+      "view": "low top-down",
+      "directions": [
+        "south",
+        "east",
+        "north",
+        "west",
+        "south-east",
+        "north-east",
+        "north-west",
+        "south-west"
+      ],
+      "rotations": {
+        "south": "rotations/south.png",
+        "east": "rotations/east.png",
+        "north": "rotations/north.png",
+        "west": "rotations/west.png",
+        "south-east": "rotations/south-east.png",
+        "north-east": "rotations/north-east.png",
+        "north-west": "rotations/north-west.png",
+        "south-west": "rotations/south-west.png"
+      },
+      "animations": {
+        "roaming": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/roaming/south",
+            "east": "animations/roaming/east",
+            "north": "animations/roaming/north",
+            "west": "animations/roaming/west",
+            "south-east": "animations/roaming/south-east",
+            "north-east": "animations/roaming/north-east",
+            "north-west": "animations/roaming/north-west",
+            "south-west": "animations/roaming/south-west"
+          }
+        },
+        "idle": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/idle/south"
+          },
+          "coverage": "south-only"
+        },
+        "active": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 5,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/active/south"
+          },
+          "coverage": "south-only"
+        },
+        "waiting": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 4,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/waiting/south"
+          },
+          "coverage": "south-only"
+        },
+        "error": {
+          "engine": "v3-custom",
+          "frames": 9,
+          "fps": 8,
+          "frame_pattern": "frame_%03d.png",
+          "folders": {
+            "south": "animations/error/south"
+          },
+          "coverage": "south-only"
+        }
+      },
+      "reduced_motion": {
+        "fallback_state": "idle",
+        "fallback_direction": "south",
+        "fallback_frame": "rotations/south.png"
       }
     }
   }
