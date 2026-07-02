@@ -18,6 +18,7 @@ import { bearerFromAuthHeader, tokensEqual } from './token';
 import { attachWebSocket } from './ws';
 import type { SettingsStore } from './settings';
 import type { ControlService, ControlAction } from './control';
+import type { PassthroughService, ExpectedTarget } from './passthrough';
 import type { ApiError } from './types';
 
 const CAMP_ID_RE = /^session:\$[0-9]+$/;
@@ -29,6 +30,7 @@ export interface HttpConfig {
   security: SecurityConfig;
   settings: SettingsStore;
   control: ControlService;
+  passthrough: PassthroughService;
   token: string;
   now: () => Date;
   heartbeatMs?: number;
@@ -214,6 +216,33 @@ async function handle(req: IncomingMessage, res: ServerResponse, cfg: HttpConfig
     return;
   }
 
+  // SPEC-401 passthrough arm/disarm (no egress; behind the auth gate). length 4.
+  if (route[0] === 'orcs' && route.length === 4 && route[2] === 'passthrough' && (route[3] === 'arm' || route[3] === 'disarm')) {
+    if (method !== 'POST') return methodNotAllowed(res, requestId, corsHeaders);
+    const orcId = decode(route[1]!);
+    let body: unknown;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      sendError(res, 400, 'bad_request', 'invalid JSON body', requestId, undefined, corsHeaders);
+      return;
+    }
+    if (route[3] === 'arm') {
+      const expected = validateExpectedBody(body);
+      if (!expected) {
+        sendError(res, 422, 'validation_error', 'invalid or missing expected target', requestId, undefined, corsHeaders);
+        return;
+      }
+      const result = await cfg.passthrough.arm(orcId, expected);
+      sendJson(res, result.status, result.body, corsHeaders);
+      return;
+    }
+    const armSessionId = typeof body === 'object' && body !== null ? (body as Record<string, unknown>).armSessionId : undefined;
+    const result = cfg.passthrough.disarm(orcId, armSessionId);
+    sendJson(res, result.status, result.body, corsHeaders);
+    return;
+  }
+
   if (route[0] === 'refresh' && route.length === 1) {
     if (method !== 'POST') return methodNotAllowed(res, requestId, corsHeaders);
     const nowMs = cfg.now().getTime();
@@ -289,6 +318,18 @@ function readJsonBody(req: IncomingMessage, maxBytes = 64 * 1024): Promise<unkno
     });
     req.on('error', reject);
   });
+}
+
+/** Validate an arm request body `{ expected: {paneId,tmuxTarget,command,agentType} }`. */
+function validateExpectedBody(body: unknown): ExpectedTarget | null {
+  if (typeof body !== 'object' || body === null) return null;
+  const e = (body as Record<string, unknown>).expected;
+  if (typeof e !== 'object' || e === null || Array.isArray(e)) return null;
+  const o = e as Record<string, unknown>;
+  const keys = ['paneId', 'tmuxTarget', 'command', 'agentType'];
+  if (Object.keys(o).some((k) => !keys.includes(k))) return null;
+  if (keys.some((k) => typeof o[k] !== 'string')) return null;
+  return { paneId: o.paneId as string, tmuxTarget: o.tmuxTarget as string, command: o.command as string, agentType: o.agentType as string };
 }
 
 function methodNotAllowed(res: ServerResponse, requestId: string, headers: Record<string, string>): void {

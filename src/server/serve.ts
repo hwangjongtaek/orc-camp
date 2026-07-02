@@ -15,6 +15,7 @@ import { createHttpServer } from './http';
 import { bindWithFallback, PREFERRED_PORT, isLoopback } from './net';
 import { generateToken } from './token';
 import { ControlService, makeControlExec } from './control';
+import { PassthroughService } from './passthrough';
 import { safeSpawn } from '../tmux/exec';
 import { SettingsStore, resolveConfigDir, resolveStateDir } from './settings';
 import { DebugLog, resolveLogLevel } from './debug-log';
@@ -71,14 +72,15 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
   const debugLog = new DebugLog(opts.stateDir ?? resolveStateDir(), { level: resolveLogLevel(), now });
 
   const runtime = new SnapshotRuntime({ deps, settings: store, runtimeEpoch, now, debugLog });
-  const control = new ControlService(runtime, makeControlExec(opts.controlSpawn ?? safeSpawn), now);
+  const passthrough = new PassthroughService(runtime, now); // SPEC-401 arm-session manager
+  const control = new ControlService(runtime, makeControlExec(opts.controlSpawn ?? safeSpawn), now, passthrough);
   const security: SecurityConfig = {
     host,
     port: preferred,
     allowExternal: opts.allowExternal ?? false,
     devOrigins: opts.devOrigins ?? DEV_ORIGINS,
   };
-  const server = createHttpServer({ runtime, security, token, now, settings: store, control, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
+  const server = createHttpServer({ runtime, security, token, now, settings: store, control, passthrough, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
 
   const { port, fellBack } = await bindWithFallback(server, host, preferred, opts.explicitPort ?? false);
   security.port = port; // fix CORS/Host to the actual port (single source, §3.4)
@@ -87,6 +89,7 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
 
   const url = `http://${host}:${port}/?token=${token}`;
   const close = async (): Promise<void> => {
+    passthrough.disposeAll(); // flush any live arm-session audits (SPEC-401)
     runtime.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   };

@@ -18,6 +18,7 @@ export type ActivityType =
   | 'orc.status_changed'
   | 'orc.terminated'
   | 'control.result'
+  | 'control.passthrough_session' // SPEC-401 §2.9 — arm-session summary (per-keystroke never emitted)
   | 'tmux.error'
   | 'connection.disconnected'
   | 'connection.reconnected'
@@ -44,6 +45,11 @@ export interface ActivityDetail {
   keyName?: string;
   inputByteLength?: number;
   inputRedactedFlag?: boolean;
+  // SPEC-401 §2.9 / SPEC-600 §2.1 — control.passthrough_session aggregate scalars ONLY.
+  // Never any raw keystroke / literal text / key sequence / token.
+  keystrokeCount?: number;
+  execFailures?: number;
+  keyHistogram?: Record<string, number>; // allowlist key-name freq; opt-in (default off)
 }
 
 export interface ActivityEvent {

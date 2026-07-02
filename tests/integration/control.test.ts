@@ -124,6 +124,95 @@ describe('SPEC-400 fresh re-validation (AC-06/07)', () => {
   });
 });
 
+async function startPt(s: Scenario): Promise<{ h: ServerHandle; base: string; ctrl: { file: string; args: string[] }[] }> {
+  const { deps } = makeDeps(s);
+  const { spawn, log } = fakeControlSpawn();
+  const h = await startServer({ deps, controlSpawn: spawn, port: 0, runtimeEpoch: 'ctl', settings: { scanIntervalS: 5, preview: { exposureEnabled: true, lineCount: 12 } }, heartbeatMs: 60_000 });
+  await h.ready;
+  handles.push(h);
+  return { h, base: `http://127.0.0.1:${h.port}`, ctrl: log };
+}
+const ptArm = `/api/orcs/${encodeURIComponent('pane:%10')}/passthrough/arm`;
+const ptDisarm = `/api/orcs/${encodeURIComponent('pane:%10')}/passthrough/disarm`;
+
+describe('SPEC-400 §2.3.1 literal control-byte filter (AC-20)', () => {
+  it('rejects control bytes in literal /input (422 control_char_not_allowed, no spawn)', async () => {
+    const { h, base, ctrl } = await start(scenario());
+    for (const text of ['a\u0003b', 'x\u000ay', 'z\u001b', 'q\u007f']) {
+      const r = await post(base, h, orcPath('input'), { text, submit: false, expected: EXPECTED });
+      expect(r.status).toBe(422);
+      expect((await J(r)).error.code).toBe('control_char_not_allowed');
+    }
+    expect(ctrl).toHaveLength(0); // the confirm-gate bypass is closed
+  });
+});
+
+describe('SPEC-401 passthrough (AC via server)', () => {
+  it('form /key rejects interactive chords (base allowlist only)', async () => {
+    const { h, base, ctrl } = await start(scenario());
+    const r = await post(base, h, orcPath('key'), { key: 'C-a', expected: EXPECTED });
+    expect(r.status).toBe(422);
+    expect((await J(r)).error.code).toBe('key_not_allowed');
+    expect(ctrl).toHaveLength(0);
+  });
+
+  it('arm requires exposure on (409 exposure_off when off)', async () => {
+    const { h, base } = await start(scenario()); // exposure off
+    const r = await post(base, h, ptArm, { expected: EXPECTED });
+    expect(r.status).toBe(409);
+    expect((await J(r)).error.code).toBe('exposure_off');
+  });
+
+  it('Observe = no egress: passthrough marker without a live arm-session → 409 not_armed, no spawn', async () => {
+    const { h, base, ctrl } = await startPt(scenario());
+    const r = await post(base, h, orcPath('key'), { key: 'C-a', passthrough: { armSessionId: 'bogus' } });
+    expect(r.status).toBe(409);
+    expect((await J(r)).error.code).toBe('not_armed');
+    expect(ctrl).toHaveLength(0);
+  });
+
+  it('arm → interactive /key egress (single writer) → disarm flushes a non-raw session audit', async () => {
+    const { h, base, ctrl } = await startPt(scenario());
+    const arm = await post(base, h, ptArm, { expected: EXPECTED });
+    expect(arm.status).toBe(200);
+    const armSessionId = (await J(arm)).armSessionId as string;
+    expect(armSessionId).toBeTruthy();
+
+    // interactive chord allowed only via armed passthrough; sent by the single writer.
+    const k = await post(base, h, orcPath('key'), { key: 'C-a', passthrough: { armSessionId } });
+    expect(k.status).toBe(200);
+    expect(ctrl.at(-1)!.args).toEqual(['send-keys', '-t', '%10', 'C-a']);
+    // literal passthrough: no Enter appended (submit forced false)
+    await post(base, h, orcPath('input'), { text: 'hello', passthrough: { armSessionId } });
+    expect(ctrl.at(-1)!.args).toEqual(['send-keys', '-t', '%10', '-l', '--', 'hello']);
+
+    const disarm = await post(base, h, ptDisarm, { armSessionId });
+    expect(disarm.status).toBe(200);
+    const auditId = (await J(disarm)).auditEventId as string;
+
+    const snap = await J(await fetch(`${base}/api/snapshot`, { headers: { Authorization: `Bearer ${h.token}` } }));
+    const ev = snap.recentActivity.find((e: any) => e.id === auditId);
+    expect(ev.type).toBe('control.passthrough_session');
+    expect(ev.detail.keystrokeCount).toBe(2);
+    expect(ev.detail.reason).toBe('user_disarm');
+    expect(typeof ev.detail.durationMs).toBe('number');
+    // no raw keystrokes / literal text / key sequence anywhere in the event
+    expect(JSON.stringify(ev)).not.toContain('hello');
+    expect(JSON.stringify(ev)).not.toContain('C-a');
+    // per-keystroke control.result events are NOT emitted
+    expect(snap.recentActivity.some((e: any) => e.type === 'control.result')).toBe(false);
+  });
+
+  it('passthrough literal inherits the control-byte filter', async () => {
+    const { h, base, ctrl } = await startPt(scenario());
+    const armSessionId = (await J(await post(base, h, ptArm, { expected: EXPECTED }))).armSessionId as string;
+    const r = await post(base, h, orcPath('input'), { text: 'x', passthrough: { armSessionId } });
+    expect(r.status).toBe(422);
+    expect((await J(r)).error.code).toBe('control_char_not_allowed');
+    expect(ctrl).toHaveLength(0);
+  });
+});
+
 describe('SPEC-400 audit + non-persistence (AC-12/13)', () => {
   it('a control.result event is recorded; input text/secret is never stored', async () => {
     const secret = 'ghp_GGGGGGGGGGGGGGGGGGGG7777';
