@@ -27,6 +27,8 @@ export interface TerminalViewportProps {
   stale: boolean;
   controlMode: ControlMode;
   armWarn?: boolean;
+  /** An attach is outstanding on the live channel (false = gated: hidden tab / disconnected). */
+  attached?: boolean;
   /** Control-mode key routing (the container traps keys ONLY when armed). */
   onKey?: (route: KeyRoute, e: React.KeyboardEvent) => void;
   /** Mount the lazy xterm enhancement layer (default true; tests pass false). */
@@ -130,8 +132,17 @@ function renderBody(p: TerminalViewportProps, armed: boolean): JSX.Element {
   if (endReason === 'superseded') {
     return <div className="oc-term__state" role="status"><p>Replaced by another view.</p></div>;
   }
-  // 4) loading (awaiting seed / xterm chunk)
+  // 4) loading (awaiting seed / xterm chunk) — vs. GATED (no attach outstanding: hidden tab /
+  //    disconnected). Saying only "Attaching…" while the visibility gate holds reads as a hang
+  //    (2026-07-02 integration smoke); name the reason instead.
   if (!screen) {
+    if (p.attached === false) {
+      return (
+        <div className="oc-term__state" role="status">
+          <p>Live view paused — waiting for connection and a visible tab.</p>
+        </div>
+      );
+    }
     return (
       <div className="oc-term__state" role="status">
         <div className="oc-spinner" aria-hidden="true" />

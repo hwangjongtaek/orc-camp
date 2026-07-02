@@ -273,6 +273,7 @@ export function TerminalWorkspace({
           stale={live.stale}
           controlMode={control.mode}
           armWarn={control.idleWarn}
+          attached={live.attachedOrcId !== null}
           onKey={onViewportKey}
         />
         <TerminalStatusBar

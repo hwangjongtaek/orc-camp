@@ -9,7 +9,6 @@
  */
 import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import type { RenderedPane } from '../../realtime/paneView';
 
@@ -22,7 +21,6 @@ export interface XtermSurfaceProps {
 export default function XtermSurface({ rendered, cols, rows }: XtermSurfaceProps): JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
-  const fitRef = useRef<FitAddon | null>(null);
 
   // Init once.
   useEffect(() => {
@@ -37,11 +35,14 @@ export default function XtermSurface({ rendered, cols, rows }: XtermSurfaceProps
         screenReaderMode: true, // SPEC-203 §2.4 — expose output to assistive tech (AC-16)
         scrollback: 1000,
       });
-      const fit = new FitAddon();
-      term.loadAddon(fit);
+      // SPEC-203 §2.6 / SPEC-401 — the container router owns ALL keyboard input. Without this,
+      // xterm cancels (preventDefault+stopPropagation) keys it would handle itself (Enter, arrows,
+      // Escape, …) on its focused textarea, so they never bubble to the container's onKeyDown and
+      // armed named-key egress is silently lost (2026-07-02 integration smoke). Returning false
+      // tells xterm to never process — and therefore never cancel — any keyboard event.
+      term.attachCustomKeyEventHandler(() => false);
       term.open(host);
       termRef.current = term;
-      fitRef.current = fit;
     } catch {
       termRef.current = null; // degrade to the viewport DOM text layer
     }
@@ -52,7 +53,6 @@ export default function XtermSurface({ rendered, cols, rows }: XtermSurfaceProps
         /* ignore */
       }
       termRef.current = null;
-      fitRef.current = null;
     };
   }, []);
 
@@ -61,14 +61,25 @@ export default function XtermSurface({ rendered, cols, rows }: XtermSurfaceProps
     const term = termRef.current;
     if (!term) return;
     try {
-      if (cols > 0 && rows > 0) term.resize(cols, Math.max(rows, rendered.lines.length || rows));
-      term.clear();
-      term.write(rendered.lines.join('\r\n'));
+      // SPEC-203 §2.4 — the GRID is the pane's native cols×rows (never the buffer length; a
+      // seed-sized grid made the surface hundreds of rows tall and pinned the visible area to the
+      // top of the scrollback). Overflow beyond `rows` goes to xterm scrollback; physical fitting
+      // is CSS-owned (fit/scale or scroll), so no FitAddon grid rewrite.
+      if (cols > 0 && rows > 0) term.resize(cols, rows);
+      // Follow-tail policy: keep following only if the user was already at the bottom.
+      const buf = term.buffer.active;
+      const atBottom = buf.viewportY >= buf.baseY;
+      term.reset(); // deterministic full redraw (capture-based frame; clear() keeps a stale line)
+      let data = rendered.lines.join('\r\n');
       if (rendered.cursorRow != null && rendered.cursorCol != null) {
-        // Position the (hidden) cursor best-effort: 1-based CUP.
-        term.write(`\x1b[${rendered.cursorRow + 1};${rendered.cursorCol + 1}H`);
+        // CUP addresses the VISIBLE screen; convert the buffer-absolute cursor row.
+        const visRow = Math.max(0, rendered.cursorRow - Math.max(0, rendered.lines.length - rows));
+        data += `\x1b[${Math.min(visRow, Math.max(0, rows - 1)) + 1};${rendered.cursorCol + 1}H`;
       }
-      fitRef.current?.fit();
+      // write() is buffered — scroll once the frame is actually parsed.
+      term.write(data, () => {
+        if (atBottom) term.scrollToBottom();
+      });
     } catch {
       /* ignore transient render errors */
     }

@@ -45,6 +45,15 @@ describe('TerminalViewport standard states (AC-11)', () => {
     render(<TerminalViewport {...BASE} screen={null} />);
     expect(screen.getByText(/attaching to pane/i)).toBeTruthy();
   });
+  it('orc selected but attach gated (hidden tab / disconnected) → paused, NOT attaching', () => {
+    render(<TerminalViewport {...BASE} screen={null} attached={false} />);
+    expect(screen.getByText(/live view paused/i)).toBeTruthy();
+    expect(screen.queryByText(/attaching to pane/i)).toBeNull();
+  });
+  it('attach outstanding (attached) → still the attaching state', () => {
+    render(<TerminalViewport {...BASE} screen={null} attached={true} />);
+    expect(screen.getByText(/attaching to pane/i)).toBeTruthy();
+  });
   it('empty output → no output', () => {
     render(<TerminalViewport {...BASE} screen={screenWith([''])} />);
     expect(screen.getByText(/no output/i)).toBeTruthy();
