@@ -81,6 +81,8 @@
 - **R-UI-010** (proposed, 미승인): camp detail은 활성 배경 환경에 어울리는 **epic 보스 몬스터를 ambient NPC로 1마리** 띄울 수 있어야 한다. 몬스터는 **비-상호작용**(선택/inspector/keyboard 대상 아님)·**비-load-bearing**(데이터 비운반, 자산 미가용 시 placeholder 없이 미렌더)이며, 배경의 walkable **`ground.polygon` 전체**를 결정적으로 roaming하면서 도착 시 무작위(seeded) dwell 애니메이션(active/waiting/idle)을 재생하고, **orc와 footprint 교차 시 `error` 애니메이션으로 래치**된다. 좌표·상태는 client-derived 결정적 함수(서버 좌표 불추가, INV-1)이고 reduced-motion에서 정지하며, orc 배치/zero-layout-shift를 교란하지 않는다. 런타임 거동 [[SPEC-303-epic-monster-npc]], 자산 모델 [[16-Epic-Monster-NPC]], 배경별 art concept [[background-tile-merge-guide]] §6, 결정 [[08-Decisions|D-037]]. 자산 *생성*은 `PIXELLAB_AUTH_HEADER` 보류로 deferred. (`R-UI-009`는 image-ground 정식 승격용으로 예약돼 있어 본 항목은 R-UI-010을 사용한다 — [[SPEC-301-camp-map-movement]] §6 C5.)
 - **R-UI-011** (proposed, 미승인): camp detail의 orc inspector(Details)는 선택된 orc의 **character 정체성을 Baldur's Gate 풍 세로 2:3 흉상(bust) portrait**로 패널 **우측**에 표시할 수 있어야 한다. portrait는 **정적 이미지**(애니메이션 없음)이고 character 식별을 돕는 **보조(비-load-bearing) 표현**으로, 어떤 status도 사실로 단언하지 않는다(status는 기존 StatusBadge가 소유). 표시 character는 sprite와 **동일한 결정적 resolve**(sequential `characterKey` → `agentType→character` → mascot 폴백, [[SPEC-300-asset-rendering]] §2.3)로 정하고, prestige tier가 resolved되면([[SPEC-302-mascot-prestige-tiers]]) 그 tier portrait를 쓴다. 장식 frame은 **web UI(CSS)가 소유**(이미지에 미포함)하며, 자산 미가용·manifest 부재 시 **placeholder로 graceful 강등**하고 portrait 유무가 **layout을 흔들지 않는다**(zero-layout-shift). 좁은 화면(mobile sheet)에서는 portrait가 metadata **위로 stack**된다. 런타임/배치 계약 [[SPEC-304-character-avatar-portraits]], 자산 모델·prompt [[17-Character-Avatar-Portraits]], 결정 [[08-Decisions|D-038]]. 자산 *생성*은 deferred(PixelLab 우선 시도 + 외부 image-gen 폴백). (`R-UI-004` inspector 보강의 식별-portrait 축이며, `R-P1-004` agent별 character variant·`R-P2-008` tier와 정합.)
 
+- **R-UI-012** (proposed, 미승인): dashboard는 preview 탭을 **tmux pane에 준하는 terminal workspace**로 끌어올릴 수 있어야 한다 — ANSI/커서/스크롤백을 갖는 실제 터미널 렌더(xterm.js, [[08-Decisions|D-046]]), pane native cols×rows 반영, camp 컨텍스트를 벗어나지 않고 **자리에서 오크를 전환**(orc rail + 단축키 `[`/`]`·`Cmd/Ctrl+1..9`·퀵 스위처)하는 작업공간. 선택 SSOT는 기존 `?orc=` URL 파라미터를 유지하고(맵/rail/URL 동기화), 재현 수준은 capture-pane 한계로 명시([[08-Decisions|D-045]])하며 reduced-motion·키보드 트랩·색-비의존 상태 표시를 지킨다. 기존 P1 quick-switch/command palette(R-P1-009)·live tail(R-P1-012)을 이 workspace로 흡수·구체화한다. 런타임 화면/레이아웃 [[SPEC-203-terminal-workspace]], dock↔terminal 이관 [[SPEC-201-dashboard-screens]], 결정 [[08-Decisions|D-045]]/[[08-Decisions|D-046]].
+
 #### Terminal Preview와 Privacy
 
 - **R-PRIV-001**: terminal preview는 기본 line count와 byte size limit을 가져야 한다.
@@ -90,6 +92,8 @@
 - **R-PRIV-005**: debug log에는 captured terminal output 원문을 기본 저장하지 않아야 한다.
 - **R-PRIV-006**: 사용자는 terminal preview 노출 여부와 preview line count를 조정할 수 있어야 한다.
 - **R-PRIV-007** (proposed, 미승인): agent 세션 transcript/usage 로그 파일(Claude Code/Codex 세션 JSONL 등)에서 누적 token/cost를 수집할 때, 시스템은 **집계 스칼라(cumulative tokens/cost·source·measuredAt)만** 추출해야 하며 transcript 원문(대화 본문·tool 입출력·코드·파일 경로·secret)을 저장·log·직렬화·반환·캐시하면 안 된다. 파일 접근은 고정 allowlist root에 confine되고(디스크 광범위 스캔 금지), symlink escape·타 사용자 소유 파일을 거부하며, byte/line/time bounded read로 read-only로만 수행하고, 부재·불가·모호 시 추측 없이 `usage=null`로 degrade해야 한다(misattribution 금지). 이는 tmux capture를 넘어서는 새 read surface이므로 [[SPEC-006-privacy-redaction]] 불변식의 확장으로 [[SPEC-008-usage-collection]]([[08-Decisions|D-039]], CONDITIONAL GO)이 1차 소유한다. R-P2-008(prestige tier)의 데이터 의존이며 그 채택 시 착수하는 forward다.
+
+- **R-PRIV-008** (proposed, 미승인): live pane view와 styled(ANSI) terminal 스트림도 **전송 이전 backend redaction**을 거쳐야 하며(redaction-before-egress를 실시간 채널로 확장), styling이 secret 마스킹을 우회하게 만들면 안 된다. styled 스트림의 `secret-recall`은 plain과 동일(1.0 목표)해야 하고, SGR escape가 secret 패턴을 쪼개 미탐을 만드는 것을 방지한다(tokenize→plain-redact→style-remap, [[08-Decisions|D-042]]). 계약·threat model은 [[SPEC-006-privacy-redaction]] ANSI stream 절이 소유하고 live 채널 적용은 [[SPEC-103-pane-live-stream]]가 참조한다. 이는 [[SPEC-006-privacy-redaction]] PF-05(redaction-before-egress)의 정식화다.
 
 #### Control Action
 
@@ -101,6 +105,7 @@
 - **R-CTRL-006**: control modal은 agent type, tmux target, working directory, current command를 표시해야 한다.
 - **R-CTRL-007**: control action 결과는 activity log에 성공/실패와 함께 기록되어야 한다.
 - **R-CTRL-008**: API는 arbitrary shell command execution을 제공하면 안 된다.
+- **R-CTRL-009** (proposed, 미승인): 사용자는 명시적 **조종 모드(arm/disarm)**에서 터미널에 직접 타이핑해(keyboard passthrough) 선택된 orc에 입력을 전달할 수 있어야 한다. passthrough는 **새 write 경로를 만들지 않고** 기존 안전 write-path([[SPEC-400-control-actions]] `controlExec` single-writer, target 재검증 R-CTRL-005)로만 나가며, 확장 key allowlist·rate limit·무입력 auto-disarm을 갖고, 파괴적 chord는 confirm 게이트를 유지하고(R-CTRL-002/003 정신), audit은 arm 세션 단위로 **요약(키스트로크 원문 비저장)**한다(R-CTRL-007/R-PRIV-004 확장). 관전(Observe)에서는 키가 절대 전송되지 않아야 한다. 계약은 [[SPEC-401-interactive-input]]가 소유하고 [[SPEC-400-control-actions]]가 접점을 개정한다. 결정 [[08-Decisions|D-043]].
 
 #### Realtime Sync와 API
 
@@ -109,6 +114,7 @@
 - **R-API-003**: event는 snapshot version 또는 sequence id를 포함해야 한다.
 - **R-API-004**: dashboard는 manual refresh를 제공해야 한다.
 - **R-API-005**: API error는 사용자에게 보이는 event와 local debug log에 분리 기록되어야 한다.
+- **R-API-006** (proposed, 미승인): dashboard는 focused pane 1개를 **준실시간(sub-second)**으로 갱신하는 **live pane view 채널**을 가질 수 있어야 한다 — 스캔 루프(1–5s)와 독립된 별도 채널로, 클라이언트가 `attach`/`detach`하면 서버가 해당 pane만 고빈도(가설 250–500ms) capture해 redacted 프레임을 push한다. 채널은 **read-only**([[08-Decisions|D-019]] 불변식 유지)이고 **부하 한도**(연결당 동시 attach 1, exposure on + 탭 활성 시에만 폴링, detach/종료 시 중단)를 계약으로 가진다. 프레임 스키마·프로토콜은 [[SPEC-103-pane-live-stream]], WS 프레임 카탈로그 확장은 [[SPEC-102-realtime-sync]]가 소유한다. 결정 [[08-Decisions|D-041]]. (Phase 2 `tmux -C` control mode 저지연 push는 forward.)
 
 #### Settings와 Local Persistence
 
@@ -167,6 +173,7 @@
 | 개인정보 | terminal output 원문은 기본 저장하지 않고, preview와 log에는 redaction을 적용한다. |
 | 성능 | 20개 session, 100개 pane 기준 dashboard 조작이 끊기지 않아야 한다. |
 | Scan latency | 일반 환경에서 scan 주기는 1-5초 범위로 설정 가능해야 하며, 단일 scan이 timeout 없이 장시간 block되면 안 된다. |
+| Live view latency | (proposed) focused pane live view는 sub-second(가설 250–500ms) 갱신을 목표로 하되, tmux 서버 부하를 부하 한도 계약(동시 attach·Hz·게이트)으로 bound한다([[08-Decisions|D-041]], [[SPEC-103-pane-live-stream]]). |
 | 신뢰성 | tmux command 실패, WebSocket 끊김, port 충돌, browser open 실패가 전체 제품 실패로 이어지면 안 된다. |
 | 확장성 | agent detector, status parser, control adapter는 agent별 확장을 고려한다. |
 | 사용성 | terminal 사용자가 1분 안에 camp list, orc status, control 대상의 의미를 이해할 수 있어야 한다. |

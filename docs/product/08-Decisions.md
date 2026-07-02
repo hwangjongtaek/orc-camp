@@ -323,3 +323,67 @@
 - **근거**: 토큰은 정밀하나 커버리지 3/28. uptime은 **alive 16/28을 즉시·비민감·저비용**(ps 한 컬럼)으로 커버해 "더 오래 캠핑한 orc일수록 전설적"이라는 게임화 의도에 부합한다. 신호 혼합으로 "T1의 의미"가 composite가 되는 trade-off(coverage↔precision)는 coverage 우선으로 수용하고, 근거를 UI에 노출해 모호함을 보완한다.
 - **영향**: [[SPEC-302-mascot-prestige-tiers]] §3.7(uptime 폴백 axis) 신규 + §3.1 uptime 임계 + §3.2 precedence + AC, [[SPEC-005-data-contract]] `Orc.uptimeSec` 추가, [[SPEC-002-tmux-discovery]] ps `etimes` 캡처. privacy: uptime은 비민감(프로세스 시작시각)이라 SPEC-008/SPEC-006 transcript 게이트와 무관. R-P2-008 범위 확장.
 - **근거 spec**: [[SPEC-302-mascot-prestige-tiers]], [[SPEC-005-data-contract]], [[SPEC-002-tmux-discovery]].
+
+---
+
+> D-041 ~ D-046은 2026-07-02 [[18-Terminal-Workspace]] 설계안(§5 P0 결정 항목)을 구현 spec으로 고정하며 확정한 결정이다. 근거 spec은 신규 [[SPEC-103-pane-live-stream]]·[[SPEC-203-terminal-workspace]]·[[SPEC-401-interactive-input]] 및 개정 [[SPEC-006-privacy-redaction]]·[[SPEC-102-realtime-sync]]·[[SPEC-201-dashboard-screens]]. **상태는 모두 Proposed(미승인)** — spec-reviewer + 도메인 리뷰(tmux-systems / security-privacy / product-ui) 게이트에서 ratify한다.
+
+## D-041: live pane view는 read-only 고빈도 capture 채널이며 부하 한도를 계약으로 명문화한다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-02
+- **맥락**: [[18-Terminal-Workspace]] §4 Phase 1은 focused pane 1개를 sub-second로 갱신하기 위해 `capture-pane`을 고빈도(250–500ms) 폴링한다. 이는 스캔 루프(1–5s)와 독립된 새 채널이며 "tmux를 절대 변경하지 않는다"는 read-only 불변식([[08-Decisions|D-019]])과 부하 관점에서 충돌 가능성이 제기됐다(§5.2).
+- **결정**: (a) live view의 `capture-pane`은 기존 [[SPEC-006-privacy-redaction]] §2.6 `tmuxExec` **READONLY_ALLOWLIST 안에서만** 수행한다(`capture-pane`은 이미 allowlist에 있음) — read-only 불변식은 그대로 유지되고 새 write 경로를 만들지 않는다. (b) 부하 한도를 **계약**으로 고정한다: **연결당 동시 attach 1 pane**(MVP), 폴링 주기 `PANE_VIEW_INTERVAL_MS` **250–500ms(가설)**, 폴링은 **exposure on([[08-Decisions|D-044]]) + 탭 활성 + attach 유지 중**일 때만 수행하고 `view.detach`/연결 종료/exposure off/탭 hidden 시 **즉시 중단**한다. (c) Phase 2 `tmux -C`(control mode) 브리지는 tmux 바이너리를 상주 attach하는 **새 subprocess 진입점**이라 `tmuxExec` allowlist 밖이므로, 브리지가 발행하는 명령을 **read-only allowlist(attach·refresh-client·subscribe류, send-keys 금지)로 별도 고정**하는 sub-계약을 요구하며 **forward**로 pre-flag한다.
+- **근거**: capture-pane은 정의상 pane을 변경하지 않으므로 빈도만 오를 뿐 read-only 성질은 불변이다. 위험은 tmux 서버 부하이므로 이를 문서가 아니라 **측정 가능한 상한 계약**(동시 수·Hz·게이트)으로 강제한다. control mode는 임의 명령 실행이 가능한 채널이라 도입 전 별도 게이트가 필요하다.
+- **영향**: R-API-006(proposed) 신설. [[SPEC-103-pane-live-stream]] 신규(attach/detach·폴링·부하 한도·프레임 소유), [[SPEC-102-realtime-sync]] 프레임 카탈로그 확장, [[SPEC-002-tmux-discovery]]/[[SPEC-006-privacy-redaction]] read-only 경계 참조. 실측 방법은 [[SPEC-007-test-validation]] 하니스.
+- **근거 spec**: [[SPEC-103-pane-live-stream]], [[SPEC-006-privacy-redaction]], [[SPEC-102-realtime-sync]].
+
+## D-042: styled(ANSI) 스트림은 tokenize→plain-redact→style-remap로만 노출하고 Phase 1은 plain을 유지한다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-02
+- **맥락**: [[18-Terminal-Workspace]] §5.1 — SGR escape가 secret 패턴을 중간에서 쪼개면 redaction 미탐(§3.6 T-01 우회)이 발생한다. 현 capture는 `capture-pane -p`(plain, `-e` 미사용)라 redaction 카탈로그가 평문 기준으로 안전하다([[SPEC-006-privacy-redaction]] §2.2).
+- **결정**: (a) **Phase 1 = plain 유지** — live view도 `-p`(no `-e`) capture를 기존 `sanitizeCapture` 단일 chokepoint로 통과시켜 노출한다. 새 redaction 위험 0. 색은 Phase 1.5로 분리한다. (b) **Phase 1.5 styled 계약** — `-e`(SGR 포함) capture를 도입하려면 반드시 ① SGR 토큰화 → ② plain 텍스트로 분리 → ③ **plain에 대해 redact**(기존 카탈로그) → ④ 스타일 span을 redacted 출력 위에 **re-map**(스타일 span은 redacted 토큰을 가로지르거나 쪼갤 수 없음)한다. redact-후-escape-재주입(카탈로그를 escape 섞인 텍스트에 직접 적용)은 **금지**다. (c) styled 경로의 `secret-recall`은 plain과 **동일(1.0 목표)**이어야 하며, 이 변환+테스트([[SPEC-007-test-validation]])가 승인되기 전에는 styled capture를 소비자에게 emit하지 않는다(fail-safe: plain fallback).
+- **근거**: 색은 부가가치지만 redaction은 비-negotiable([[08-Decisions|D-027]] floor-lock 정신). 스타일과 secret 마스킹을 동시에 지키는 유일한 안전 순서는 "스타일을 벗겨 redact한 뒤 스타일을 다시 입히는" 것이다. Phase 분리로 색 없이도 즉시 가치를 내고 위험은 게이트 뒤로 둔다.
+- **영향**: R-PRIV-008(proposed) 신설. [[SPEC-006-privacy-redaction]] ANSI stream redaction 절 신설(카탈로그·chokepoint를 styled에 확장), [[SPEC-103-pane-live-stream]] 프레임이 이 계약을 참조, threat model에 styled-bypass 위협 + PF-05(redaction-before-egress) 확장. 측정은 [[SPEC-007-test-validation]] 라벨 코퍼스에 styled 케이스 추가.
+- **근거 spec**: [[SPEC-006-privacy-redaction]], [[SPEC-103-pane-live-stream]], [[SPEC-007-test-validation]].
+
+## D-043: 키보드 passthrough는 기존 write-path(`controlExec`) 위 arm/disarm 2단계 모델로만 수행한다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-02
+- **맥락**: [[18-Terminal-Workspace]] §3.3/§5.3 — 터미널에 직접 타이핑(passthrough)을 원하나, KEY_ALLOWLIST 확장·rate limit·감사 볼륨(키스트로크 단위 audit은 과다)의 보안 모델이 필요하다.
+- **결정**: (a) **새 write 경로를 만들지 않는다** — passthrough는 [[SPEC-400-control-actions]] §2.1 `controlExec`(single-writer, 고정 `send-keys` 3 템플릿)로만 나간다. literal 문자는 `literal` 템플릿(`-l --`), 키는 확장 allowlist로 전송한다. (b) **관전(Observe, 기본) / 조종(Control, armed) 2단계** — 명시 arm 없이는 키가 절대 나가지 않고, arm은 뚜렷한 상태 표시를 동반하며 무입력 N분(가설 3–5m) 후 **auto-disarm**한다. (c) **allowlist 확장**은 상호작용용 curated superset로 두되 파괴적 chord(`C-c`/`C-d`/`C-z`/`C-\` 등)는 **여전히 confirm 게이트/전용 endpoint**를 거친다([[SPEC-400-control-actions]] §2.4 정신 유지). (d) **rate limit**은 SPEC-400 §2.10 per-pane 직렬화 + 키스트로크 rate cap을 적용한다. (e) **audit는 배치/요약** — arm 세션 단위로 keystroke count·duration·redacted-flag만 남기고 **키스트로크 원문·literal 텍스트는 어떤 필드에도 직렬화하지 않는다**([[SPEC-400-control-actions]] §2.8 non-persistence를 passthrough로 확장). expected-target 재검증([[08-Decisions|D-006]] R-CTRL-005)은 arm 시점/드리프트 시 재적용한다.
+- **근거**: 이미 검증된 안전 write 경로를 재사용하면 injection·mis-target·임의 셸 실행 방어(R-CTRL-005/008, [[08-Decisions|D-028]])를 그대로 상속한다. arm/disarm은 "실수로 키가 나가는" 사고를 구조적으로 막고, 배치 audit은 non-persistence를 지키며 로그 폭주를 피한다.
+- **영향**: R-CTRL-009(proposed) 신설. [[SPEC-401-interactive-input]] 신규(passthrough·arm/disarm 수명주기·allowlist 확장·rate·batch audit 소유), [[SPEC-400-control-actions]] 개정(controlExec 재사용·allowlist 확장 접점·audit 확장 note), [[SPEC-006-privacy-redaction]] non-persistence 정합.
+- **근거 spec**: [[SPEC-401-interactive-input]], [[SPEC-400-control-actions]], [[SPEC-006-privacy-redaction]].
+
+## D-044: live view/preview exposure gate는 MVP에서 글로벌 단위를 유지하고 per-pane 승격은 forward다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-02
+- **맥락**: [[18-Terminal-Workspace]] §5.4 — 현 exposure gate는 글로벌 설정 1개([[08-Decisions|D-026]] preview exposure, R-PRIV-006). workspace에서 pane별/세션별 gate 또는 "이 orc만 노출" 승격이 필요한지 물음.
+- **결정**: MVP는 **글로벌 exposure 단위를 유지**한다 — live view attach는 preview와 **동일한 글로벌 exposure 설정**(R-PRIV-006, [[08-Decisions|D-026]] `GET /api/orcs/:orcId/preview` gate)을 상속하고, 여기에 **명시적 per-attach 사용자 행위(focus/attach)**를 요구한다. exposure off인 orc에 attach하면 거부한다(프레임 `pane_view_end reason=exposure_off` 또는 4-code). **per-pane 지속 gate("이 orc만 노출" 승격)는 forward**로 pre-flag한다(persistent per-orc 노출 상태를 새로 저장하는 것은 privacy 표면 증가라 별도 판정 필요).
+- **근거**: 글로벌 floor + 명시 attach 행위 조합이 최소 노출면으로 목표 UX를 만족한다. per-pane 승격은 새 저장 상태·UI를 요구하므로 MVP 범위 밖으로 둔다.
+- **영향**: [[SPEC-103-pane-live-stream]] attach gate, [[SPEC-203-terminal-workspace]] 노출 UX, [[SPEC-500-settings-persistence]] exposure 설정 재사용(신규 필드 없음), [[SPEC-006-privacy-redaction]] egress 경계.
+- **근거 spec**: [[SPEC-103-pane-live-stream]], [[SPEC-201-dashboard-screens]], [[SPEC-500-settings-persistence]].
+
+## D-045: 화면 재현 수준은 capture-pane 기반으로 한정하고 그 한계를 명시한다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-02
+- **맥락**: [[18-Terminal-Workspace]] §5.5 — alternate screen/커서/스크롤 영역을 어디까지 재현할지, capture-pane 기반의 한계 명시가 필요하다.
+- **결정**: Phase 1 재현 수준은 **capture-pane 산출로 표현 가능한 범위**로 한정한다 — (a) 스크롤백 seed(현 `CAPTURE_LINES`=200에서 시작, 상향은 [[SPEC-006-privacy-redaction]] `CAPTURE_LINES`/§3.4 tunable로 조정), (b) 커서 위치·geometry는 **이미 read-only allowlist에 있는 `list-panes`의 format 변수**(`#{cursor_x}`/`#{cursor_y}`/`#{pane_width}`/`#{pane_height}`)로 취득한다 — `display-message`를 allowlist에 새로 추가하지 않아 새 subprocess 진입점 없이 [[08-Decisions|D-019]] read-only 불변식을 유지한다([[SPEC-103-pane-live-stream]] §2.5, [[SPEC-006-privacy-redaction]] §2.6 co-owned). (c) 현재 보이는 화면(alternate-screen 콘텐츠 포함, capture된 그대로)을 xterm.js에 반영. **비목표(한계)**: 진짜 cell-diff 실시간 emulation, scroll-region/mouse-tracking/OSC 완전 재현은 capture-pane으로 불가하므로 재현하지 않는다. 이 한계는 spec에 명시하고, 저지연·고충실은 Phase 2 control mode([[08-Decisions|D-041]] (c))로 개선한다.
+- **근거**: capture-pane은 스냅샷 텍스트라 실시간 TUI를 완벽 재현할 수 없다. "읽히는 화면 + 커서 + 스크롤백"이면 Phase 1 가치("TUI가 읽힌다")를 달성하므로 과도한 emulation을 피하고 한계를 정직하게 문서화한다.
+- **영향**: [[SPEC-103-pane-live-stream]] seed/cursor 계약, [[SPEC-203-terminal-workspace]] xterm.js 통합·재현 한계 표기, [[SPEC-006-privacy-redaction]] `CAPTURE_LINES` 상향 검토(§3.4).
+- **근거 spec**: [[SPEC-103-pane-live-stream]], [[SPEC-203-terminal-workspace]].
+
+## D-046: 터미널 렌더는 xterm.js(MIT)를 web-only 의존으로 채택한다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-02
+- **맥락**: [[18-Terminal-Workspace]] 오픈 퀘스천 — xterm.js 도입 시 번들 크기·라이선스(MIT)와 "런타임 의존성 최소" 원칙의 조율.
+- **결정**: 터미널 뷰포트 렌더는 **xterm.js(MIT 라이선스)**를 채택한다. 이는 **web SPA(dashboard) 측 의존**이며 CLI 배포 아티팩트의 "런타임 의존성 최소" 원칙([[SPEC-700-packaging-release]])과는 **별개 축**임을 명시한다(CLI 바이너리/npm 아티팩트 의존이 아니라 web 번들 의존). 번들 크기 부담은 **terminal 모드 진입 시 lazy-load(code-split)**로 완화하고, 라이선스는 MIT로 [[08-Decisions|D-032]] asset license gate와 무관(코드 의존).
+- **근거**: ANSI·커서·스크롤백을 신뢰성 있게 렌더하는 성숙한 표준 라이브러리를 자체 구현보다 채택하는 편이 안전하고 빠르다. web-only + lazy-load면 CLI 원칙과 초기 로드에 영향이 없다.
+- **영향**: [[SPEC-203-terminal-workspace]] xterm.js 통합 계약, [[SPEC-200-frontend-architecture]] 의존/코드-스플릿 note, [[SPEC-700-packaging-release]] "web 의존 ≠ CLI 의존" 명시.
+- **근거 spec**: [[SPEC-203-terminal-workspace]], [[SPEC-200-frontend-architecture]].

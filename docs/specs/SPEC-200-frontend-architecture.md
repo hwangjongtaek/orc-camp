@@ -1,10 +1,10 @@
 ---
 spec: SPEC-200
 title: Frontend 아키텍처·라우팅·상태·데이터 흐름
-status: approved
-updated: 2026-06-27
-requirements: [R-UI-001, R-API-001, R-API-002, R-API-004, R-API-005, R-UI-005, R-UI-007]
-decisions: [D-003, D-004, D-005, D-017]
+status: draft
+updated: 2026-07-02
+requirements: [R-UI-001, R-API-001, R-API-002, R-API-004, R-API-005, R-UI-005, R-UI-007, R-UI-012]
+decisions: [D-003, D-004, D-005, D-017, D-046]
 tags:
   - specs
   - frontend
@@ -139,6 +139,7 @@ interface UiSlice {
   selectedCampId: string | null;    // route param과 동기
   selectedOrcId: string | null;     // ?orc= search param과 동기
   inspectorOpen: boolean;
+  layoutMode: 'map' | 'terminal';   // camp detail 표시 모드(client-only 상태, SSOT는 ?orc= 유지 — [[SPEC-203-terminal-workspace]], [[08-Decisions|D-045]]). URL param 아님(D-035 정합: 좌표·모드 서버 비추가)
   previewLineCount: number;         // 표시 선호(상한은 [[SPEC-500-settings-persistence]]·[[SPEC-006-privacy-redaction]])
   commandDraft: Record<string, string>; // orcId → draft(전송은 [[SPEC-400-control-actions]])
   uiPrefs: UiPrefs;
@@ -155,6 +156,7 @@ interface ClientApiError {           // [[SPEC-101-snapshot-api]] ApiError 의 c
 - **정규화 근거(성능, §3.5)**: `campsById`/`orcsById`는 **stable id 키 Map**이므로 delta merge가 O(1)이고, per-orc selector 구독으로 `orc_status_changed` 한 건이 그 orc-bound 컴포넌트만 재렌더하게 한다.
 - **token은 store에 없다(불변식 ④)**: token은 별도 in-memory 모듈 singleton(§2.6)에 두고 store/devtools 직렬화에서 제외한다.
 - **selector 경계(확정)**: 컴포넌트는 broad object가 아니라 **좁은 selector**(예: `s => s.server.orcsById[orcId]?.status`)로 구독하고 shallow equality를 쓴다. 목록은 `campIds`/orcId 배열만 구독해 항목 추가/삭제 시에만 부모가 갱신된다.
+- **`layoutMode` + terminal 번들 code-split(확정, 2026-07-02, [[08-Decisions|D-046]])**: `layoutMode`는 `?orc=` SSOT를 대체하지 않는 **client-only 표시 상태**다(터미널 모드는 새 route가 아니라 camp detail의 표시 모드 — [[SPEC-203-terminal-workspace]]). 터미널 뷰포트가 쓰는 **xterm.js(MIT, web-only 의존)**와 terminal-mode 컴포넌트는 `layoutMode==='terminal'` 진입 시 **lazy-load(dynamic import / code-split)**하여 초기 번들·map 모드 로드에 영향을 주지 않는다. 이는 CLI 아티팩트의 "런타임 의존성 최소" 원칙([[SPEC-700-packaging-release]])과 별개 축(web 번들 의존)임을 명시한다([[08-Decisions|D-046]]).
 
 ### 2.5 reconcile 모델 (R-API-001 client / R-API-003 소비)
 

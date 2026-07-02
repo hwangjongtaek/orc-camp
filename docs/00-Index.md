@@ -1,6 +1,6 @@
 ---
 title: Orc Camp 문서 맵
-updated: 2026-06-26
+updated: 2026-07-02
 tags:
   - index
   - orc-camp
@@ -34,6 +34,7 @@ Orc Camp 문서는 주제별 하위폴더로 구조화되어 있다. wikilink(`[
 - [[05-Backend]] — 도메인 모델, API, control action, 비동기/보안
 - [[06-Infra]] — 실행 방식, 배포, 보안, 호환성
 - [[10-System-Architecture]] — 전체 시스템 설계, cross-cutting concerns, end-to-end flow
+- [[18-Terminal-Workspace]] — preview tab → tmux 준하는 terminal workspace 개선 설계안 (opus-1 spec 위임 브리프 포함)
 
 ## Assets — `docs/assets/`
 

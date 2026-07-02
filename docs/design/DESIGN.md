@@ -56,7 +56,8 @@
 - UI card 안에 card를 중첩하지 않는다.
 - repeated item에만 card를 사용한다. page section은 full-width band 또는 unframed layout으로 둔다.
 - 기본 camp scene은 단일 배경 이미지를 native 해상도로 보여주고 사용자가 드래그-팬으로 탐색한다(image-ground). orc는 이미지의 walkable ground 안에 배치된다. (ground polygon이 없는 배경은 legacy zone-grid로 fallback.)
-- Preview 탭은 현재 read-only redacted terminal tail이며, 추후 SSH 접속/PTY 브리지로 대화형 제어 경험으로 개선 예정(SPEC-201 §2.5 TODO).
+- camp detail은 **map 모드 ↔ terminal 모드** 두 표시 모드를 갖는다(새 route 아님, `?orc=` SSOT 유지 — [[08-Decisions|D-045]]/[[08-Decisions|D-046]]). **map 모드**는 위의 camp scene + 단일 탭 dock이다. **terminal 모드**는 camp header · Orc Rail · Terminal Viewport(xterm.js) · Terminal Status Bar · Composed Input의 5-region workspace로, tmux pane에 준하는 화면(ANSI·커서·스크롤백)과 자리-스위칭·관전/조종 입력을 제공한다(SPEC-203). 두 모드 모두 동일 글로벌 exposure gate·zero-layout-shift·`prefers-reduced-motion`을 지킨다.
+- Preview 탭(map 모드 dock)은 경량 read-only redacted terminal tail(peek)로 유지되고, 고충실 대화형 경험은 **terminal 모드의 live view 채널(SPEC-103) + 조종 모드 passthrough(SPEC-401)**가 담당한다(SPEC-201 §2.5a 공존). (이전의 "SSH 접속/PTY 브리지" 계획은 이 view-channel + arm passthrough 설계로 대체됨.)
 
 ## Components
 
@@ -67,6 +68,12 @@
 - **Command Dock**: text input, send, interrupt, attach/copy 같은 action을 제공한다.
 - **Event Log**: scan, status change, control action, tmux error를 시간순으로 표시한다.
 - **Settings Panel**: scan interval, redaction, aliases, asset pack 설정을 다룬다.
+- **Orc Rail** (terminal 모드): camp 내 orc 목록을 portrait 썸네일 + Status Badge + 한 줄 요약으로 세로 배치하고, `waiting` orc를 색-비의존(테두리/아이콘/라벨) 강조로 부각한다(orchestration 1차 신호, SPEC-203).
+- **Terminal Viewport** (terminal 모드): xterm.js 기반 read-only live 터미널 렌더(ANSI·커서·스크롤백, pane native cols×rows). redacted 배지 오버레이를 표시하고, 화면 재현 한계는 capture-pane 기반임을 명시한다([[08-Decisions|D-045]]).
+- **Terminal Status Bar** (terminal 모드): 대상 target·cwd·모드(관전/조종)·지연을 표시한다.
+- **Composed Input** (terminal 모드): Command Dock의 멀티라인·이력 확장판. 짧은 상호작용은 조종 모드 passthrough가, 긴 프롬프트는 폼이 담당한다(SPEC-401).
+- **Mode Indicator** (관전/조종): Observe/Control 상태를 **색이 아닌** border-style + label + icon으로 구분한다(접근성; border-style/elevation 토큰은 [[SPEC-202-design-accessibility]] §2.1).
+- **Quick Switcher**: 이름/상태 fuzzy 검색으로 orc를 전환하는 command-palette형 오버레이(SPEC-203 스위칭 계약).
 
 ## Motion
 
