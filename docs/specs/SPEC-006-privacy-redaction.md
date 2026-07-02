@@ -1,7 +1,7 @@
 ---
 spec: SPEC-006
 title: Privacy·redaction·read-only
-status: draft
+status: approved
 updated: 2026-07-02
 requirements: [R-PRIV-001, R-PRIV-002, R-PRIV-003, R-PRIV-004, R-PRIV-005, R-PRIV-008, R-TMUX-001, R-TMUX-004, R-OBS-003]
 decisions: [D-003, D-008, D-016, D-019, D-020, D-042]
@@ -25,7 +25,7 @@ tags:
 
 > **핵심 불변식(redaction chokepoint, [[08-Decisions|D-016]])**: pane 콘텐츠와 환경 자유 텍스트(`cmdline`/`cwd` 포함)는 `sanitize()`/`redact()`라는 **단일 경계**를 통과한 뒤에만 어떤 소비자(detection·status·preview·table·`--json`·log)에게도 전달된다. 즉 [[SPEC-003-agent-detection]]의 `recentOutput`/`paneTitle`/`cmdline`과 [[SPEC-004-status-inference]]의 `currentWorkSummary`는 **모두 redaction 적용 후 데이터**에서만 만들어진다(아래 §3.1 ordering rule). 이 경계 이전의 raw 버퍼는 어떤 출력 경로에도 도달하지 않는다.
 
-> **2026-07-02 개정([[18-Terminal-Workspace]] Terminal Workspace, [[08-Decisions|D-042]])**: scan 슬라이스의 redaction 계약을 **live pane view 채널([[SPEC-103-pane-live-stream]])의 실시간 스트림**으로 확장한다 — (1) **redaction 적용 범위·non-persistence 표를 live view 프레임에 확장**(§2.3/§2.5): 전송되는 모든 프레임 텍스트는 기존 `sanitizeCapture` 단일 chokepoint를 통과한 redacted 값만 싣는다(redaction-before-egress). (2) **ANSI/styled 스트림 redaction 계약** 신설(§2.8): SGR escape가 secret 패턴을 쪼개 미탐을 만드는 것을 막는 tokenize→plain-redact→style-remap 순서를 고정하고, 승인 전에는 styled를 emit하지 않는다(plain fallback, [[08-Decisions|D-042]]). (3) **live view 커서/geometry 조회의 read-only 경로**를 §2.6에 co-own 명시(기존 allowlist `list-panes` format 변수 재사용, 새 항목 미추가). (4) threat model에 **styled-bypass**(High) 행 추가 및 **PF-05(redaction-before-egress)를 live/network 채널로 정식화**(§3.6). 이로써 본 spec은 R-PRIV-008을 소유한다. 기존 불변식 [[08-Decisions|D-016]]/[[08-Decisions|D-019]]/[[08-Decisions|D-027]]과 AC-01~18은 그대로 유지된다. 근거 결정 [[08-Decisions|D-042]]는 **Proposed(미승인)**이므로 상태를 `draft`로 되돌린다.
+> **2026-07-02 개정([[18-Terminal-Workspace]] Terminal Workspace, [[08-Decisions|D-042]])**: scan 슬라이스의 redaction 계약을 **live pane view 채널([[SPEC-103-pane-live-stream]])의 실시간 스트림**으로 확장한다 — (1) **redaction 적용 범위·non-persistence 표를 live view 프레임에 확장**(§2.3/§2.5): 전송되는 모든 프레임 텍스트는 기존 `sanitizeCapture` 단일 chokepoint를 통과한 redacted 값만 싣는다(redaction-before-egress). (2) **ANSI/styled 스트림 redaction 계약** 신설(§2.8): SGR escape가 secret 패턴을 쪼개 미탐을 만드는 것을 막는 tokenize→plain-redact→style-remap 순서를 고정하고, 승인 전에는 styled를 emit하지 않는다(plain fallback, [[08-Decisions|D-042]]). (3) **live view 커서/geometry 조회의 read-only 경로**를 §2.6에 co-own 명시(기존 allowlist `list-panes` format 변수 재사용, 새 항목 미추가). (4) threat model에 **styled-bypass**(High) 행 추가 및 **PF-05(redaction-before-egress)를 live/network 채널로 정식화**(§3.6). 이로써 본 spec은 R-PRIV-008을 소유한다. 기존 불변식 [[08-Decisions|D-016]]/[[08-Decisions|D-019]]/[[08-Decisions|D-027]]과 AC-01~18은 그대로 유지된다. 근거 결정 [[08-Decisions|D-042]]는 **2026-07-02 Accepted 승인**되어 본 spec은 `approved`다.
 
 ## 1. Scope
 

@@ -1,7 +1,7 @@
 ---
 spec: SPEC-203
 title: Terminal Workspace — terminal 모드 화면·orc rail·스위칭·xterm.js·관전/조종 표시
-status: draft
+status: approved
 updated: 2026-07-02
 requirements: [R-UI-012, R-UI-005, R-UI-007, R-UI-008, R-PRIV-006]
 decisions: [D-045, D-046, D-044, D-043, D-035]
@@ -397,7 +397,7 @@ SPEC-203-AC-16 (R-UI-012, 비기능 접근성, [[SPEC-202-design-accessibility]]
 
 > 부수 충족(1차 소유는 타 spec): **R-CTRL-009**(관전/조종 2단계 — server 의미 1차 [[SPEC-401-interactive-input]]; 본 spec은 focus/트랩/`C-c` 라우팅/카운트다운 표시, AC-06/AC-07/AC-08), **R-ORC-005**(status/estimated 사실-단정 금지 — 데이터 1차 [[SPEC-005-data-contract]]; 본 spec은 rail 렌더, AC-12), **비기능 접근성**(색-비의존/키보드/reduced-motion/screen reader — 규칙 1차 [[SPEC-202-design-accessibility]]; 본 spec은 terminal-mode 적용, AC-06/AC-09/AC-12/AC-14/AC-16). 전체 추적 매트릭스 통합은 [[SPEC-900-traceability-rollup]].
 >
-> R-UI-012·[[08-Decisions|D-045]]/[[08-Decisions|D-046]]/[[08-Decisions|D-044]]는 **proposed(미승인)**이며 spec-reviewer + 도메인 리뷰(product-ui / security-privacy / tmux-systems) 게이트에서 ratify한다.
+> R-UI-012·[[08-Decisions|D-045]]/[[08-Decisions|D-046]]/[[08-Decisions|D-044]]는 spec-reviewer + 도메인 리뷰(product-ui / security-privacy / tmux-systems) 게이트 통과 후 **2026-07-02 Accepted 승인**됐다(본 spec `approved`).
 
 ## 6. Open Questions / Conflicts
 

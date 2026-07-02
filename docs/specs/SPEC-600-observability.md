@@ -1,7 +1,7 @@
 ---
 spec: SPEC-600
 title: Observability — activity log·debug log·doctor 진단
-status: draft
+status: approved
 updated: 2026-07-02
 requirements: [R-OBS-001, R-OBS-002, R-OBS-003, R-OBS-004]
 decisions: [D-003, D-008, D-015, D-016, D-028, D-043]

@@ -2,7 +2,7 @@
 spec: SPEC-900
 title: 전체 제품 추적성 롤업
 status: approved
-updated: 2026-06-29
+updated: 2026-07-02
 requirements: []
 decisions: []
 tags:
@@ -28,6 +28,7 @@ tags:
 - **전체 제품 P0 커버리지 매트릭스**(§2): R-CLI / R-TMUX / R-ORC / R-UI / R-PRIV / R-CTRL / R-API / R-SET / R-SEC / R-OBS 전 그룹의 각 P0 `R-*` → 1차 소유 spec → 대표 AC id → 검증 계층. **무커버 R-\*는 P0 GAP 행으로 명시**한다.
 - **비기능 커버리지**(§3.1): local-first·보안·개인정보·성능·scan latency·신뢰성·확장성·사용성·접근성·관측성·배포 11개 영역 → 소유 spec/AC.
 - **채택 P1 커버리지**(§3.2): R-P1-001/002/004/006/010/011 → spec/AC.
+- **Terminal Workspace 채택 R-* 커버리지**(2026-07-02, [[08-Decisions|D-041]]~[[08-Decisions|D-046]] Accepted): R-UI-012(§2.4)·R-API-006(§2.7)·R-PRIV-008(§2.5)·R-CTRL-009(§2.6) → spec/AC. P0 슬라이스 이후 채택된 기능 요구사항이며 각 family 표에 반영한다.
 - **P2 pre-flag ledger**(§3.3): R-P2-001~008 → forward pre-flag + 스트레스 불변식.
 - **롤업 자체의 수용 기준**(§4): 완결성 기준(`SPEC-900-AC-NN`) — "모든 P0가 ≥1 AC에 매핑된다" 등.
 - **Epic→spec→status 개요 + no-silent-truncation 명세**(§5): 의도적으로 후속 슬라이스로 미룬 항목을 빠짐없이 명시.
@@ -104,6 +105,7 @@ tags:
 | R-UI-006 | SPEC-300 / SPEC-202 (배포 SPEC-700, 맵 SPEC-301) | SPEC-202-AC-16/17; SPEC-300-AC-08/09/10/13/16/17/18; SPEC-301-AC-08/10/14/20/22; SPEC-700-AC-06 | C·I | placeholder parity·동일 layout/interaction·맵 uniform scale parity + **image-ground fallback**(배경 이미지→CSS gradient, 빈 화면 회귀 방지). (terrain fallback chain SPEC-300-AC-15는 superseded) |
 | R-UI-007 | SPEC-201 (deep-link SPEC-200, 데이터 SPEC-005) | SPEC-201-AC-08/15; SPEC-200-AC-02; SPEC-202-AC-21; SPEC-005-AC-02/03 | C·U | raw tmux target 상시 노출(dock Details 탭 포함) |
 | R-UI-008 | SPEC-301 (sprite SPEC-300, 데이터 불변 SPEC-005) | SPEC-301-AC-01/02/03/12/14/22/23 | C | 활동을 공간 표현(위치=기존 필드 결정적 함수, 서버 좌표 불추가; [[08-Decisions|D-035]]). image-ground placement·ground-ratio 게이트도 client-derived 결정적 |
+| R-UI-012 | **SPEC-203** (data SPEC-103, dock 공존 SPEC-201, store SPEC-200, a11y SPEC-202) | SPEC-203-AC-01~16; SPEC-201-AC-17/18; SPEC-202-AC-03/04 | C | **Terminal Workspace**(map↔terminal 모드·orc rail·스위칭/퀵스위처·xterm·관전/조종). accepted 2026-07-02([[08-Decisions|D-045]]/[[08-Decisions|D-046]]) |
 
 ### 2.5 R-PRIV — Terminal preview·Privacy (1차 [[SPEC-006-privacy-redaction]], R-PRIV-006은 [[SPEC-201-dashboard-screens]]/[[SPEC-500-settings-persistence]]/[[SPEC-101-snapshot-api]])
 
@@ -115,6 +117,7 @@ tags:
 | R-PRIV-004 | SPEC-006 (설정 SPEC-500, serve SPEC-101) | SPEC-006-AC-10; SPEC-500-AC-06/12; SPEC-101-AC-16 | I | full output 비저장·memory only. `TC-I-NONPERSIST` |
 | R-PRIV-005 | SPEC-006 (log SPEC-600/101) | SPEC-006-AC-11; SPEC-101-AC-10; SPEC-600-AC-06/07 | I | debug log 원문 미기록 |
 | R-PRIV-006 | SPEC-201 + SPEC-500 (text 경로 SPEC-101) | SPEC-201-AC-09/10/16; SPEC-500-AC-04/12; SPEC-101-AC-17/18 | C·I | preview 노출 toggle·line-count 저장·floor-lock + **별도 Preview 탭 lazy mount**(노출면 최소화). end-to-end 경로 = `GET /api/orcs/:orcId/preview` |
+| R-PRIV-008 | **SPEC-006** (live 채널 SPEC-103) | SPEC-006-AC-19/20/21; SPEC-103-AC-05/06 | U·I | live/styled 스트림 redaction-before-egress·tokenize→plain-redact→style-remap·PF-05 정식화. accepted 2026-07-02([[08-Decisions|D-042]]) |
 
 ### 2.6 R-CTRL — Control action (1차 [[SPEC-400-control-actions]])
 
@@ -128,6 +131,7 @@ tags:
 | R-CTRL-006 | SPEC-400 | SPEC-400-AC-11 | C | control context 4필드(agentType/target/cwd/command) |
 | R-CTRL-007 | SPEC-400 (모델 SPEC-600) | SPEC-400-AC-12/13; SPEC-600-AC-02/16 | I | 결과 = canonical `control.result` ActivityEvent([[08-Decisions|D-028]]) |
 | R-CTRL-008 | SPEC-400 | SPEC-400-AC-09, AC-10 | U·I | `controlExec` single-writer·shell:false·임의 shell 구조적 불가 |
+| R-CTRL-009 | **SPEC-401** (write 경로 SPEC-400, audit SPEC-600, UI SPEC-203) | SPEC-401-AC-01~15; SPEC-400-AC-18/19/20; SPEC-600-AC-17 | I·U | keyboard passthrough·관전/조종 arm/disarm·확장 allowlist·control-byte 필터·arm-session 배치 audit(원문 비저장)·single-writer 재사용. accepted 2026-07-02([[08-Decisions|D-043]]) |
 
 ### 2.7 R-API — Realtime sync·API (1차 [[SPEC-101-snapshot-api]]/[[SPEC-102-realtime-sync]], client [[SPEC-200-frontend-architecture]])
 
@@ -138,6 +142,7 @@ tags:
 | R-API-003 | SPEC-101 + SPEC-102 | SPEC-101-AC-03/04/12/16; SPEC-102-AC-03/04/05/11 | U·I | `snapshotVersion` 단조·ordering·idempotency([[08-Decisions|D-025]]) |
 | R-API-004 | SPEC-101 (client SPEC-200) | SPEC-101-AC-06/07/08/13; SPEC-200-AC-10 | I·C | manual refresh `POST /api/refresh`→GET fallback([[08-Decisions|D-033]]) |
 | R-API-005 | SPEC-101 (client SPEC-200) | SPEC-101-AC-09/10/11; SPEC-200-AC-12 | I·C | API error 사용자 envelope vs debug log 분리 |
+| R-API-006 | **SPEC-103** (frame 카탈로그 SPEC-102) | SPEC-103-AC-01~04/07~12; SPEC-102-AC-14/15 | I·C | live pane view 채널(attach/detach·250–500ms 폴링·부하 한도·`version:null`/`viewSeq` 별도 채널·read-only). accepted 2026-07-02([[08-Decisions|D-041]]) |
 
 ### 2.8 R-SET — Settings·Local persistence (1차 [[SPEC-500-settings-persistence]])
 

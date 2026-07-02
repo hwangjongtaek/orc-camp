@@ -1,7 +1,7 @@
 ---
 spec: SPEC-400
 title: Control actions·안전장치·audit·UI flow
-status: draft
+status: approved
 updated: 2026-07-02
 requirements: [R-CTRL-001, R-CTRL-002, R-CTRL-003, R-CTRL-004, R-CTRL-005, R-CTRL-006, R-CTRL-007, R-CTRL-008, R-CTRL-009, R-UI-004]
 decisions: [D-006, D-019, D-017, D-016, D-003, D-028, D-043]
@@ -570,7 +570,7 @@ SPEC-400-AC-20 (R-CTRL-002, R-CTRL-003, [[08-Decisions|D-006]])  [literal contro
 - **C3 — [[SPEC-201-dashboard-screens]] §6 Q1 분담 확정**: control 진입점 enable/disable의 **가시성**(SPEC-201)과 **실행 가능성**(본 spec §2.11)의 경계를 본 spec이 enable 술어로 확정한다. SPEC-201 Q1과 정합 확인 필요.
 - **C4 — control audit envelope 정합 (해소, [[08-Decisions|D-028]], Seam H)**: 과거 본 spec은 flat `ControlAuditEvent{type:'control_action', …flat}`를 산출했고 [[SPEC-600-observability]]는 `ActivityEvent{type:'control.result', target{}, detail{}, seq, source, code, message}`를 canonical로 정의해 `type` token·구조가 충돌했다. 또 [[SPEC-102-realtime-sync]] §2.3은 `control_result`/`activity` frame을 분리 카탈로그했으나 역할 분담이 미정이었다. **해소**: canonical 모델은 SPEC-600 `ActivityEvent(type='control.result')`이며 본 spec §2.8이 control action을 그 `target`(orcId/paneId/tmuxTarget)·`detail`(action/controlOutcome/outcome/reason/keyName/inputByteLength/inputRedactedFlag/exitCode/durationMs/correlationId)로 매핑하는 **producer**로 재정의했다. frame-role(§2.8.1): 행위자 결과 = 동기 HTTP 응답(§2.2), rail 항목 = `activity` frame(SPEC-600 §2.4 payload, SPEC-102 §2.3 transport), `control_result` frame = optional/forward. 세 spec 정합 확인 완료.
 - **C5 — [[SPEC-600-observability]] 정합 (해소)**: activity log 저장·포맷·ring buffer·redaction의 SSOT인 SPEC-600이 `draft`로 작성되어 canonical `ActivityEvent`·`control.result` 매핑(§2.2.1)·non-persistence(§2.7)·severity를 소유한다. 본 spec §2.8 producer 매핑이 SPEC-600 §2.1~§2.2·§2.7과 정합함을 확인했다([[08-Decisions|D-028]]).
-- **C6 — keyboard passthrough 접점 (신규, [[08-Decisions|D-043]], proposed)**: 2026-07-02 개정으로 §2.12(passthrough 접점)·AC-18/AC-19를 추가했다. passthrough 계약 본체는 [[SPEC-401-interactive-input]](R-CTRL-009, proposed) 소유이며 본 spec은 write 경로·allowlist superset·audit·rate limit 재사용 경계만 소유한다. **cross-spec 정합 확인 대상**: (a) [[SPEC-600-observability]] `ActivityDetail`에 배치 요약 필드(`keystrokeCount`·optional `keyHistogram`) 및 `code='control.passthrough_session'` 추가 필요([[SPEC-401-interactive-input]] §6 C1) — SPEC-600 소유자 승인 대상, (b) `InputRequest`/`KeyRequest`에 optional `passthrough` 마커 추가(§2.12)가 R-CTRL-008(자유 명령 필드 부재)와 unknown-field 거부를 위반하지 않음을 재확인, (c) [[SPEC-203-terminal-workspace]]가 armed focus에서 `C-c` 등 파괴적 키를 passthrough가 아닌 `/interrupt` confirm 경로로 라우팅해야 함. D-043은 proposed이므로 spec-reviewer + 도메인 리뷰 게이트에서 ratify한다.
+- **C6 — keyboard passthrough 접점 (신규, [[08-Decisions|D-043]] Accepted 2026-07-02)**: 2026-07-02 개정으로 §2.12(passthrough 접점)·AC-18/AC-19/AC-20을 추가했다. passthrough 계약 본체는 [[SPEC-401-interactive-input]](R-CTRL-009, accepted) 소유이며 본 spec은 write 경로·allowlist superset·audit·rate limit 재사용 경계만 소유한다. **cross-spec 정합 (RESOLVED)**: (a) [[SPEC-600-observability]] `ActivityDetail`에 배치 요약 필드(`keystrokeCount`·optional 기본-off `keyHistogram`·`execFailures`)와 `code='control.passthrough_session'` **추가 완료**(SPEC-600 §2.1/AC-17); (b) `InputRequest`/`KeyRequest`의 optional `passthrough` 마커(§2.12)는 R-CTRL-008(자유 명령 필드 부재)·unknown-field 거부를 위반하지 않음 확인; (c) [[SPEC-203-terminal-workspace]]가 armed focus에서 `C-c` 등 파괴적 키를 passthrough가 아닌 `/interrupt` confirm 경로로 라우팅함(SPEC-203 §2.6/AC-07). D-043은 게이트 통과 후 **2026-07-02 Accepted 승인**됐다(본 spec `approved`).
 
 ### Open Questions (검토 필요 / PoC·정합 대상)
 

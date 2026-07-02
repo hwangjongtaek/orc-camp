@@ -1,7 +1,7 @@
 ---
 spec: SPEC-202
 title: 디자인 시스템 적용·접근성 계약
-status: draft
+status: approved
 updated: 2026-07-02
 requirements: [R-UI-006, R-UI-005, R-UI-007, R-ORC-005, R-ORC-006, R-UI-012]
 decisions: [D-045, D-046]

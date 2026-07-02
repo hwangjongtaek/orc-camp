@@ -1,7 +1,7 @@
 ---
 spec: SPEC-401
 title: Interactive keyboard input — passthrough·arm/disarm·batched audit
-status: draft
+status: approved
 updated: 2026-07-02
 requirements: [R-CTRL-009, R-CTRL-001, R-CTRL-002, R-CTRL-005, R-CTRL-007]
 decisions: [D-043, D-044, D-006, D-028]
@@ -387,7 +387,7 @@ SPEC-401-AC-15 (R-CTRL-009, R-CTRL-004)  [armSessionId actor binding — 2026-07
 | [[08-Decisions\|D-006]] (계승) | 보수적 재검증 abort, not_controllable, blind-write 금지 | SPEC-401-AC-06, SPEC-401-AC-14 |
 | [[08-Decisions\|D-044]] (exposure) | 글로벌 exposure off 시 arm 거부·exposure_off auto-disarm | SPEC-401-AC-14 |
 
-> R-CTRL-009는 **proposed(미승인)**이며 [[08-Decisions|D-043]](proposed)에 근거한다 — spec-reviewer + 도메인 리뷰(security-privacy / tmux-systems / product-ui) 게이트에서 ratify한다. 전체 추적 매트릭스 통합은 [[SPEC-900-traceability-rollup]].
+> R-CTRL-009는 spec-reviewer + 도메인 리뷰(security-privacy / tmux-systems / product-ui) 게이트 통과 후 [[08-Decisions|D-043]]와 함께 **2026-07-02 Accepted 승인**됐다(본 spec `approved`). 전체 추적 매트릭스 통합은 [[SPEC-900-traceability-rollup]].
 
 ## 6. Open Questions / Conflicts
 

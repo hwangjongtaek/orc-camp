@@ -1,7 +1,7 @@
 ---
 spec: SPEC-200
 title: Frontend 아키텍처·라우팅·상태·데이터 흐름
-status: draft
+status: approved
 updated: 2026-07-02
 requirements: [R-UI-001, R-API-001, R-API-002, R-API-004, R-API-005, R-UI-005, R-UI-007, R-UI-012]
 decisions: [D-003, D-004, D-005, D-017, D-046]

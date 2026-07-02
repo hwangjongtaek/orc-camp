@@ -10,7 +10,7 @@ tags:
 
 # 18 Terminal Workspace (preview tab 개선 설계안)
 
-> **상태**: 설계안(blueprint) → **spec 작성 완료(2026-07-02, opus-1)**. §7 위임 브리프대로 신규 [[SPEC-103-pane-live-stream]]·[[SPEC-203-terminal-workspace]]·[[SPEC-401-interactive-input]] 작성, [[SPEC-006-privacy-redaction]]·[[SPEC-102-realtime-sync]]·[[SPEC-201-dashboard-screens]] 개정, 접점 [[SPEC-400-control-actions]]·[[SPEC-600-observability]]·[[SPEC-200-frontend-architecture]]·[[SPEC-202-design-accessibility]] 정합. 결정 [[08-Decisions|D-041]]~[[08-Decisions|D-046]](Proposed), 요구사항 R-UI-012/R-API-006/R-PRIV-008/R-CTRL-009. 도메인 리뷰(tmux/security/ui) + spec-reviewer 게이트 통과(P0-gap 0, 결정 ratify 전까지 spec `draft`).
+> **상태**: 설계안(blueprint) → **spec 작성 완료(2026-07-02, opus-1)**. §7 위임 브리프대로 신규 [[SPEC-103-pane-live-stream]]·[[SPEC-203-terminal-workspace]]·[[SPEC-401-interactive-input]] 작성, [[SPEC-006-privacy-redaction]]·[[SPEC-102-realtime-sync]]·[[SPEC-201-dashboard-screens]] 개정, 접점 [[SPEC-400-control-actions]]·[[SPEC-600-observability]]·[[SPEC-200-frontend-architecture]]·[[SPEC-202-design-accessibility]] 정합. 결정 [[08-Decisions|D-041]]~[[08-Decisions|D-046]](**2026-07-02 Accepted 승인**), 요구사항 R-UI-012/R-API-006/R-PRIV-008/R-CTRL-009. 도메인 리뷰(tmux/security/ui) + spec-reviewer 게이트 통과(P0-gap 0), 관련 spec `approved`. **Phase 1 백엔드(SPEC-103 live view + SPEC-401 server passthrough) 구현 착수.**
 >
 > **목표**: 현재 preview tab은 "간단한 에이전트 현황 파악" 수준에 머물러 있다. 이를 **실제 터미널에서 tmux pane을 쓰는 것과 거의 유사한 경험**으로 끌어올리고, camp UI 안에서 **오크를 스위칭하며 관찰·orchestration** 할 수 있는 작업공간으로 재설계한다.
 
