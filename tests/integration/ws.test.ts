@@ -52,6 +52,10 @@ function waitFrame(ws: WebSocket, predicate: (f: any) => boolean, timeoutMs = 20
     });
   });
 }
+function sendJson(ws: WebSocket, obj: unknown): void {
+  ws.send(JSON.stringify(obj));
+}
+const EXPOSED = { preview: { exposureEnabled: true, lineCount: 12 } };
 
 describe('SPEC-102 handshake auth (AC-10)', () => {
   it('rejects a tokenless handshake with close 4401', async () => {
@@ -114,5 +118,56 @@ describe('SPEC-102 realtime delta (AC-02/03/11)', () => {
     const hb = await waitFrame(ws, (f) => f.type === 'server_heartbeat', 2000);
     expect(typeof hb.payload.version).toBe('number');
     expect(typeof hb.payload.stale).toBe('boolean');
+  });
+});
+
+describe('SPEC-103 live pane-view channel (AC via WS)', () => {
+  it('attach (exposure on) → seed then pane_view; live frames are version:null and DO NOT bump seq', async () => {
+    const { wsUrl, h } = await start(scenario(), EXPOSED);
+    const ws = track(new WebSocket(`${wsUrl}?token=${h.token}`));
+    await waitFrame(ws, (f) => f.type === 'welcome');
+    sendJson(ws, { type: 'view.attach', payload: { orcId: 'pane:%10' } });
+
+    const seed = await waitFrame(ws, (f) => f.type === 'pane_view_seed');
+    expect(seed.version).toBeNull();
+    expect(seed.payload).toMatchObject({ orcId: 'pane:%10', viewSeq: 0, cols: 80, rows: 24 });
+    expect(Array.isArray(seed.payload.lines)).toBe(true);
+    expect(seed.payload.lines.join('\n')).toContain('Editing src/server.ts'); // redacted capture
+
+    const pv = await waitFrame(ws, (f) => f.type === 'pane_view');
+    expect(pv.version).toBeNull();
+    expect(pv.payload.viewSeq).toBe(1);
+    // P0 seq-exemption (SPEC-102-AC-15 / SPEC-103-AC-13): live frames repeat the last state seq.
+    expect(pv.seq).toBe(seed.seq);
+  });
+
+  it('attach while exposure off → pane_view_end exposure_off (gated, D-044)', async () => {
+    const { wsUrl, h } = await start(scenario()); // exposure default false
+    const ws = track(new WebSocket(`${wsUrl}?token=${h.token}`));
+    await waitFrame(ws, (f) => f.type === 'welcome');
+    sendJson(ws, { type: 'view.attach', payload: { orcId: 'pane:%10' } });
+    const end = await waitFrame(ws, (f) => f.type === 'pane_view_end');
+    expect(end.version).toBeNull();
+    expect(end.payload).toEqual({ orcId: 'pane:%10', reason: 'exposure_off' });
+  });
+
+  it('attach unknown orc → pane_view_end pane_gone', async () => {
+    const { wsUrl, h } = await start(scenario(), EXPOSED);
+    const ws = track(new WebSocket(`${wsUrl}?token=${h.token}`));
+    await waitFrame(ws, (f) => f.type === 'welcome');
+    sendJson(ws, { type: 'view.attach', payload: { orcId: 'pane:%404' } });
+    const end = await waitFrame(ws, (f) => f.type === 'pane_view_end');
+    expect(end.payload).toEqual({ orcId: 'pane:%404', reason: 'pane_gone' });
+  });
+
+  it('detach → pane_view_end detached', async () => {
+    const { wsUrl, h } = await start(scenario(), EXPOSED);
+    const ws = track(new WebSocket(`${wsUrl}?token=${h.token}`));
+    await waitFrame(ws, (f) => f.type === 'welcome');
+    sendJson(ws, { type: 'view.attach', payload: { orcId: 'pane:%10' } });
+    await waitFrame(ws, (f) => f.type === 'pane_view_seed');
+    sendJson(ws, { type: 'view.detach', payload: { orcId: 'pane:%10' } });
+    const end = await waitFrame(ws, (f) => f.type === 'pane_view_end');
+    expect(end.payload).toEqual({ orcId: 'pane:%10', reason: 'detached' });
   });
 });

@@ -33,6 +33,12 @@ export interface PaneFields {
   pid?: number | null;
   dead?: boolean;
   active?: boolean;
+  // SPEC-103 live-view geometry (only used by the `list-panes -F '…#{cursor_x}…'` path)
+  cols?: number; // #{pane_width}  (default 80)
+  rows?: number; // #{pane_height} (default 24)
+  cursorX?: number; // #{cursor_x} (default 0)
+  cursorY?: number; // #{cursor_y} (default 0)
+  cursorHidden?: boolean; // #{cursor_flag}=0 when true (default visible)
 }
 
 export interface Scenario {
@@ -78,6 +84,19 @@ function paneLine(p: PaneFields): string {
   ].join(US);
 }
 
+/** SPEC-103 §2.5 live-view geometry row: `<pane_id> <w> <h> <cx> <cy> <cursor_flag> <alt>`. */
+function geomLine(p: PaneFields): string {
+  return [
+    p.paneId,
+    String(p.cols ?? 80),
+    String(p.rows ?? 24),
+    String(p.cursorX ?? 0),
+    String(p.cursorY ?? 0),
+    p.cursorHidden ? '0' : '1',
+    '0',
+  ].join(' ');
+}
+
 function ok(stdout: string): SpawnResult {
   return { stdout, stderr: '', exitCode: 0, timedOut: false, spawnError: null, durationMs: 1 };
 }
@@ -116,6 +135,20 @@ export function makeScenarioSpawn(scenario: Scenario): {
       }
       if (sub === 'list-panes') {
         if (scenario.inventoryFail) return fail('list-panes: connection error');
+        const fIdx = args.indexOf('-F');
+        const fmt = fIdx !== -1 ? (args[fIdx + 1] ?? '') : '';
+        // SPEC-103 §2.5 live-view geometry+cursor request (target-row matched by pane_id).
+        if (fmt.includes('#{cursor_x}')) {
+          const tIdx = args.indexOf('-t');
+          const id = tIdx !== -1 ? args[tIdx + 1] : undefined;
+          const target = (scenario.panes ?? []).find((p) => p.paneId === id);
+          if (!target) return ok(''); // pane gone → no matching row
+          // emit every pane in the target's window (exercises the #{pane_id} target-row filter)
+          const inWindow = (scenario.panes ?? []).filter(
+            (p) => p.sessionName === target.sessionName && p.windowIndex === target.windowIndex,
+          );
+          return ok(inWindow.map(geomLine).join('\n') + '\n');
+        }
         return ok((scenario.panes ?? []).map(paneLine).join('\n') + '\n');
       }
       if (sub === 'capture-pane') {

@@ -11,6 +11,8 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { SnapshotRuntime } from './runtime';
 import { isAllowedOrigin, type SecurityConfig } from './security';
 import { tokensEqual } from './token';
+import { parseViewControlFrame } from './live-view';
+import { PaneViewSession, type LiveViewHost, type LiveViewSend } from './pane-view';
 
 export const DEFAULT_HEARTBEAT_MS = 15_000;
 
@@ -81,6 +83,14 @@ function handleConnection(ws: WebSocket, req: IncomingMessage, cfg: WsConfig, he
       ws.send(JSON.stringify({ type, seq: seq++, version, emittedAt: cfg.now().toISOString(), payload }));
     }
   };
+  // SPEC-103 §2.1 — live-view frames carry version:null and DO NOT consume `seq`
+  // (they repeat the last state seq), so a lost pane_view can't trigger a snapshot
+  // resync (SPEC-102 §3.5-2 exemption).
+  const sendLive: LiveViewSend = (type, payload) => {
+    if (ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify({ type, seq, version: null, emittedAt: cfg.now().toISOString(), payload }));
+    }
+  };
 
   const w = cfg.runtime.welcomeState();
   send('welcome', w.version, {
@@ -104,9 +114,31 @@ function handleConnection(ws: WebSocket, req: IncomingMessage, cfg: WsConfig, he
   }, heartbeatMs);
   if (typeof hb.unref === 'function') hb.unref();
 
+  // SPEC-103 — live pane-view channel (separate logical channel on this WS).
+  const host: LiveViewHost = {
+    resolvePaneId: (orcId) => cfg.runtime.getOrc(orcId)?.paneId ?? null,
+    exposureEnabled: () => cfg.runtime.previewExposureEnabled(),
+    capture: (paneId) => cfg.runtime.captureLivePaneView(paneId),
+    now: cfg.now,
+  };
+  const liveView = new PaneViewSession(host, sendLive);
+  ws.on('message', (data) => {
+    let msg: unknown;
+    try {
+      msg = JSON.parse(typeof data === 'string' ? data : data.toString());
+    } catch {
+      return; // ignore non-JSON frames
+    }
+    const frame = parseViewControlFrame(msg);
+    if (frame === null) return; // not a live-view control frame
+    if (frame.type === 'view.attach') void liveView.onAttach(frame.orcId);
+    else liveView.onDetach(frame.orcId);
+  });
+
   const cleanup = (): void => {
     unsub();
     clearInterval(hb);
+    liveView.dispose();
   };
   ws.on('close', cleanup);
   ws.on('error', cleanup);

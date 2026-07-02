@@ -8,6 +8,7 @@
  * exposure here).
  */
 import { PREVIEW_LINES, type AgentType, type Camp, type Orc, type ScanResult } from '../types';
+import { capturePaneView, type PaneViewCapture } from './pane-view';
 import { ScanRunner, type ScanRuntimeDeps } from '../scan';
 import { collectInventory } from '../tmux/inventory';
 import { diffSnapshots, snapshotChanged, type DiffEvent } from './diff';
@@ -207,6 +208,26 @@ export class SnapshotRuntime {
   /** Bootstrap tail for new clients (SPEC-600 §2.4). */
   activityTail(n: number = ACTIVITY_BOOTSTRAP_TAIL): ActivityEvent[] {
     return this.activityLog.tail(n);
+  }
+
+  // --- SPEC-103 live pane view (read-only high-freq channel) ---
+
+  /** Global preview exposure gate (D-044) — live view attach inherits it. */
+  previewExposureEnabled(): boolean {
+    return this.opts.settings.effective().preview.exposureEnabled;
+  }
+
+  /**
+   * One read-only live capture tick for a pane (SPEC-103 §2.5). Reuses the scan
+   * deps' `tmuxExec`/`sanitize` (READONLY_ALLOWLIST list-panes+capture-pane); raw
+   * is discarded inside `capturePaneView`. Independent of the scan loop.
+   */
+  captureLivePaneView(paneId: string): Promise<PaneViewCapture> {
+    const d = this.opts.deps;
+    return capturePaneView(
+      { tmuxExec: d.tmuxExec, sanitize: d.sanitize, ...(d.captureLines !== undefined ? { captureLines: d.captureLines } : {}) },
+      paneId,
+    );
   }
 
   // --- read accessors ---
