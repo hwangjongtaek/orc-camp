@@ -1475,3 +1475,424 @@ img {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ==========================================================================
+ * SPEC-203 Terminal Workspace (terminal mode). Tokens only; state chrome is
+ * color-INDEPENDENT (border-style + label + icon), zero layout shift.
+ * ========================================================================== */
+.oc-switchers {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-4);
+  flex-wrap: wrap;
+}
+
+/* layout: rail | main (fixed rail width; main fills the rest) */
+.oc-terminal {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) 1fr;
+  gap: var(--oc-space-3);
+  align-items: stretch;
+  min-height: 480px;
+}
+@media (max-width: 720px) {
+  .oc-terminal {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Orc Rail (§2.3) --- */
+.oc-rail {
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-card);
+  background: var(--oc-color-surface-raised);
+  overflow: auto;
+  max-height: 640px;
+}
+.oc-rail__empty {
+  padding: var(--oc-space-3);
+}
+.oc-rail__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--oc-space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-1);
+}
+.oc-rail__item {
+  display: grid;
+  grid-template-columns: auto 40px 1fr;
+  align-items: center;
+  gap: var(--oc-space-2);
+  width: 100%;
+  text-align: left;
+  appearance: none;
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
+  border-radius: var(--oc-radius-pixel);
+  background: transparent;
+  color: var(--oc-color-text);
+  padding: var(--oc-space-2);
+  cursor: pointer;
+  font: inherit;
+}
+.oc-rail__item:hover {
+  background: var(--oc-color-surface-base);
+}
+.oc-rail__item--selected {
+  border-color: var(--oc-color-accent);
+  border-left-color: var(--oc-color-accent);
+  background: var(--oc-color-surface-base);
+}
+.oc-rail__item--waiting {
+  border-left-color: var(--oc-color-warning);
+  border-left-width: 4px;
+  border-top-color: var(--oc-color-warning);
+}
+.oc-rail__item:focus-visible {
+  outline: var(--oc-focus-ring);
+  outline-offset: -1px;
+}
+.oc-rail__pip {
+  grid-column: 1;
+  font-weight: 700;
+  color: var(--oc-color-warning);
+}
+.oc-rail__item:not(.oc-rail__item--waiting) .oc-rail__pip {
+  display: none;
+}
+.oc-rail__portrait {
+  grid-column: 2;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--oc-radius-pixel);
+  background: var(--oc-color-surface-base);
+}
+.oc-rail__portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.oc-rail__portrait-ph {
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  background: var(--oc-color-border);
+}
+.oc-rail__body {
+  grid-column: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.oc-rail__summary,
+.oc-rail__target {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.oc-rail__summary {
+  color: var(--oc-color-text);
+}
+.oc-rail__estimated {
+  color: var(--oc-color-text-muted);
+  font-style: italic;
+}
+.oc-rail__target {
+  color: var(--oc-color-text-muted);
+}
+
+/* --- Terminal main column --- */
+.oc-terminal__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-2);
+  min-width: 0;
+}
+
+/* --- Terminal Viewport (§2.4/§2.6) — color-independent mode chrome --- */
+.oc-term {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 320px;
+  background: var(--oc-color-surface-base);
+  border-radius: var(--oc-radius-card);
+  overflow: hidden;
+}
+/* Observe = solid muted 1px; Control = heavy DOUBLE border (grayscale-distinct). */
+.oc-term--observe {
+  border: 1px solid var(--oc-color-border);
+}
+.oc-term--control {
+  border: 3px double var(--oc-color-accent);
+}
+.oc-term--warn.oc-term--control {
+  border-style: dashed;
+  border-color: var(--oc-color-warning);
+}
+.oc-term:focus-visible {
+  outline: var(--oc-focus-ring);
+  outline-offset: -3px;
+}
+.oc-term__chrome {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--oc-space-1) var(--oc-space-2);
+  border-bottom: 1px solid var(--oc-color-border);
+  background: var(--oc-color-surface-raised);
+}
+.oc-term__mode {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--oc-color-text-muted);
+}
+.oc-term__mode[data-mode='control'] {
+  color: var(--oc-color-accent);
+}
+.oc-term__mode-icon {
+  font-style: normal;
+}
+.oc-term__body {
+  position: relative;
+  padding: var(--oc-space-2);
+  height: 100%;
+}
+.oc-term__badges {
+  display: flex;
+  gap: var(--oc-space-1);
+  margin-bottom: var(--oc-space-1);
+  position: relative;
+  z-index: 2;
+}
+.oc-term__text {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--oc-color-text);
+}
+.oc-term__seednote {
+  font-size: 10px;
+  margin: var(--oc-space-1) 0 0;
+}
+.oc-term__xterm {
+  position: absolute;
+  inset: 28px var(--oc-space-2) var(--oc-space-2);
+  z-index: 1;
+}
+.oc-term__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--oc-space-2);
+  min-height: 260px;
+  color: var(--oc-color-text-muted);
+  text-align: center;
+}
+.oc-term__overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--oc-space-1) var(--oc-space-2);
+  font-size: 11px;
+  z-index: 3;
+}
+.oc-term__overlay--disconnected {
+  background: var(--oc-tint-warning);
+  color: var(--oc-color-text);
+  border-top: 1px solid var(--oc-color-warning);
+}
+.oc-term__stale {
+  position: absolute;
+  top: 32px;
+  right: var(--oc-space-2);
+  z-index: 3;
+}
+
+/* --- Status bar (§2.7) --- */
+.oc-termbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--oc-space-3);
+  padding: var(--oc-space-1) var(--oc-space-2);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  background: var(--oc-color-surface-raised);
+  font-size: 11px;
+}
+.oc-termbar__item {
+  display: inline-flex;
+  gap: var(--oc-space-1);
+  align-items: baseline;
+  min-width: 0;
+}
+.oc-termbar__mode {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--oc-color-text-muted);
+}
+.oc-termbar__mode--control {
+  color: var(--oc-color-accent);
+}
+.oc-termbar__latency--live {
+  color: var(--oc-color-success);
+}
+.oc-termbar__latency--lagging {
+  color: var(--oc-color-warning);
+}
+.oc-termbar__latency--stale,
+.oc-termbar__latency--none {
+  color: var(--oc-color-text-muted);
+}
+
+/* --- Composed input (§2.7) --- */
+.oc-composed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-2);
+  padding: var(--oc-space-2);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-card);
+  background: var(--oc-color-surface-raised);
+}
+.oc-composed__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--oc-space-2);
+}
+.oc-composed__mode {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--oc-color-text-muted);
+}
+.oc-composed__mode--control {
+  color: var(--oc-color-accent);
+}
+.oc-composed__idle {
+  font-size: 11px;
+  color: var(--oc-color-text-muted);
+}
+.oc-composed__idle--warn {
+  color: var(--oc-color-warning);
+  font-weight: 700;
+}
+.oc-composed__text {
+  width: 100%;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  padding: var(--oc-space-2);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  background: var(--oc-color-surface-base);
+  color: var(--oc-color-text);
+}
+.oc-composed__send {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--oc-space-2);
+}
+.oc-composed__none {
+  padding: var(--oc-space-3);
+}
+
+/* --- Shortcut legend (§2.5) --- */
+.oc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oc-space-3);
+  font-size: 11px;
+  color: var(--oc-color-text-muted);
+}
+.oc-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-space-1);
+}
+.oc-legend__keys {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  padding: 1px 4px;
+  border: 1px solid var(--oc-color-border);
+  border-radius: 3px;
+  background: var(--oc-color-surface-base);
+}
+
+/* --- Quick switcher (§2.5 S4) --- */
+.oc-quickswitch {
+  width: min(560px, 92vw);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-2);
+}
+.oc-quickswitch__input {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: var(--oc-space-2);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+  background: var(--oc-color-surface-base);
+  color: var(--oc-color-text);
+}
+.oc-quickswitch__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.oc-quickswitch__empty {
+  padding: var(--oc-space-2);
+}
+.oc-quickswitch__item {
+  display: flex;
+  gap: var(--oc-space-2);
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--oc-radius-pixel);
+  background: transparent;
+  color: var(--oc-color-text);
+  padding: var(--oc-space-1) var(--oc-space-2);
+  cursor: pointer;
+  font: inherit;
+}
+.oc-quickswitch__item.is-active,
+.oc-quickswitch__item:hover {
+  background: var(--oc-color-surface-raised);
+  border-color: var(--oc-color-accent);
+}
+.oc-quickswitch__status {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--oc-color-text-muted);
+}
+.oc-quickswitch__summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}

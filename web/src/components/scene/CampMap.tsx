@@ -57,11 +57,14 @@ export function CampMap({
   campId,
   selectedOrcId,
   onSelect,
+  onActivate,
   onDeselect,
 }: {
   campId: string;
   selectedOrcId: string | null;
   onSelect: (orcId: string) => void;
+  /** SPEC-203 §2.1 — double-click / focus+Enter to select AND enter terminal mode. */
+  onActivate?: (orcId: string) => void;
   /** #51 — clear the selection when the user clicks empty map space. */
   onDeselect?: () => void;
 }): JSX.Element {
@@ -532,6 +535,7 @@ export function CampMap({
                 selected={o.id === selectedOrcId}
                 tabIndex={tabIndex}
                 onSelect={onSelect}
+                onActivate={onActivate}
                 onFocusOrc={onFocusOrc}
                 onKeyNav={onKeyNav}
                 registerButton={registerButton}

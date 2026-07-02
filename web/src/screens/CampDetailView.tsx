@@ -15,6 +15,7 @@ import { BackgroundSwitcher } from '../components/scene/BackgroundSwitcher';
 import { LayoutModeSwitcher } from '../components/inspector/LayoutModeSwitcher';
 import { CampDock } from '../components/inspector/CampDock';
 import { StatusCountChip } from '../components/status/StatusBadge';
+import { TerminalWorkspace } from '../components/terminal/TerminalWorkspace';
 
 export function CampDetailView(): JSX.Element {
   const params = useParams();
@@ -29,6 +30,8 @@ export function CampDetailView(): JSX.Element {
   const setSelectedCamp = useStore((s) => s.setSelectedCamp);
   const setSelectedOrc = useStore((s) => s.setSelectedOrc);
   const layoutMode = useStore((s) => s.ui.layoutMode);
+  const workspaceMode = useStore((s) => s.ui.workspaceMode);
+  const setWorkspaceMode = useStore((s) => s.setWorkspaceMode);
 
   // Mirror URL → ui slice (URL is the source of truth for selection).
   useEffect(() => {
@@ -54,6 +57,18 @@ export function CampDetailView(): JSX.Element {
     next.delete('orc');
     setSearch(next, { replace: false });
   }, [search, setSearch]);
+
+  // SPEC-203 §2.1 — entry gesture: double-click / focus+Enter on a map orc selects it AND enters
+  // terminal mode (single click stays in map mode = select only). Selection stays on ?orc= (①).
+  const onActivate = useCallback(
+    (orcId: string) => {
+      const next = new URLSearchParams(search);
+      next.set('orc', orcId);
+      setSearch(next, { replace: false });
+      setWorkspaceMode('terminal');
+    },
+    [search, setSearch, setWorkspaceMode],
+  );
 
   if (!camp) {
     if (!hasBootstrapped) {
@@ -97,18 +112,25 @@ export function CampDetailView(): JSX.Element {
         ))}
       </div>
 
-      <div className="oc-detail" data-layout={layoutMode}>
+      <div className="oc-detail" data-layout={layoutMode} data-workspace={workspaceMode}>
         <div className="oc-detail__toolbar">
           <LayoutModeSwitcher />
-          <BackgroundSwitcher />
+          {workspaceMode === 'map' && <BackgroundSwitcher />}
         </div>
-        <CampMap
-          campId={campId}
-          selectedOrcId={selectedOrcId}
-          onSelect={onSelect}
-          onDeselect={onDeselect}
-        />
-        <CampDock orcId={selectedOrcId} />
+        {workspaceMode === 'terminal' ? (
+          <TerminalWorkspace campId={campId} selectedOrcId={selectedOrcId} onSelectOrc={onSelect} />
+        ) : (
+          <>
+            <CampMap
+              campId={campId}
+              selectedOrcId={selectedOrcId}
+              onSelect={onSelect}
+              onActivate={onActivate}
+              onDeselect={onDeselect}
+            />
+            <CampDock orcId={selectedOrcId} />
+          </>
+        )}
       </div>
     </div>
   );

@@ -16,11 +16,15 @@ import { useStore } from '../store/store';
 import type {
   BatchPayload,
   HeartbeatPayload,
+  PaneViewEndPayload,
+  PaneViewPayload,
+  PaneViewSeedPayload,
   StaleChangedPayload,
   WelcomePayload,
   WsFrame,
 } from '../types/ws';
 import { WS_CLOSE_TOKEN_INVALID } from '../types/ws';
+import { LiveViewController, type LiveViewSend } from './liveView';
 
 const BACKOFF_BASE_MS = 500;
 const BACKOFF_MAX_MS = 15_000;
@@ -42,10 +46,29 @@ export class RealtimeEngine {
   private livenessTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatIntervalMs = 15_000;
 
+  /**
+   * SPEC-103 live pane-view channel — shares this WS connection (no new socket/endpoint).
+   * The controller owns attach/detach lifecycle + the reconstructed screen; the engine only
+   * serializes its outbound frames and routes inbound pane frames to it.
+   */
+  readonly liveView: LiveViewController = new LiveViewController((f) => this.wsSend(f));
+
   constructor(
     private readonly api: ApiClient,
     private readonly wsBase: string,
   ) {}
+
+  /** Serialize a live-view control frame (SPEC-103 §2.2, version:null). No-op if not OPEN —
+   *  the controller re-issues attach on the next `onWsOpen`. */
+  private wsSend(frame: LiveViewSend): void {
+    const ws = this.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    try {
+      ws.send(JSON.stringify({ type: frame.type, version: null, payload: frame.payload }));
+    } catch {
+      /* transport hiccup → controller reconciles on reconnect */
+    }
+  }
 
   start(): void {
     this.stopped = false;
@@ -117,6 +140,17 @@ export class RealtimeEngine {
       case 'server_heartbeat':
         this.onHeartbeat(frame.payload as HeartbeatPayload);
         break;
+      // SPEC-103 live pane-view frames — separate logical channel (version:null); they do NOT
+      // participate in the snapshot seq/version/gap logic (invariant ③, AC-13).
+      case 'pane_view_seed':
+        this.liveView.onSeed(frame.payload as PaneViewSeedPayload);
+        break;
+      case 'pane_view':
+        this.liveView.onView(frame.payload as PaneViewPayload);
+        break;
+      case 'pane_view_end':
+        this.liveView.onEnd(frame.payload as PaneViewEndPayload);
+        break;
       default:
         break;
     }
@@ -136,6 +170,8 @@ export class RealtimeEngine {
     this.liveApply = false;
     void this.fetchSnapshotAndDrain();
     this.armLiveness();
+    // Connection is live → the live-view controller may (re-)issue its attach.
+    this.liveView.onWsOpen();
   }
 
   private onBatch(payload: BatchPayload): void {
@@ -171,6 +207,7 @@ export class RealtimeEngine {
     this.ws = null;
     this.liveApply = false;
     this.clearTimer('liveness');
+    this.liveView.onWsClose();
     if (this.stopped) return;
 
     const store = useStore.getState();

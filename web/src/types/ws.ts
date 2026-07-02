@@ -8,7 +8,14 @@ export type WsFrameType =
   | 'welcome'
   | 'batch'
   | 'server_stale_changed'
-  | 'server_heartbeat';
+  | 'server_heartbeat'
+  // SPEC-103 §2.3 — live pane view channel (server→client). version is always null.
+  | 'pane_view_seed'
+  | 'pane_view'
+  | 'pane_view_end';
+
+/** SPEC-103 §2.2 — client→server live-view control frame types (version is null). */
+export type ClientWsFrameType = 'view.attach' | 'view.detach';
 
 /** Common envelope: every frame is `{type, seq, version, emittedAt, payload}`. */
 export interface WsFrame {
@@ -106,6 +113,73 @@ export type DiffEvent =
   | { type: 'orc_removed'; payload: OrcRemovedPayload }
   | { type: 'orc_status_changed'; payload: OrcStatusChangedPayload }
   | { type: 'orc_updated'; payload: OrcUpdatedPayload };
+
+// --- SPEC-103 live pane view channel (mirrors src/server per SPEC-103 doc) ----
+//
+// These are consumed-only mirrors of SPEC-103 §2.2/§2.3. The frame SSOT is the SPEC-103
+// document; if the backend changes the schema it MUST update SPEC-103 first, then this mirror
+// is realigned (session coordination rule: schema drift is prevented at the spec, not the code).
+
+/** SPEC-103 §2.2 — client→server attach: begin a live view for one pane. */
+export interface ViewAttachPayload {
+  orcId: string; // "pane:" + paneId (D-017)
+}
+/** SPEC-103 §2.2 — client→server detach: stop the current live view. */
+export interface ViewDetachPayload {
+  orcId: string; // the currently-attached orcId (mismatch → server no-op)
+}
+
+/** SPEC-103 §2.3 — cursor is visible-screen relative (origin = top-left of visible screen). */
+export interface CursorPos {
+  x: number; // [0, cols-1]
+  y: number; // [0, rows-1]
+}
+
+/** SPEC-103 §2.3 — attach-time scrollback seed (exactly once, viewSeq=0). */
+export interface PaneViewSeedPayload {
+  orcId: string;
+  cols: number;
+  rows: number;
+  cursor: CursorPos | null;
+  lines: string[]; // redacted scrollback seed, oldest→newest
+  capturedAt: string; // ISO 8601
+  redacted: boolean;
+  byteClamped: boolean;
+  viewSeq: number; // first frame of this attach = 0
+}
+
+/** SPEC-103 §2.3 — polling tick: current visible window (or changed tail), redacted. */
+export interface PaneViewPayload {
+  orcId: string;
+  cols: number;
+  rows: number;
+  cursor: CursorPos | null;
+  lines: string[]; // redacted current window / changed tail, oldest→newest
+  capturedAt: string;
+  redacted: boolean;
+  byteClamped: boolean;
+  viewSeq: number; // strict +1 after the seed (within this attach)
+}
+
+/** SPEC-103 §2.3 — the last frame of a stream (normal / rejected / error). */
+export type PaneViewEndReason =
+  | 'detached'
+  | 'pane_gone'
+  | 'exposure_off'
+  | 'tab_hidden'
+  | 'superseded'
+  | 'error';
+
+export interface PaneViewEndPayload {
+  orcId: string;
+  reason: PaneViewEndReason;
+}
+
+/** Discriminated union of the live-view frames (as the terminal viewport consumes them). */
+export type PaneViewFrame =
+  | { kind: 'seed'; payload: PaneViewSeedPayload }
+  | { kind: 'view'; payload: PaneViewPayload }
+  | { kind: 'end'; payload: PaneViewEndPayload };
 
 /** WS close codes used by the server (SPEC-102 §2.1). */
 export const WS_CLOSE_TOKEN_INVALID = 4401;

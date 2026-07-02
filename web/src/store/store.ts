@@ -43,6 +43,8 @@ export type RefreshState = 'idle' | 'refreshing' | 'throttled';
  * Persisted to localStorage so the choice survives reloads (a pure UI preference).
  */
 export type LayoutMode = 'full' | 'split' | 'dock';
+/** SPEC-203 §2.1 — camp-detail workspace mode (map spatial view ↔ xterm terminal workspace). */
+export type WorkspaceMode = 'map' | 'terminal';
 const LAYOUT_MODE_KEY = 'oc.layoutMode';
 const LAYOUT_MODES: readonly LayoutMode[] = ['full', 'split', 'dock'];
 
@@ -75,6 +77,13 @@ export interface UiSlice {
   backgroundRef: string | null;
   /** Camp-detail map/dock split mode (persisted). See {@link LayoutMode}. */
   layoutMode: LayoutMode;
+  /**
+   * SPEC-203 §2.1 — camp-detail workspace mode (spec name: `layoutMode: 'map' | 'terminal'`;
+   * renamed here to avoid colliding with the pre-existing map/dock-split {@link LayoutMode}).
+   * SESSION-local (NOT persisted): a deep-link opens in map mode; the switcher enters terminal
+   * mode. Terminal mode consumes the `?orc=` selection SSOT — it never mints a new identifier.
+   */
+  workspaceMode: WorkspaceMode;
   /**
    * SPEC-301 §3.1-11 — user drag-and-drop placements, by orcId, in logical WORLD coordinates.
    * A dropped orc re-anchors here (overriding its computed cell home) and resumes active/waiting
@@ -131,6 +140,7 @@ export interface StoreState {
   setInspectorOpen: (open: boolean) => void;
   setBackgroundRef: (ref: string | null) => void;
   setLayoutMode: (mode: LayoutMode) => void;
+  setWorkspaceMode: (mode: WorkspaceMode) => void;
   /** SPEC-301 §3.1-11 — set (or clear, with null) a user drag-drop placement for an orc. */
   setOrcPosition: (orcId: string, pos: { x: number; y: number } | null) => void;
 
@@ -164,6 +174,7 @@ const initialUi: UiSlice = {
   inspectorOpen: false,
   backgroundRef: null,
   layoutMode: readLayoutMode(),
+  workspaceMode: 'map',
   orcPositions: {},
 };
 
@@ -300,6 +311,9 @@ export const useStore = create<StoreState>()((set, get) => ({
       /* localStorage unavailable → keep the in-memory preference only */
     }
     set((state) => ({ ui: { ...state.ui, layoutMode } }));
+  },
+  setWorkspaceMode: (workspaceMode) => {
+    set((state) => ({ ui: { ...state.ui, workspaceMode } }));
   },
   setOrcPosition: (orcId, pos) => {
     set((state) => {

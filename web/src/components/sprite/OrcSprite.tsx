@@ -56,6 +56,8 @@ export interface OrcSpriteProps {
   selected: boolean;
   tabIndex: number;
   onSelect: (orcId: string) => void;
+  /** SPEC-203 §2.1 — activate (double-click / Enter): select AND enter terminal mode. */
+  onActivate?: (orcId: string) => void;
   onFocusOrc: (orcId: string) => void;
   onKeyNav: (orcId: string, key: string) => boolean;
   registerButton: (orcId: string, el: HTMLButtonElement | null) => void;
@@ -86,6 +88,7 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
     selected,
     tabIndex,
     onSelect,
+    onActivate,
     onFocusOrc,
     onKeyNav,
     registerButton,
@@ -306,7 +309,14 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
   const markerH = markerW; // square pixel asset
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>): void => {
-    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+    // SPEC-203 §2.1 — Enter activates (select + enter terminal) when an activate handler exists;
+    // Space always just selects. Without onActivate (e.g. standalone map), Enter selects as before.
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      (onActivate ?? onSelect)(orcId);
+      return;
+    }
+    if (e.key === ' ' || e.key === 'Spacebar') {
       e.preventDefault();
       onSelect(orcId);
       return;
@@ -393,6 +403,7 @@ export function OrcSprite(props: OrcSpriteProps): JSX.Element {
         }
         onSelect(orcId);
       }}
+      onDoubleClick={() => onActivate?.(orcId)}
       onFocus={() => {
         onFocusOrc(orcId);
         setBubbleActive(true);

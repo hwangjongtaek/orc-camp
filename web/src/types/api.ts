@@ -91,16 +91,43 @@ export interface ExpectedTarget {
   agentType: AgentType;
 }
 
+/** SPEC-401 §2.4 — passthrough-origin marker (armSessionId is the ONLY field; no free command). */
+export interface PassthroughMarker {
+  armSessionId: string;
+}
+
 export interface InputRequest {
   text: string;
   submit?: boolean;
   expected: ExpectedTarget;
   requestId?: string;
+  /** SPEC-401 §2.4 — armed keystroke mirroring; requires submit:false. */
+  passthrough?: PassthroughMarker;
 }
 export interface KeyRequest {
   key: string;
   expected: ExpectedTarget;
   requestId?: string;
+  /** SPEC-401 §2.4 — armed named-key egress (INTERACTIVE_KEY_ALLOWLIST). */
+  passthrough?: PassthroughMarker;
+}
+
+// --- SPEC-401 §2.3 arm/disarm (egress-free; controlExec is NOT called) -------
+export interface PassthroughArmRequest {
+  expected: ExpectedTarget;
+}
+export interface PassthroughArmResponse {
+  ok: true;
+  armSessionId: string;
+  armedAt: string;
+  idleTimeoutMs: number; // = PASSTHROUGH_IDLE_MS; the UI countdown MUST use this (not its own)
+}
+export interface PassthroughDisarmRequest {
+  armSessionId: string;
+}
+export interface PassthroughDisarmResponse {
+  ok: true;
+  auditEventId: string | null;
 }
 export interface InterruptRequest {
   confirmed: true;

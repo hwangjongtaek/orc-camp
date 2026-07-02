@@ -16,6 +16,10 @@ import type {
   InterruptRequest,
   KeyRequest,
   OrcPreviewResponse,
+  PassthroughArmRequest,
+  PassthroughArmResponse,
+  PassthroughDisarmRequest,
+  PassthroughDisarmResponse,
   SettingsResponse,
   SnapshotResponse,
 } from '../types/api';
@@ -154,5 +158,29 @@ export class ApiClient {
 
   sendInterrupt(orcId: string, body: InterruptRequest): Promise<ApiResult<ControlResultBody>> {
     return this.control(orcId, 'interrupt', body);
+  }
+
+  // --- SPEC-401 passthrough arm/disarm (egress-free) ------------------------
+
+  armPassthrough(
+    orcId: string,
+    body: PassthroughArmRequest,
+  ): Promise<ApiResult<PassthroughArmResponse>> {
+    return this.request<PassthroughArmResponse>(
+      `/api/orcs/${encodeURIComponent(orcId)}/passthrough/arm`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      'orc',
+    );
+  }
+
+  disarmPassthrough(
+    orcId: string,
+    body: PassthroughDisarmRequest,
+  ): Promise<ApiResult<PassthroughDisarmResponse>> {
+    return this.request<PassthroughDisarmResponse>(
+      `/api/orcs/${encodeURIComponent(orcId)}/passthrough/disarm`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      'orc',
+    );
   }
 }
