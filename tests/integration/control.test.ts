@@ -203,6 +203,27 @@ describe('SPEC-401 passthrough (AC via server)', () => {
     expect(snap.recentActivity.some((e: any) => e.type === 'control.result')).toBe(false);
   });
 
+  it('exposure→off mid-session auto-disarms passthrough (no blind write, D-044/§2.6)', async () => {
+    const { h, base, ctrl } = await startPt(scenario());
+    const armSessionId = (await J(await post(base, h, ptArm, { expected: EXPECTED }))).armSessionId as string;
+    // toggle the global exposure gate off
+    const patch = await fetch(`${base}/api/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${h.token}` },
+      body: JSON.stringify({ preview: { exposureEnabled: false } }),
+    });
+    expect(patch.status).toBe(200);
+    // further passthrough egress is refused, and nothing was sent to the pane
+    const k = await post(base, h, orcPath('key'), { key: 'C-a', passthrough: { armSessionId } });
+    expect(k.status).toBe(409);
+    expect(['not_armed', 'exposure_off']).toContain((await J(k)).error.code);
+    expect(ctrl).toHaveLength(0);
+    // the session was flushed with reason exposure_off
+    const snap = await J(await fetch(`${base}/api/snapshot`, { headers: { Authorization: `Bearer ${h.token}` } }));
+    const ev = snap.recentActivity.find((e: any) => e.type === 'control.passthrough_session');
+    expect(ev.detail.reason).toBe('exposure_off');
+  });
+
   it('passthrough literal inherits the control-byte filter', async () => {
     const { h, base, ctrl } = await startPt(scenario());
     const armSessionId = (await J(await post(base, h, ptArm, { expected: EXPECTED }))).armSessionId as string;

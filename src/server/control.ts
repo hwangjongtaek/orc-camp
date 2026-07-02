@@ -247,6 +247,12 @@ export class ControlService {
       if (auth.code === 'rate_limited') return this.err(429, 'rate_limited', 'keystroke rate exceeded');
       return this.err(409, 'not_armed', 'passthrough not armed');
     }
+    // D-044 continuous gate (SPEC-401 §2.3/§2.6): exposure may have gone off after
+    // arm — no blind writes. Close the session (flush audit) and refuse egress.
+    if (!this.runtime.previewExposureEnabled()) {
+      this.passthrough.closeForPane(paneId, 'exposure_off');
+      return this.err(409, 'exposure_off', 'exposure disabled');
+    }
     const expected = auth.session.baseline;
 
     // Gate 3/4 — orc resolution + controllability. Drift → close session (flush audit).

@@ -49,13 +49,24 @@ describe('capturePaneView (SPEC-103 §2.5)', () => {
     expect(r.ok && r.cursor).toBeNull();
   });
 
-  it('no matching row → gone', async () => {
+  it('no matching row (exit 0) → gone', async () => {
     const r = await capturePaneView(deps(tmuxWith('%11 80 24 0 0 1 0\n', 'x\n')), '%10');
     expect(r).toEqual({ ok: false, kind: 'gone' });
   });
 
-  it('list-panes failure → failed; capture-pane failure → failed', async () => {
-    expect(await capturePaneView(deps(tmuxWith('', '', { lpFail: true })), '%10')).toEqual({ ok: false, kind: 'failed' });
+  it('list-panes exit≠0 (unresolvable target) → gone', async () => {
+    expect(await capturePaneView(deps(tmuxWith('', '', { lpFail: true })), '%10')).toEqual({ ok: false, kind: 'gone' });
+  });
+
+  it('list-panes spawn-error / timeout → failed (transient, retryable)', async () => {
+    const timeoutTmux: TmuxExecFn = async (sub) =>
+      sub === 'list-panes'
+        ? { stdout: '', stderr: '', exitCode: null, timedOut: true, spawnError: null, durationMs: 1 }
+        : ok('');
+    expect(await capturePaneView(deps(timeoutTmux), '%10')).toEqual({ ok: false, kind: 'failed' });
+  });
+
+  it('capture-pane failure (pane exists per list-panes) → failed', async () => {
     expect(await capturePaneView(deps(tmuxWith('%10 80 24 0 0 1 0\n', '', { capFail: true })), '%10')).toEqual({ ok: false, kind: 'failed' });
   });
 

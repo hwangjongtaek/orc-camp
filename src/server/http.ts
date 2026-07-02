@@ -273,8 +273,12 @@ async function handle(req: IncomingMessage, res: ServerResponse, cfg: HttpConfig
         sendError(res, 400, 'bad_request', 'invalid JSON body', requestId, undefined, corsHeaders);
         return;
       }
+      const wasExposed = cfg.runtime.previewExposureEnabled();
       const result = cfg.settings.patch(body);
       if (result.ok) {
+        // SPEC-401 §2.6 / D-044 — exposure on→off auto-disarms all passthrough
+        // sessions (no blind writes); the live-view poll gate handles itself.
+        if (wasExposed && !cfg.runtime.previewExposureEnabled()) cfg.passthrough.disposeAll('exposure_off');
         sendJson(res, 200, cfg.settings.response(), corsHeaders);
         return;
       }

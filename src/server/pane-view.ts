@@ -75,12 +75,16 @@ export async function capturePaneView(deps: PaneViewCaptureDeps, paneId: string)
   const captureLines = deps.captureLines ?? CAPTURE_LINES;
 
   const lp = await deps.tmuxExec('list-panes', ['-t', paneId, '-F', LV_FMT]);
-  if (!execOk(lp)) return { ok: false, kind: 'failed' };
+  // Distinguish transient tmux failure (spawn error / timeout → retry) from an
+  // unresolvable target: on real tmux, `list-panes -t <missing>` EXITS NON-ZERO
+  // ("can't find pane"), which means the pane is gone (not a transient glitch).
+  if (lp.spawnError !== null || lp.timedOut) return { ok: false, kind: 'failed' };
+  if (lp.exitCode !== 0) return { ok: false, kind: 'gone' };
   const geom = parseGeometry(lp.stdout, paneId);
-  if (geom === null) return { ok: false, kind: 'gone' }; // paneId not among the window's panes
+  if (geom === null) return { ok: false, kind: 'gone' }; // exit 0 but paneId not among the window's panes
 
   const cap = await deps.tmuxExec('capture-pane', ['-p', '-J', '-t', paneId, '-S', `-${captureLines}`]);
-  if (!execOk(cap)) return { ok: false, kind: 'failed' };
+  if (!execOk(cap)) return { ok: false, kind: 'failed' }; // pane exists (list-panes ok) → capture glitch is transient
   const s = deps.sanitize(cap.stdout); // redaction chokepoint; raw discarded after this
 
   return { ok: true, cols: geom.cols, rows: geom.rows, cursor: geom.cursor, lines: s.lines, redacted: s.redacted, byteClamped: s.byteClamped };
