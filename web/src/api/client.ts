@@ -9,6 +9,8 @@
 import { getToken } from './token';
 import type {
   ApiErrorBody,
+  BroadcastRequest,
+  BroadcastResult,
   CampResponse,
   ClientApiError,
   ControlResultBody,
@@ -158,6 +160,16 @@ export class ApiClient {
 
   sendInterrupt(orcId: string, body: InterruptRequest): Promise<ApiResult<ControlResultBody>> {
     return this.control(orcId, 'interrupt', body);
+  }
+
+  // --- SPEC-402 command broadcast (camp-scoped fan-out; single confirm) ------
+
+  broadcastCamp(campId: string, body: BroadcastRequest): Promise<ApiResult<BroadcastResult>> {
+    return this.request<BroadcastResult>(
+      `/api/camps/${encodeURIComponent(campId)}/broadcast`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      'camp',
+    );
   }
 
   // --- SPEC-401 passthrough arm/disarm (egress-free) ------------------------

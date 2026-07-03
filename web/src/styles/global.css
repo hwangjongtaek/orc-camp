@@ -967,13 +967,30 @@ img {
 }
 .oc-toast {
   display: flex;
-  align-items: flex-start;
-  gap: var(--oc-space-2);
+  flex-direction: column;
+  gap: var(--oc-space-1);
   padding: var(--oc-space-2) var(--oc-space-3);
   border-radius: var(--oc-radius-card);
   background: var(--oc-color-surface-raised);
   border: 1px solid var(--oc-color-border);
   box-shadow: var(--oc-shadow-pixel);
+}
+.oc-toast__main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--oc-space-2);
+}
+/* Secondary (mass) action row — separated from the primary action to avoid mis-clicks (P1-P). */
+.oc-toast__secondary {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px dashed var(--oc-color-border);
+  padding-top: var(--oc-space-1);
+}
+.oc-toast__action--secondary {
+  border-color: var(--oc-color-border);
+  color: var(--oc-color-text-muted);
+  font-size: 11px;
 }
 .oc-toast--info {
   border-color: var(--oc-color-accent);
@@ -1576,6 +1593,115 @@ img {
 }
 .oc-rail__item:not(.oc-rail__item--waiting) .oc-rail__pip {
   display: none;
+}
+
+/* --- Broadcast UI (§2.10) --- */
+.oc-rail-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-2);
+  min-height: 0;
+}
+.oc-rail__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-1);
+  padding: var(--oc-space-2);
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-card);
+  background: var(--oc-color-surface-raised);
+}
+.oc-rail__toolbar--active {
+  border-color: var(--oc-color-accent);
+  border-style: dashed;
+}
+.oc-rail__toolrow {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-1);
+  flex-wrap: wrap;
+}
+.oc-rail__toolbtn {
+  min-height: 24px;
+  font-size: var(--oc-font-size-label);
+  padding: 2px var(--oc-space-2);
+}
+.oc-rail__toolbtn--exit {
+  margin-left: auto;
+}
+.oc-rail__toolcount {
+  font-size: var(--oc-font-size-label);
+  color: var(--oc-color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* rail item becomes a flex row so the checkbox is a separate hit target from the switch button */
+.oc-rail__row {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-space-1);
+}
+.oc-rail__row .oc-rail__item {
+  flex: 1;
+  min-width: 0;
+}
+.oc-rail__check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.oc-rail__result {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.oc-rail__result--ok {
+  color: var(--oc-color-accent);
+}
+.oc-rail__result--fail {
+  color: var(--oc-color-danger);
+}
+/* broadcast confirm variant — wider dialog, scrollable target list, sticky footer */
+.oc-modal--broadcast {
+  max-width: 560px;
+}
+.oc-bcast__input {
+  margin: var(--oc-space-2) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-space-1);
+}
+.oc-bcast__list {
+  list-style: none;
+  margin: 0 0 var(--oc-space-2);
+  padding: 0;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--oc-color-border);
+  border-radius: var(--oc-radius-pixel);
+}
+.oc-bcast__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1.6fr);
+  gap: var(--oc-space-2);
+  padding: 2px var(--oc-space-2);
+  border-bottom: 1px solid var(--oc-color-border);
+}
+.oc-bcast__row:last-child {
+  border-bottom: none;
+}
+.oc-bcast__cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--oc-font-size-label);
+}
+.oc-bcast__cell:focus,
+.oc-bcast__row:hover .oc-bcast__cell {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-all;
 }
 .oc-rail__portrait {
   grid-column: 2;

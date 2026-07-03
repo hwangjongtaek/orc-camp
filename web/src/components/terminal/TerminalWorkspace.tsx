@@ -38,6 +38,9 @@ import { ShortcutLegend } from './ShortcutLegend';
 import { useLiveView } from './useLiveView';
 import { useControlMode } from './useControlMode';
 import { useWaitingToasts } from './useWaitingToasts';
+import { useBroadcast } from './useBroadcast';
+import { BroadcastToolbar } from './BroadcastToolbar';
+import { BroadcastConfirm } from './BroadcastConfirm';
 
 export interface TerminalWorkspaceProps {
   campId: string;
@@ -81,8 +84,18 @@ export function TerminalWorkspace({
   const controllable = !!orc && orc.status !== 'terminated' && orc.status !== 'stale';
   const [control, actions] = useControlMode(orc, { exposureEnabled, connected, controllable });
 
-  // Orchestration nudge: announce other orcs that flip active→waiting (SPEC-203 §2.9).
-  useWaitingToasts({ orderedIds, orcsById, selectedOrcId, onSelectOrc });
+  // Broadcast orchestration (SPEC-203 §2.10 / SPEC-402): selection mode + confirm + fan-out.
+  const [bcast, bcastActions] = useBroadcast({ campId, orderedIds, orcsById });
+
+  // Orchestration nudge: announce other orcs that flip active→waiting (SPEC-203 §2.9). Its mass
+  // "Broadcast to all waiting" affordance seeds the broadcast target set + opens the confirm.
+  useWaitingToasts({
+    orderedIds,
+    orcsById,
+    selectedOrcId,
+    onSelectOrc,
+    onBroadcastWaiting: bcastActions.openFromWaiting,
+  });
 
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [interruptOpen, setInterruptOpen] = useState(false);
@@ -237,6 +250,10 @@ export function TerminalWorkspace({
   const formDisabled = disabledReason !== null;
   const armBlockedReason = !exposureEnabled ? 'preview exposure is off' : disabledReason;
 
+  // Broadcast is camp-scoped (independent of the selected orc's controllability): only token /
+  // connection gate it. exposure is NOT required (form-path control action, SPEC-402 §2.4 AC-10).
+  const broadcastBlockedReason = !hasToken() ? 'no token' : !connected ? 'disconnected' : null;
+
   const switchItems: SwitchableItem[] = useMemo(
     () =>
       orderedIds.flatMap((id) => {
@@ -260,13 +277,30 @@ export function TerminalWorkspace({
 
   return (
     <div className="oc-terminal" data-testid="terminal-workspace">
-      <OrcRail
-        orderedIds={orderedIds}
-        orcsById={orcsById}
-        charKeyById={charKeyById}
-        selectedOrcId={selectedOrcId}
-        onSelect={onSelectOrc}
-      />
+      <div className="oc-rail-col">
+        <BroadcastToolbar
+          mode={bcast.mode}
+          count={bcast.count}
+          disabled={broadcastBlockedReason !== null}
+          disabledReason={broadcastBlockedReason}
+          onEnter={bcastActions.enter}
+          onExit={bcastActions.exit}
+          onBulk={bcastActions.bulk}
+          onClear={bcastActions.clear}
+          onBroadcast={bcastActions.openConfirm}
+        />
+        <OrcRail
+          orderedIds={orderedIds}
+          orcsById={orcsById}
+          charKeyById={charKeyById}
+          selectedOrcId={selectedOrcId}
+          onSelect={onSelectOrc}
+          broadcastMode={bcast.mode}
+          broadcastTargeted={bcast.targeted}
+          onToggleTarget={bcastActions.toggle}
+          resultById={bcast.resultById}
+        />
+      </div>
       <div className="oc-terminal__main">
         <TerminalViewport
           orcId={selectedOrcId}
@@ -308,6 +342,14 @@ export function TerminalWorkspace({
           items={switchItems}
           onSelect={onSelectOrc}
           onClose={() => setSwitcherOpen(false)}
+        />
+      )}
+      {bcast.confirmOpen && (
+        <BroadcastConfirm
+          rows={bcast.confirmRows}
+          initialText={bcast.confirmInitialText}
+          onConfirm={(text) => void bcastActions.execute(text)}
+          onCancel={bcastActions.cancelConfirm}
         />
       )}
       {interruptOpen && orc && (

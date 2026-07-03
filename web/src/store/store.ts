@@ -103,6 +103,12 @@ export interface Toast {
   severity: ToastSeverity;
   message: string;
   action?: ToastAction;
+  /**
+   * SPEC-203 §2.10 (P1-P) — a de-emphasized secondary action rendered on its own row, separated in
+   * DOM order + visual weight from the primary `action` (mis-click avoidance for a mass action like
+   * "Broadcast to all waiting" vs. the primary navigation "View").
+   */
+  secondaryAction?: ToastAction;
 }
 
 /**
@@ -157,7 +163,12 @@ export interface StoreState {
   // --- misc ---
   setSettings: (settings: SettingsResponse | null) => void;
   setReducedMotion: (value: boolean) => void;
-  addToast: (severity: ToastSeverity, message: string, action?: ToastAction) => string;
+  addToast: (
+    severity: ToastSeverity,
+    message: string,
+    action?: ToastAction,
+    secondaryAction?: ToastAction,
+  ) => string;
   dismissToast: (id: string) => void;
 }
 
@@ -340,9 +351,9 @@ export const useStore = create<StoreState>()((set, get) => ({
   setSettings: (settings) => set({ settings }),
   setReducedMotion: (reducedMotion) => set({ reducedMotion }),
 
-  addToast: (severity, message, action) => {
+  addToast: (severity, message, action, secondaryAction) => {
     const id = `t${++toastSeq}`;
-    set((state) => ({ toasts: [...state.toasts, { id, severity, message, action }] }));
+    set((state) => ({ toasts: [...state.toasts, { id, severity, message, action, secondaryAction }] }));
     return id;
   },
   dismissToast: (id) => {
