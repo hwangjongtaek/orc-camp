@@ -224,8 +224,16 @@ export class SnapshotRuntime {
    */
   captureLivePaneView(paneId: string): Promise<PaneViewCapture> {
     const d = this.opts.deps;
+    // Styled (SPEC-103 §3.4-3) only when the gate flag is on AND a producer exists;
+    // sanitizeStyled itself fails safe to plain (null spans) per frame.
+    const styled = d.liveViewStyled === true && d.sanitizeStyled !== undefined;
     return capturePaneView(
-      { tmuxExec: d.tmuxExec, sanitize: d.sanitize, ...(d.captureLines !== undefined ? { captureLines: d.captureLines } : {}) },
+      {
+        tmuxExec: d.tmuxExec,
+        sanitize: d.sanitize,
+        ...(d.captureLines !== undefined ? { captureLines: d.captureLines } : {}),
+        ...(styled ? { styled: true, sanitizeStyled: d.sanitizeStyled } : {}),
+      },
       paneId,
     );
   }

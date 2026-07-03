@@ -4,7 +4,7 @@
  * (PaneViewSession) with a mock host + injected timer (deterministic, no real time).
  */
 import { describe, expect, it } from 'vitest';
-import { sanitizeCapture } from '../../src/redaction/redact';
+import { sanitizeCapture, sanitizeStyledCapture } from '../../src/redaction/redact';
 import type { SpawnResult, TmuxExecFn } from '../../src/types';
 import {
   capturePaneView,
@@ -77,6 +77,45 @@ describe('capturePaneView (SPEC-103 §2.5)', () => {
     expect(r.redacted).toBe(true);
     expect(r.lines.join('\n')).not.toContain('ghp_abcdefghijklmnopqrstuvwxyz');
     expect(r.lines.join('\n')).toContain('[REDACTED');
+  });
+});
+
+describe('capturePaneView — Phase 1.5 styled (SPEC-103 §2.5/§2.3.1, AC-06/AC-07/AC-18)', () => {
+  const ESC = '\x1b';
+  const styledDeps = (tmuxExec: TmuxExecFn) => ({ tmuxExec, sanitize: sanitizeCapture, styled: true, sanitizeStyled: sanitizeStyledCapture });
+
+  it('attaches a `spans` overlay and adds ONLY the -e flag (read-only preserved)', async () => {
+    const seen: (string | null)[][] = [];
+    const tmux: TmuxExecFn = async (sub, args) => {
+      seen.push([sub, ...args]);
+      if (sub === 'list-panes') return ok('%10 80 24 0 0 1 0\n');
+      if (sub === 'capture-pane') return ok(`${ESC}[1;31mERR${ESC}[0m ok\n`);
+      return fail();
+    };
+    const r = await capturePaneView(styledDeps(tmux), '%10');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.lines).toEqual(['ERR ok', '']);
+    expect(r.spans).toEqual([[{ start: 0, end: 3, sgr: '1;31' }], []]);
+    // subcommands are still only {list-panes, capture-pane}; capture adds -e, no new cmd.
+    expect(new Set(seen.map((a) => a[0]))).toEqual(new Set(['list-panes', 'capture-pane']));
+    expect(seen.find((a) => a[0] === 'capture-pane')).toContain('-e');
+  });
+
+  it('plain content → spans omitted (fail-safe/plain, §2.3.1 absent = plain)', async () => {
+    const r = await capturePaneView(styledDeps(tmuxWith('%10 80 24 0 0 1 0\n', 'plain text\n')), '%10');
+    expect(r.ok && r.spans).toBeUndefined();
+  });
+
+  it('styled path still redacts a color-fragmented secret (secret-recall = plain)', async () => {
+    const j = (...p: string[]): string => p.join('');
+    const GH = j('ghp_', 'C'.repeat(20), '9999');
+    const raw = `t ${GH.slice(0, 4)}${ESC}[32m${GH.slice(4)}\n`;
+    const r = await capturePaneView(styledDeps(tmuxWith('%10 80 24 0 0 1 0\n', raw)), '%10');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.lines.join('\n')).not.toContain(GH);
+    expect(r.lines.join('\n')).toContain('[REDACTED:github-token]');
   });
 });
 

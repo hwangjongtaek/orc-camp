@@ -22,12 +22,16 @@ import {
   BANNER_COHERENCE,
   CORPUS_KEEP,
   CORPUS_SECRET,
+  CORPUS_STYLED,
+  STYLED_SPAN_CASES,
   DETECT_SAMPLES,
   STATUS_SAMPLES,
   PROCTREE_DETECT_SAMPLES,
   PROCTREE_STATUS_SAMPLES,
 } from './dataset';
-import { redact } from '../../src/redaction/redact';
+import { redact, sanitizeStyledCapture } from '../../src/redaction/redact';
+import { stripAnsi } from '../../src/redaction/ansi';
+import { SGR_RE, MAX_SPANS_PER_LINE, type StyleSpan } from '../../src/server/live-view';
 import { detectOrc, defaultDetectors } from '../../src/detection/detect';
 import { inferStatus } from '../../src/status/infer';
 
@@ -96,6 +100,59 @@ describe('TC-M-FALSERED (M5) — false-redaction + secret-recall', () => {
     expect(m.secretRecall).toBe(1); // confirmed: every known secret masked
     expect(m.leaked).toEqual([]);
     expect(m.falseRedactionRate).toBeLessThanOrEqual(0.05); // PoC hypothesis τ
+  });
+});
+
+describe('TC-M-STYLED (SPEC-007 §3.3 / SPEC-006 AC-20/AC-22 / SPEC-103 AC-18~21) — styled redaction gate', () => {
+  const ESC = '\x1b';
+  const TOKEN_RE = /\[REDACTED:[a-z-]+\]/g;
+
+  // (c) structural: no span crosses [REDACTED:*]; runs sorted, non-overlapping, ≤ cap.
+  const assertStructure = (lines: string[], spans: StyleSpan[][] | null): void => {
+    if (spans === null) return;
+    expect(spans.length).toBe(lines.length);
+    lines.forEach((line, i) => {
+      const tokens: [number, number][] = [];
+      TOKEN_RE.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = TOKEN_RE.exec(line)) !== null) tokens.push([m.index, m.index + m[0].length]);
+      let prevEnd = -1;
+      const arr = spans[i]!;
+      expect(arr.length).toBeLessThanOrEqual(MAX_SPANS_PER_LINE);
+      for (const sp of arr) {
+        expect(sp.start).toBeGreaterThanOrEqual(prevEnd);
+        expect(sp.start).toBeLessThan(sp.end);
+        for (const [ts, te] of tokens) expect(sp.start >= te || sp.end <= ts).toBe(true);
+        prevEnd = sp.end;
+      }
+    });
+  };
+
+  it('CORPUS-STYLED: five assertions (a)-(e) hold for every escape-fragmented secret', () => {
+    for (const c of CORPUS_STYLED) {
+      const r = sanitizeStyledCapture(c.raw);
+      const joined = r.lines.join('\n');
+      // (a) secret-recall == 1.0 == plain
+      expect(joined, `[${c.label}] secret leaked`).not.toContain(c.secret);
+      // (b) lines element-wise == redact(stripAll(raw))  (non-destructive overlay)
+      expect(r.lines, `[${c.label}] lines != baseline`).toEqual(redact(stripAnsi(c.raw).plain).text.split('\n'));
+      // (c) structural: spans don't cross tokens, sorted/non-overlapping/≤cap
+      assertStructure(r.lines, r.spans);
+      // (d) no raw ESC byte in any frame field
+      for (const l of r.lines) expect(l).not.toContain(ESC);
+      if (r.spans) for (const arr of r.spans) for (const s of arr) expect(s.sgr).not.toContain(ESC);
+      // (e) every span sgr matches the charset/length regex
+      if (r.spans) for (const arr of r.spans) for (const s of arr) expect(SGR_RE.test(s.sgr), `[${c.label}] bad sgr ${s.sgr}`).toBe(true);
+    }
+  });
+
+  it('STYLED_SPAN_CASES: styling is faithfully mapped onto the redacted line', () => {
+    for (const c of STYLED_SPAN_CASES) {
+      const r = sanitizeStyledCapture(c.raw);
+      expect(r.lines, `[${c.label}]`).toEqual([c.wantLine]);
+      expect(r.spans, `[${c.label}]`).toEqual([c.wantSpans]);
+      assertStructure(r.lines, r.spans);
+    }
   });
 });
 

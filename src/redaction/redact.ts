@@ -16,7 +16,9 @@
  */
 import type { RedactionResult, SanitizedCapture } from '../types';
 import { BYTE_CAP } from '../types';
+import type { StyleSpan } from '../server/live-view';
 import { REDACTION_RULES } from './patterns';
+import { buildStyledSpans, stripAnsi } from './ansi';
 
 /**
  * Apply the full RP-01..RP-10 catalog in priority order, counting substitutions.
@@ -77,4 +79,49 @@ export function sanitizeCapture(raw: string): SanitizedCapture {
   const { text, redacted, matchCount } = redact(clamped);
   const lines = text.split('\n');
   return { lines, redacted, byteClamped, matchCount };
+}
+
+/** Redacted styled capture: plain `lines` + a validated SGR `spans` overlay. */
+export interface StyledCapture {
+  lines: string[]; // redacted plain — byte-identical to the plain path (§3.4-3(c))
+  spans: StyleSpan[][] | null; // null = plain fail-safe (gate off / nothing styled / invalid)
+  redacted: boolean;
+  byteClamped: boolean;
+}
+
+/**
+ * After a tail byte-clamp the kept region can begin mid-escape (the leading `ESC`
+ * was dropped). Strip a leading CSI-body remnant so it is not re-interpreted as text
+ * (SPEC-006 §2.8 mid-escape tail-cut clause). Requires ≥1 param/intermediate byte
+ * before the final so a bare leading letter is never eaten. Only used when clamped.
+ */
+function stripLeadingCsiRemnant(s: string): string {
+  const m = /^(?:[\x30-\x3f]+[\x20-\x2f]*|[\x20-\x2f]+)[\x40-\x7e]/.exec(s);
+  return m ? s.slice(m[0].length) : s;
+}
+
+/**
+ * SPEC-006 §2.8 styled producer (mechanism seam): `capture-pane -e` raw →
+ * { redacted plain `lines`, SGR `spans` overlay }. The pipeline is
+ *   byte-clamp(B) → strip ALL escapes → redact(plain) → split → style re-map,
+ * reusing the SAME `redact()` chokepoint (no catalog duplication). `lines` is
+ * therefore byte-identical to `sanitizeCapture` on the stripped-plain (the §3.4-3(c)
+ * self-check baseline) BY CONSTRUCTION — the active per-frame tripwire is the span
+ * validation in `buildStyledSpans` (charset `SGR_RE`, sorted/non-overlapping,
+ * `[REDACTED:*]` non-crossing), which returns null → plain fail-safe on any breach.
+ * `spans` is also null when nothing is styled (bandwidth: send plain).
+ */
+export function sanitizeStyledCapture(rawE: string): StyledCapture {
+  const byteClamped = utf8ByteLength(rawE) > BYTE_CAP;
+  let clamped = byteClamped ? clampBytesTail(rawE, BYTE_CAP) : rawE;
+  if (byteClamped) clamped = stripLeadingCsiRemnant(clamped);
+
+  const { plain, events } = stripAnsi(clamped);
+  const { text, redacted } = redact(plain);
+  const lines = text.split('\n');
+
+  let spans = buildStyledSpans(plain, events, lines); // null → fail-safe plain
+  if (spans !== null && !spans.some((a) => a.length > 0)) spans = null; // nothing styled → plain
+
+  return { lines, spans, redacted, byteClamped };
 }

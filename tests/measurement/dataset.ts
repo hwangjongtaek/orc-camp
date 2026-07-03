@@ -258,3 +258,35 @@ export const CORPUS_KEEP: string[] = [
 
 /** Banner string used for redaction↔detection coherence (TC-M-BANNER). */
 export const BANNER_COHERENCE = 'Welcome to Claude Code (@anthropic-ai/claude-code) — ready';
+
+// ===========================================================================
+// CORPUS-STYLED (TC-M-STYLED — SPEC-007 §3.3 / SPEC-006 §2.8 / SPEC-103 §2.3.1)
+// ===========================================================================
+// Each `raw` is a `capture-pane -e` buffer where an escape sequence fragments a
+// secret literal. After tokenize→strip-ALL→redact the secret must be masked exactly
+// as on the plain path (secret-recall == 1.0 == plain). `\x1b` = ESC.
+
+const ESC = '\x1b';
+/** A secret split MID-TOKEN by an escape (the adversarial styled-bypass shape, T-13). */
+const splitMid = (secret: string, escape: string): string =>
+  secret.slice(0, 4) + escape + secret.slice(4);
+
+export const CORPUS_STYLED: { label: string; raw: string; secret: string }[] = [
+  // ① SGR color change inserted mid-token.
+  { label: 'sgr-split', raw: `pushing ${splitMid(S_GITHUB, `${ESC}[31m`)} done`, secret: S_GITHUB },
+  // ② non-SGR escape (OSC title) inserted mid-token — validates strip-ALL (not SGR-only).
+  { label: 'osc-split', raw: `token ${splitMid(S_ANTHROPIC, `${ESC}]0;title${'\x07'}`)}`, secret: S_ANTHROPIC },
+  // ②b non-SGR escape (CSI cursor-forward, non-`m`) mid-token.
+  { label: 'csi-split', raw: `key ${splitMid(S_AWS, `${ESC}[2C`)} end`, secret: S_AWS },
+  // ③ malformed / private-parameter SGR (`ESC[<...m`) around the secret — escape is
+  //    stripped, NO span emitted, secret still redacted.
+  { label: 'malformed-sgr', raw: `${ESC}[<31m env API_KEY=${S_ENV}${ESC}[`, secret: S_ENV },
+];
+
+/** Styling-correctness fixtures: expected spans over the REDACTED line. */
+export const STYLED_SPAN_CASES: { label: string; raw: string; wantLine: string; wantSpans: { start: number; end: number; sgr: string }[] }[] = [
+  // Plain colored word, no secret: one span over "ERROR" with the accumulated SGR.
+  { label: 'bold-red-word', raw: `${ESC}[1;31mERROR${ESC}[0m ok`, wantLine: 'ERROR ok', wantSpans: [{ start: 0, end: 5, sgr: '1;31' }] },
+  // Truecolor fg+bg + bold — serialized state must fit and stay [0-9;].
+  { label: 'truecolor', raw: `${ESC}[1;38;2;255;0;0;48;2;0;0;255mHI${ESC}[0m`, wantLine: 'HI', wantSpans: [{ start: 0, end: 2, sgr: '1;38;2;255;0;0;48;2;0;0;255' }] },
+];

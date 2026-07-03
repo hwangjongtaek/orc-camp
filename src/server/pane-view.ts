@@ -10,6 +10,7 @@
  * output; raw is discarded here and never reaches a frame/log/disk.
  */
 import { CAPTURE_LINES, type SanitizedCapture, type SpawnResult, type TmuxExecFn } from '../types';
+import type { StyledCapture } from '../redaction/redact';
 import {
   MAX_VIEW_CAPTURE_FAILURES,
   PANE_VIEW_INTERVAL_MS,
@@ -18,6 +19,7 @@ import {
   type PaneViewEndReason,
   type PaneViewPayload,
   type PaneViewSeedPayload,
+  type StyleSpan,
 } from './live-view';
 
 // ── capturer ────────────────────────────────────────────────────────────────────
@@ -26,11 +28,25 @@ export interface PaneViewCaptureDeps {
   tmuxExec: TmuxExecFn;
   sanitize: (raw: string) => SanitizedCapture;
   captureLines?: number; // default CAPTURE_LINES
+  // Phase 1.5 styled (SPEC-103 §2.3.1, §3.4-3). When `styled` is on AND a styled
+  // producer is provided, the tick captures with `capture-pane -p -e -J` and emits a
+  // `spans` overlay; every other case (off / no producer / styled fail-safe) is plain.
+  styled?: boolean;
+  sanitizeStyled?: (rawE: string) => StyledCapture;
 }
 
 /** One read-only capture tick result. `gone` = pane vanished; `failed` = transient. */
 export type PaneViewCapture =
-  | { ok: true; cols: number; rows: number; cursor: CursorPos | null; lines: string[]; redacted: boolean; byteClamped: boolean }
+  | {
+      ok: true;
+      cols: number;
+      rows: number;
+      cursor: CursorPos | null;
+      lines: string[];
+      redacted: boolean;
+      byteClamped: boolean;
+      spans?: StyleSpan[][]; // Phase 1.5 styled overlay; absent = plain (§2.3.1)
+    }
   | { ok: false; kind: 'gone' | 'failed' };
 
 // SPEC-103 §2.5 — geometry + cursor via list-panes format vars (target-row matched by pane_id).
@@ -83,10 +99,29 @@ export async function capturePaneView(deps: PaneViewCaptureDeps, paneId: string)
   const geom = parseGeometry(lp.stdout, paneId);
   if (geom === null) return { ok: false, kind: 'gone' }; // exit 0 but paneId not among the window's panes
 
-  const cap = await deps.tmuxExec('capture-pane', ['-p', '-J', '-t', paneId, '-S', `-${captureLines}`]);
+  // Phase 1.5: `-p -e -J` (styled) adds ONLY the `-e` flag to the already-allowlisted
+  // `capture-pane` — no new subcommand/allowlist entry (SPEC-103 §2.5, AC-07 preserved).
+  const useStyled = deps.styled === true && deps.sanitizeStyled !== undefined;
+  const capArgs = useStyled
+    ? ['-p', '-e', '-J', '-t', paneId, '-S', `-${captureLines}`]
+    : ['-p', '-J', '-t', paneId, '-S', `-${captureLines}`];
+  const cap = await deps.tmuxExec('capture-pane', capArgs);
   if (!execOk(cap)) return { ok: false, kind: 'failed' }; // pane exists (list-panes ok) → capture glitch is transient
-  const s = deps.sanitize(cap.stdout); // redaction chokepoint; raw discarded after this
 
+  if (useStyled) {
+    const s = deps.sanitizeStyled!(cap.stdout); // strip→redact→style-remap chokepoint; raw discarded
+    return {
+      ok: true,
+      cols: geom.cols,
+      rows: geom.rows,
+      cursor: geom.cursor,
+      lines: s.lines,
+      redacted: s.redacted,
+      byteClamped: s.byteClamped,
+      ...(s.spans !== null ? { spans: s.spans } : {}), // null = styled fail-safe → plain frame
+    };
+  }
+  const s = deps.sanitize(cap.stdout); // redaction chokepoint; raw discarded after this
   return { ok: true, cols: geom.cols, rows: geom.rows, cursor: geom.cursor, lines: s.lines, redacted: s.redacted, byteClamped: s.byteClamped };
 }
 
@@ -235,6 +270,7 @@ export class PaneViewSession {
       rows: cap.rows,
       cursor: cap.cursor,
       lines: cap.lines,
+      ...(cap.spans !== undefined ? { spans: cap.spans } : {}), // §2.3.1: present ⇒ styled; absent = plain
       capturedAt: this.host.now().toISOString(),
       redacted: cap.redacted,
       byteClamped: cap.byteClamped,
@@ -249,6 +285,7 @@ export class PaneViewSession {
       rows: cap.rows,
       cursor: cap.cursor,
       lines: cap.lines,
+      ...(cap.spans !== undefined ? { spans: cap.spans } : {}),
       capturedAt: this.host.now().toISOString(),
       redacted: cap.redacted,
       byteClamped: cap.byteClamped,

@@ -34,7 +34,7 @@ import { collectInventory } from './tmux/inventory';
 import { assembleScanResult } from './assemble';
 import { tmuxExec as defaultTmuxExec, safeSpawn } from './tmux/exec';
 import { makeProcessSnapshot } from './tmux/introspect';
-import { redact, sanitizeCapture } from './redaction/redact';
+import { redact, sanitizeCapture, sanitizeStyledCapture, type StyledCapture } from './redaction/redact';
 import { detectOrc as defaultDetectOrc, defaultDetectors } from './detection/detect';
 import { inferStatus as defaultInferStatus } from './status/infer';
 import { makeUsageCollector } from './usage/collect';
@@ -43,6 +43,10 @@ export interface ScanRuntimeDeps {
   tmuxExec: TmuxExecFn;
   processSnapshot: ProcessSnapshotFn;
   sanitize: SanitizeFn;
+  // SPEC-103 §3.4-3 Phase 1.5 styled live view (optional; live-view channel only).
+  // `liveViewStyled` is the gate flag; `sanitizeStyled` the SPEC-006 §2.8 producer.
+  liveViewStyled?: boolean;
+  sanitizeStyled?: (rawE: string) => StyledCapture;
   redact: RedactFn;
   detectOrc: DetectOrcFn;
   inferStatus: InferStatusFn;
@@ -60,6 +64,11 @@ export function createDefaultDeps(spawn: ProcessSpawn = safeSpawn): ScanRuntimeD
     tmuxExec: defaultTmuxExec,
     processSnapshot: makeProcessSnapshot(spawn),
     sanitize: sanitizeCapture,
+    // SPEC-103 §3.4-3: styled live view is gated behind the (CI-green) SPEC-007
+    // TC-M-STYLED corpus + a per-frame in-band self-check inside sanitizeStyledCapture
+    // (span charset/structure violation → null → plain fail-safe). Enabled by default.
+    liveViewStyled: true,
+    sanitizeStyled: sanitizeStyledCapture,
     redact,
     detectOrc: defaultDetectOrc,
     inferStatus: defaultInferStatus,
