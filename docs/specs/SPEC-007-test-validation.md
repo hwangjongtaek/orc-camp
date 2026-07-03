@@ -252,7 +252,7 @@ interface LabeledPaneSample {
 | `TC-M-CALIB-TYPE` | agentTypeConfidence band 단조성(M3) | SPEC-007-AC-03 |
 | `TC-M-CALIB-STATUS` | statusConfidence band 단조성(M3) | SPEC-007-AC-03, SPEC-004-AC-14 |
 | `TC-M-FALSERED` | secret-recall=1.0 · false-redaction-rate ≤ τ(M5) | SPEC-007-AC-04, SPEC-006-AC-15 |
-| `TC-M-STYLED` | styled(`-e`) 경로 결정적 fixture 검증 — pure seam `sanitizeStyledCapture([[SPEC-006-privacy-redaction]] §2.8)`을 `CORPUS-STYLED`(SGR-split·non-SGR-split·malformed-SGR·byte-capped)에 적용해 5개 단언: (a) 모든 케이스 secret-recall==1.0==plain, (b) styled `lines`(string[])가 `redact(stripAllEscapes(SAME -e raw))` `lines`(string[])와 **element-wise 동등**, (c) style span이 `[REDACTED:*]` 비관통, (d) 어떤 프레임 필드에도 raw ESC byte 없음, (e) 모든 span 의 `sgr` 이 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=32) 만족. **CI-게이트 결정적 fixture check**(styled emit unlock 게이트, [[SPEC-103-pane-live-stream]] §3.4-3(b)) | SPEC-007-AC-15, SPEC-006-AC-20/AC-22, SPEC-103-AC-18~21 |
+| `TC-M-STYLED` | styled(`-e`) 경로 결정적 fixture 검증 — pure seam `sanitizeStyledCapture([[SPEC-006-privacy-redaction]] §2.8)`을 `CORPUS-STYLED`(SGR-split·non-SGR-split·malformed-SGR·byte-capped)에 적용해 5개 단언: (a) 모든 케이스 secret-recall==1.0==plain, (b) styled `lines`(string[])가 `redact(stripAllEscapes(SAME -e raw))` `lines`(string[])와 **element-wise 동등**, (c) style span이 `[REDACTED:*]` 비관통, (d) 어떤 프레임 필드에도 raw ESC byte 없음, (e) 모든 span 의 `sgr` 이 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=64) 만족. **CI-게이트 결정적 fixture check**(styled emit unlock 게이트, [[SPEC-103-pane-live-stream]] §3.4-3(b)) | SPEC-007-AC-15, SPEC-006-AC-20/AC-22, SPEC-103-AC-18~21 |
 | `TC-M-BANNER` | banner 토큰 비-redaction + redacted 출력에서 G-OUT 발화(coherence) | SPEC-006 C4 / SPEC-003 Q |
 | `TC-M-LATENCY` | 20 pane p50/p95 — `--watch` cycle-to-cycle latency(e2e, M4) | SPEC-007-AC-05 |
 
@@ -348,7 +348,7 @@ interface LabeledPaneSample {
   - **(b) 비파괴 오버레이(element-wise 동등)**: styled `lines`(string[])가 baseline **`redact(stripAllEscapes(SAME -e raw))`**(= `sanitizeStyledCapture(rawE).lines`, 별도 `capture-pane -p` 재호출 아님)의 `lines`(string[])와 **element-wise 동등**(원소별 `===`, 길이·각 원소 일치; join separator 불명확성 없음)이다([[SPEC-103-pane-live-stream]] AC-20).
   - **(c) 토큰 비관통·정렬**: 어떤 style span도 `[REDACTED:<class>]` 토큰을 가로지르거나 쪼개지 않고, 각 `spans[i]`는 정렬·비중첩(`spans[i][k].end <= spans[i][k+1].start`)이며 run 개수 ≤ `MAX_SPANS_PER_LINE`([[SPEC-103-pane-live-stream]] AC-19, §2.3.1 rule 7).
   - **(d) no raw ESC**: 어떤 emit 프레임 필드에도 raw escape byte(ESC 0x1B / OSC / DCS / C0 / C1)가 나타나지 않는다([[SPEC-103-pane-live-stream]] AC-18, [[SPEC-006-privacy-redaction]] AC-22).
-  - **(e) sgr charset**: 모든 span의 `sgr`이 정규식 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=32)를 만족한다(SGR 숫자 파라미터 only — server 생성 두 번째 콘텐츠 필드로 secret 텍스트가 새는 blind spot 차단; malformed-SGR 케이스가 이를 직접 겨냥)([[SPEC-103-pane-live-stream]] AC-18(e), [[SPEC-006-privacy-redaction]] AC-22(e)).
+  - **(e) sgr charset**: 모든 span의 `sgr`이 정규식 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=64)를 만족한다(SGR 숫자 파라미터 only — server 생성 두 번째 콘텐츠 필드로 secret 텍스트가 새는 blind spot 차단; malformed-SGR 케이스가 이를 직접 겨냥)([[SPEC-103-pane-live-stream]] AC-18(e), [[SPEC-006-privacy-redaction]] AC-22(e)).
   하나라도 실패하면 styled emit을 비활성(plain fallback, D-042 (c)). 이 검증은 `CORPUS-STYLED` 결정적 fixture 기반이라 **CI 게이트**(§3.1-1)에 포함된다.
 
 ### 3.4 privacy 검증 접근(모든 출력 경로)
@@ -446,7 +446,7 @@ interface LabeledPaneSample {
 - **SPEC-007-AC-15** (R-PRIV-008 / styled emit unlock 게이트, [[08-Decisions|D-042]])
   - Given `CORPUS-STYLED` fixture(SGR-split · non-SGR-split · malformed-SGR · byte-capped escape-fragmented secret 케이스, 대응 plain 기대 산출 `redact(stripAllEscapes(SAME -e raw))`·기대 SGR span gold 동봉)에서
   - When pure seam `sanitizeStyledCapture(rawE)`([[SPEC-006-privacy-redaction]] §2.8, tokenize→strip-ALL-escapes→plain-redact→style-remap)를 적용해 M5 styled 확장 절차로 측정하면
-  - Then 다섯 구조적 단언이 모두 성립한다 — (a) styled secret-recall == 1.0 == plain(SGR·non-SGR·malformed·byte-cap escape 모두 미탐 없음, T-13), (b) styled `lines`(string[])가 baseline `redact(stripAllEscapes(SAME -e raw))`의 `lines`(string[])와 **element-wise 동등**(별도 `capture-pane -p` 재호출 아님, 비파괴 오버레이, SPEC-103-AC-20), (c) 어떤 style span도 `[REDACTED:*]` 토큰을 가로지르지 않고 각 `spans[i]`는 정렬·비중첩·run≤`MAX_SPANS_PER_LINE`(SPEC-103-AC-19, §2.3.1 rule 7), (d) 어떤 프레임 필드에도 raw ESC byte 부재(SPEC-103-AC-18, SPEC-006-AC-22), (e) 모든 span의 `sgr`이 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=32) 만족(SPEC-103-AC-18(e), SPEC-006-AC-22(e)). 이 검증은 결정적 fixture 기반 CI 게이트이며, 통과가 styled emit unlock의 필요조건이다([[SPEC-103-pane-live-stream]] §3.4-3(b)). 실패 시 plain fallback.
+  - Then 다섯 구조적 단언이 모두 성립한다 — (a) styled secret-recall == 1.0 == plain(SGR·non-SGR·malformed·byte-cap escape 모두 미탐 없음, T-13), (b) styled `lines`(string[])가 baseline `redact(stripAllEscapes(SAME -e raw))`의 `lines`(string[])와 **element-wise 동등**(별도 `capture-pane -p` 재호출 아님, 비파괴 오버레이, SPEC-103-AC-20), (c) 어떤 style span도 `[REDACTED:*]` 토큰을 가로지르지 않고 각 `spans[i]`는 정렬·비중첩·run≤`MAX_SPANS_PER_LINE`(SPEC-103-AC-19, §2.3.1 rule 7), (d) 어떤 프레임 필드에도 raw ESC byte 부재(SPEC-103-AC-18, SPEC-006-AC-22), (e) 모든 span의 `sgr`이 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=64) 만족(SPEC-103-AC-18(e), SPEC-006-AC-22(e)). 이 검증은 결정적 fixture 기반 CI 게이트이며, 통과가 styled emit unlock의 필요조건이다([[SPEC-103-pane-live-stream]] §3.4-3(b)). 실패 시 plain fallback.
 
 ## 5. Traceability
 

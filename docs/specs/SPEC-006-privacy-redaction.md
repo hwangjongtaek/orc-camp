@@ -233,7 +233,7 @@ live pane view([[SPEC-103-pane-live-stream]])가 **색(SGR)** 을 재현하려�
   }
   ```
 - **baseline 동일성(확정, P1-E)**: styled 경로의 정합성 baseline은 **별도 `capture-pane -p` 재호출이 아니라 같은 `-e` raw의 steps 2–3 출력**(`redact(stripAllEscapes(rawE))` = `sanitizeStyledCapture(rawE).lines`)이다. 이 값은 동일 콘텐츠에 대한 plain 경로 `sanitizeCapture` 산출 `lines`와 **element-wise 동등**해야 한다(두 번째 capture는 비결정적이라 baseline으로 쓰지 않는다). [[SPEC-103-pane-live-stream]] §3.4-3(c) per-frame self-check와 [[SPEC-007-test-validation]] `CORPUS-STYLED` gold("plain 기대 산출 = escape 제거 + redacted")가 이 정의를 공유한다.
-- **`sgr` charset bound(확정, mechanism SSOT — R-PRIV-008)**: style span의 `sgr`은 상수 **`SGR_MAX = 32`** 로 길이를 bound하고 정규식 **`SGR_RE = /^[0-9;:]{1,SGR_MAX}$/`(즉 `^[0-9;:]{1,32}$`)를 MUST match**한다 — SGR 숫자 파라미터(`[0-9;:]`)만 허용하고 임의 텍스트·문자·ESC를 금한다. **`sgr`은 server가 생성하는 두 번째 콘텐츠 필드**이므로(escape byte 부재만으로는 letter로 된 secret 텍스트가 통과할 수 있음), 이 charset 검사가 그 blind spot을 닫는다. [[SPEC-103-pane-live-stream]] §2.3.1 rule 3이 이 값을 wire 형식으로 동일 재기술한다(세 spec 문구 일치).
+- **`sgr` charset bound(확정, mechanism SSOT — R-PRIV-008)**: style span의 `sgr`은 상수 **`SGR_MAX = 64`**(truecolor fg+bg+attrs 조합까지 여유 — 구현 보정 2026-07-03)로 길이를 bound하고 정규식 **`SGR_RE = /^[0-9;:]{1,SGR_MAX}$/`(즉 `^[0-9;:]{1,64}$`)를 MUST match**한다 — SGR 숫자 파라미터(`[0-9;:]`)만 허용하고 임의 텍스트·문자·ESC를 금한다. **`sgr`은 server가 생성하는 두 번째 콘텐츠 필드**이므로(escape byte 부재만으로는 letter로 된 secret 텍스트가 통과할 수 있음), 이 charset 검사가 그 blind spot을 닫는다. [[SPEC-103-pane-live-stream]] §2.3.1 rule 3이 이 값을 wire 형식으로 동일 재기술한다(세 spec 문구 일치).
 - **캡(cap) 유지 + mid-escape tail-cut(확정)**: styled 경로가 `redact()`를 직접 호출하더라도 line cap `N`·byte cap `B`(§2.1/§3.3)는 styled 스트림에도 그대로 적용된다 — capture는 `-S -<N>`로 취득하고 **`clampBytesTail(rawE, B)`를 tokenize보다 먼저** 수행하므로(clamp-before-tokenize), styled 입력도 bound된다(무한 버퍼·ReDoS 입력 폭주 방지, T-10 정합). **mid-escape 절단 규칙**: byte tail-clamp이 escape sequence 중간(예: `ESC[` 뒤 파라미터 도중, OSC 미종결)에서 버퍼를 자르면, 그 **선두 부분(partial) escape는 텍스트로 재해석하지 않고 strip 단계에서 제거**한다 — partial escape를 텍스트로 오인해 인접 secret을 재분할하거나 raw byte로 남기지 않는다([[SPEC-007-test-validation]] `CORPUS-STYLED` byte-capped 케이스로 검증). tail-clamp은 어디까지나 §2.1 순서(clamp → tokenize → redact → style-remap)를 지킨다.
 - **fail-safe 게이트(확정)**: 이 변환과 [[SPEC-007-test-validation]] styled 케이스가 승인되기 전에는 **styled를 소비자/네트워크로 emit하지 않는다**(plain fallback). styled 경로의 `secret-recall`은 plain과 **동일(1.0 목표)**이어야 하며(§3.5), 그렇지 못하면 styled를 비활성한다([[08-Decisions|D-042]] (c)).
 - **egress 불변식(PF-05 정식화)**: plain이든 styled든, WS로 나가는 프레임 텍스트는 **redaction chokepoint를 통과한 값만**이다(redaction-before-egress). 이는 §3.6 PF-05(“redacted preview가 browser로 전송될 때 redaction이 풀림”)를 **live/network 경계로 정식화**한 것이다.
@@ -241,7 +241,7 @@ live pane view([[SPEC-103-pane-live-stream]])가 **색(SGR)** 을 재현하려�
 **styled egress wire 형식(확정, step 4 style re-map의 network 실현)**: styled 출력이 server를 떠나는 형태를 아래로 고정한다. 채널 적용(프레임 스키마)은 [[SPEC-103-pane-live-stream]] §2.3.1이 소유하고, 본 절은 그 wire 형식이 만족해야 할 **redaction 메커니즘 제약**을 소유한다.
 
 - styled는 **(redacted plain `lines`) + (구조화된 SGR span)** 로만 나간다 — `capture-pane -e`의 raw escape byte를 그대로 흘리는 형태는 **금지**다. **ESC/OSC/DCS/C0/C1 어떤 escape byte도 wire를 건너지 않는다.**
-- SGR span의 파라미터 문자열 `sgr`은 **`SGR_RE = /^[0-9;:]{1,SGR_MAX}$/`(SGR_MAX=32)를 MUST match**한다 — charset `[0-9;:]`·길이 1..32의 SGR 숫자 파라미터만(예: `"1;31"`, `"38;5;204"`). 임의 텍스트·문자·ESC를 담을 수 없어 **구조적으로 secret 콘텐츠를 밀반출할 수 없다**(server 생성 두 번째 콘텐츠 필드의 blind spot을 charset 검사가 닫음). style span은 §2.8 step 4대로 `[REDACTED:<class>]` 토큰을 **가로지르거나 쪼갤 수 없다**(토큰은 원자 단위, 경계에서 clip).
+- SGR span의 파라미터 문자열 `sgr`은 **`SGR_RE = /^[0-9;:]{1,SGR_MAX}$/`(SGR_MAX=64)를 MUST match**한다 — charset `[0-9;:]`·길이 1..32의 SGR 숫자 파라미터만(예: `"1;31"`, `"38;5;204"`). 임의 텍스트·문자·ESC를 담을 수 없어 **구조적으로 secret 콘텐츠를 밀반출할 수 없다**(server 생성 두 번째 콘텐츠 필드의 blind spot을 charset 검사가 닫음). style span은 §2.8 step 4대로 `[REDACTED:<class>]` 토큰을 **가로지르거나 쪼갤 수 없다**(토큰은 원자 단위, 경계에서 clip).
 - **구조적 검증성**: wire에 escape가 존재하지 않으므로, secret이 노출되려면 redacted plain `lines`에 literal로 나타나야 하는데 그 `lines`는 이미 §2.1 `sanitizeCapture`/§2.8 plain-redact를 통과했다 — 따라서 **T-14/PF-05를 프레임 경계에서 구조적으로 검증**할 수 있다(escape 안에 숨을 여지가 없음). → AC-22, AC-19/AC-20 보강.
 
 ## 3. Behavior rules
@@ -522,7 +522,7 @@ SPEC-006-AC-22 (R-PRIV-008, [[08-Decisions|D-042]])  [styled egress wire 형식 
            MAX_SPANS_PER_LINE(가설 256) 이하이며,
        (d) styled 산출 lines(string[])가 baseline `redact(stripAllEscapes(SAME -e raw))`의 lines(string[])와
            element-wise 동등하다(별도 capture-pane -p 재호출 아님),
-       (e) 모든 span 의 sgr 이 정규식 ^[0-9;:]{1,SGR_MAX}$(SGR_MAX=32)를 만족한다
+       (e) 모든 span 의 sgr 이 정규식 ^[0-9;:]{1,SGR_MAX}$(SGR_MAX=64)를 만족한다
            (SGR 숫자 파라미터 only — server 생성 두 번째 콘텐츠 필드로 secret 텍스트가 새는 blind spot 차단)
        — 따라서 secret 은 escape 안에도 sgr 안에도 숨을 수 없고 프레임 경계에서 redaction-before-egress 가
        구조적으로 검증된다(T-14/PF-05).

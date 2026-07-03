@@ -63,9 +63,9 @@ export interface CursorPos {
 // wire contract (all three specs use identical values).
 
 /** Max length of a `StyleSpan.sgr` parameter string (SPEC-006 §2.8). */
-export const SGR_MAX = 32;
+export const SGR_MAX = 64;
 /** `sgr` MUST match — SGR numeric params only, no ESC/letters (SPEC-103 §2.3.1 rule 3). */
-export const SGR_RE = /^[0-9;:]{1,32}$/;
+export const SGR_RE = /^[0-9;:]{1,64}$/;
 /** Optional per-line run cap (DoS/buffer guard); overflow → drop spans → plain fallback. */
 export const MAX_SPANS_PER_LINE = 256;
 

@@ -95,8 +95,9 @@ interface CursorPos { x: number; y: number; }
 
 // styled 오버레이 상수(확정). charset·길이 bound의 SSOT는 [[SPEC-006-privacy-redaction]] §2.8(mechanism owner);
 //   본 spec은 wire 형식으로 동일 값을 재기술한다(세 spec 문구 일치).
-const SGR_MAX = 32;                 // sgr 파라미터 문자열 최대 길이(가설 상향 여지, 하지만 유한 bound는 확정)
-const SGR_RE = /^[0-9;:]{1,32}$/;   // sgr MUST match. 즉 ^[0-9;:]{1,SGR_MAX}$ (SGR 숫자 파라미터 only, ESC/문자 불가)
+const SGR_MAX = 64;                 // sgr 파라미터 문자열 최대 길이. 64는 truecolor fg+bg+attrs 조합
+                                    //   ("38;2;255;255;255;48;2;255;255;255;1;3;4" ≈ 40자)까지 여유(구현 보정 2026-07-03). 유한 bound는 확정.
+const SGR_RE = /^[0-9;:]{1,64}$/;   // sgr MUST match. 즉 ^[0-9;:]{1,SGR_MAX}$ (SGR 숫자 파라미터 only, ESC/문자 불가)
 const MAX_SPANS_PER_LINE = 256;     // (선택 bound) spans[i] run 개수 상한(가설) — DoS/버퍼 폭주 방지. 초과분은 drop→plain fallback
 
 // Phase 1.5 styled 오버레이(§2.3.1, [[08-Decisions|D-042]]). Phase 1(plain) 프레임에는 존재하지 않는다(spans 부재 = plain).
@@ -156,7 +157,7 @@ Phase 1.5(색 재현)는 `lines`를 바꾸지 않고 **`spans`(선택적 SGR 오
 
 1. **span은 redaction 이후에만 적용된다.** `spans[i]`의 `start`/`end`는 **이미 redacted된 `lines[i]` 문자열**을 인덱싱한다(반열림 `[start, end)`, 단위 = **UTF-16 code unit**, JS `String.prototype.slice` 의미). span은 redacted 산출 위에만 얹히며 raw 텍스트를 참조하지 않는다.
 2. **span은 `[REDACTED:<class>]` 토큰 경계를 가로지르거나 쪼갤 수 없다.** redacted 토큰은 **원자 단위**이며, style span은 그 토큰의 앞/뒤 edge에서 clip된다(토큰 내부를 부분 스타일하지 않는다). 이는 [[SPEC-006-privacy-redaction]] §2.8 step 4 style re-map 규칙과 동일하다.
-3. **`sgr`는 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=32)를 MUST match**한다 — charset `[0-9;:]`·길이 1..SGR_MAX로 유한 제한된 SGR 숫자 파라미터만(예: `"1;31"`, `"38;5;204"`). **임의 텍스트·문자·ESC를 담을 수 없으므로 구조적으로 secret 콘텐츠를 밀반출할 수 없다**(letter가 ESC byte를 안 갖는다는 이유로 escape 검사만 통과시키는 blind spot을 charset 검사가 닫는다). client는 `ESC[<sgr>m … ESC[0m`로만 렌더한다. charset/길이 bound의 mechanism SSOT는 [[SPEC-006-privacy-redaction]] §2.8이며 본 규칙은 그 wire 실현이다.
+3. **`sgr`는 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=64)를 MUST match**한다 — charset `[0-9;:]`·길이 1..SGR_MAX로 유한 제한된 SGR 숫자 파라미터만(예: `"1;31"`, `"38;5;204"`). **임의 텍스트·문자·ESC를 담을 수 없으므로 구조적으로 secret 콘텐츠를 밀반출할 수 없다**(letter가 ESC byte를 안 갖는다는 이유로 escape 검사만 통과시키는 blind spot을 charset 검사가 닫는다). client는 `ESC[<sgr>m … ESC[0m`로만 렌더한다. charset/길이 bound의 mechanism SSOT는 [[SPEC-006-privacy-redaction]] §2.8이며 본 규칙은 그 wire 실현이다.
 4. **wire에는 raw escape sequence가 전혀 실리지 않는다.** 따라서 redaction-before-egress 불변식(T-14/PF-05)은 **프레임 경계에서 구조적으로 검증 가능**하다 — 어떤 secret이 노출되려면 `lines[i]`에 literal로 나타나야 하는데 `lines[i]`는 `sanitizeCapture`를 통과했고, escape가 존재하지 않으므로 escape 안에 숨을 수도 없다. 이것이 (`-e` byte를 그대로 보내는 대신) **spans-over-redacted-plain** 설계를 채택한 이유다.
 5. **styled 프레임도 기존 live view 불변식을 모두 그대로 지킨다.** `WsEnvelope.version = null`(§2.4), `viewSeq` 단조(§2.4), `sanitizeCapture` 단일 chokepoint(§3.4), `redacted`/`byteClamped` 플래그(§2.3) — `spans`는 **additive(추가 전용)** 이며 이 중 어느 것도 바꾸지 않는다. 불변식: `spans` 존재 시 `spans.length === lines.length`(빈 배열 = unstyled 라인). `pane_view` changed-tail(§2.3, Q2)을 실을 때도 `spans`는 그 `lines`와 index 병렬로 정렬된다.
 7. **span 정렬·비중첩(일반 `StyleSpan[][]` 불변식, 두 payload 공통).** 각 `spans[i]` 내부의 run은 **`start` 오름차순 정렬**되고 **서로 겹치지 않는다**: 모든 인접 쌍에 대해 `spans[i][k].end <= spans[i][k+1].start`. 또한 `0 <= start < end <= lines[i].length`(rule 1 offset 범위)이고, `spans[i]`의 run 개수는 `MAX_SPANS_PER_LINE`(가설 256)을 넘지 않는다 — 초과·중복·역순 span은 malformed로 간주해 그 프레임을 plain fallback(§3.4-3, rule 6)한다. 이 불변식은 `pane_view_seed`·`pane_view` 양쪽에 동일하게 적용된다.
@@ -426,7 +427,7 @@ SPEC-103-AC-18 (R-PRIV-008 / R-UI-012 / R-API-006 / [[08-Decisions|D-042]])  [st
            (styled는 spans-over-redacted-plain 표현으로만 실린다),
        (c) 각 spans[i] 내부 run 은 start 오름차순 정렬·비중첩이다(spans[i][k].end <= spans[i][k+1].start),
        (d) spans[i] 의 run 개수는 MAX_SPANS_PER_LINE(가설 256) 이하다,
-       (e) 모든 span 의 sgr 이 정규식 ^[0-9;:]{1,SGR_MAX}$(SGR_MAX=32)를 만족한다
+       (e) 모든 span 의 sgr 이 정규식 ^[0-9;:]{1,SGR_MAX}$(SGR_MAX=64)를 만족한다
            (SGR 숫자 파라미터 only — 임의 텍스트/문자/ESC 불가; tokenizer 버그로 secret 텍스트가 sgr 로 새는 것을 charset 검사가 차단).
 ```
 
@@ -487,7 +488,7 @@ SPEC-103-AC-21 (R-PRIV-008 / [[08-Decisions|D-042]])  [gate-release predicate + 
 - **Q2 — changed-tail vs full-window emit**: `pane_view`가 매 tick 전체 window를 보낼지, 직전 대비 변경 tail만 보낼지(대역폭 vs 렌더 정확도)는 측정으로 결정한다. 어느 쪽이든 redacted 버퍼 상에서만 diff한다(§3.4). **검토 필요.**
 - **Q3 — 탭 가시성 전달 프레임**: MVP는 탭 hidden 시 client `view.detach`/visible 시 재-attach를 권장(§3.3)하나, 전용 가시성 프레임(`view.visibility`)이 더 깔끔한지 [[SPEC-203-terminal-workspace]]와 정합화가 필요하다. 어느 쪽이든 불변식 ④(hidden→폴링 중단)는 유지. **검토 필요.**
 - **Q4 — 이전 orc 화면 LRU 캐시**: [[SPEC-203-terminal-workspace]]가 전환 체감을 위해 이전 pane의 마지막 화면을 client LRU로 잠깐 보존할 수 있다. 그 캐시 텍스트는 이미 redacted 프레임이므로 재-redaction은 불필요하나, 메모리 상한·만료는 SPEC-203이 소유한다(본 spec은 프레임이 이미 redacted임을 보장). **정합 확인.**
-- **Q5 — Phase 1.5 styled 도입 시점 (RESOLVED 2026-07-03 — 형식 확정, 게이트는 SPEC-007 코퍼스 green 대기)**: styled 프레임의 **wire 형식은 §2.3.1로 확정**됐다 — `lines`(redacted plain)는 불변, 선택적 `spans: StyleSpan[][]`(`{start,end,sgr}`, UTF-16 반열림 offset, 정렬·비중첩, `sgr` MUST match `^[0-9;:]{1,SGR_MAX}$` with SGR_MAX=32)를 병렬 오버레이로 추가하며 raw escape byte는 wire에 실리지 않는다(AC-18~21). **unlock predicate**도 §3.4-3으로 확정: (a)[[SPEC-006-privacy-redaction]] §2.8 approved(충족) · (b)[[SPEC-007-test-validation]] `TC-M-STYLED` secret-recall==1.0==plain · (c)runtime self-check(styled redacted plain == plain 산출). 잔여는 (b) styled 코퍼스가 CI에서 green이 되는 것뿐이며, 그전까지 §3.4-2 plain fallback 고정(AC-06). 색 재현의 **저지연 개선**(control mode)은 Q6 forward.
+- **Q5 — Phase 1.5 styled 도입 시점 (RESOLVED 2026-07-03 — 형식 확정, 게이트는 SPEC-007 코퍼스 green 대기)**: styled 프레임의 **wire 형식은 §2.3.1로 확정**됐다 — `lines`(redacted plain)는 불변, 선택적 `spans: StyleSpan[][]`(`{start,end,sgr}`, UTF-16 반열림 offset, 정렬·비중첩, `sgr` MUST match `^[0-9;:]{1,SGR_MAX}$` with SGR_MAX=64)를 병렬 오버레이로 추가하며 raw escape byte는 wire에 실리지 않는다(AC-18~21). **unlock predicate**도 §3.4-3으로 확정: (a)[[SPEC-006-privacy-redaction]] §2.8 approved(충족) · (b)[[SPEC-007-test-validation]] `TC-M-STYLED` secret-recall==1.0==plain · (c)runtime self-check(styled redacted plain == plain 산출). 잔여는 (b) styled 코퍼스가 CI에서 green이 되는 것뿐이며, 그전까지 §3.4-2 plain fallback 고정(AC-06). 색 재현의 **저지연 개선**(control mode)은 Q6 forward.
 - **Q6 — Phase 2 control-mode 확장(forward)**: 저지연(<100ms) push는 `tmux -C attach` 상주 브리지로 개선한다([[08-Decisions|D-041]] (c)). 그 브리지는 tmux 바이너리를 상주 attach하는 **새 subprocess 진입점**이라 `tmuxExec` allowlist 밖이므로, 브리지가 발행하는 명령을 **read-only sub-allowlist**(attach·refresh-client·subscribe류, `send-keys` 금지)로 별도 고정하는 sub-계약을 후속 SPEC이 소유해야 한다. 후속 소유자는 **`SPEC-104-control-mode-bridge`(제안 ID, 미생성)**로 name-placeholder한다(orchestrator가 ID 확정). 본 spec은 Phase 1(폴링) 계약만 확정하고 이를 **forward로 pre-flag**한다.
 - **Q7 — 전역(연결 간) 동시 capture 상한(forward, P2)**: 본 계약은 **연결당** attach 1만 강제하고 여러 연결에 걸친 전역 capture budget은 두지 않는다(§3.8). MVP 단일 local client에선 무해하나, P2 multi-client(remote/team)에서는 tmux 서버 부하 폭주를 막을 전역 상한이 필요하다. [[SPEC-102-realtime-sync]] Q5(subscription scoping)와 함께 후속 슬라이스로 다룬다. **검토 필요(P2).**
 - **Q8 — styled per-frame self-check·tokenize/style-remap hot-path 비용(측정)**: §3.4-3(c)의 **프레임마다** self-check(styled `lines` == steps 2–3 산출 element-wise 비교 + 모든 `sgr` charset/구조 검증)와 §2.8 tokenize→strip→redact→style-remap이 250–500ms 고빈도 경로에서 감당 가능한지 [[SPEC-007-test-validation]] styled 하니스([[SPEC-006-privacy-redaction]] §6 Q7/Q8 공동)로 측정한다. **원칙(확정)**: self-check는 정확성 tripwire이므로 비용이 크더라도 프레임 단위를 완화하지 않고, 필요하면 interval을 늘리거나 changed-tail(Q2)로 검사 범위를 줄이는 방향으로만 보정한다(검사 자체를 건너뛰지 않는다). **검토 필요.**
