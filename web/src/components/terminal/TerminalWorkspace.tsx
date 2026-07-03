@@ -37,6 +37,7 @@ import { QuickSwitcher } from './QuickSwitcher';
 import { ShortcutLegend } from './ShortcutLegend';
 import { useLiveView } from './useLiveView';
 import { useControlMode } from './useControlMode';
+import { useWaitingToasts } from './useWaitingToasts';
 
 export interface TerminalWorkspaceProps {
   campId: string;
@@ -79,6 +80,9 @@ export function TerminalWorkspace({
   const live = useLiveView();
   const controllable = !!orc && orc.status !== 'terminated' && orc.status !== 'stale';
   const [control, actions] = useControlMode(orc, { exposureEnabled, connected, controllable });
+
+  // Orchestration nudge: announce other orcs that flip active→waiting (SPEC-203 §2.9).
+  useWaitingToasts({ orderedIds, orcsById, selectedOrcId, onSelectOrc });
 
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [interruptOpen, setInterruptOpen] = useState(false);
