@@ -105,7 +105,7 @@ tags:
 | R-UI-006 | SPEC-300 / SPEC-202 (배포 SPEC-700, 맵 SPEC-301) | SPEC-202-AC-16/17; SPEC-300-AC-08/09/10/13/16/17/18; SPEC-301-AC-08/10/14/20/22; SPEC-700-AC-06 | C·I | placeholder parity·동일 layout/interaction·맵 uniform scale parity + **image-ground fallback**(배경 이미지→CSS gradient, 빈 화면 회귀 방지). (terrain fallback chain SPEC-300-AC-15는 superseded) |
 | R-UI-007 | SPEC-201 (deep-link SPEC-200, 데이터 SPEC-005) | SPEC-201-AC-08/15; SPEC-200-AC-02; SPEC-202-AC-21; SPEC-005-AC-02/03 | C·U | raw tmux target 상시 노출(dock Details 탭 포함) |
 | R-UI-008 | SPEC-301 (sprite SPEC-300, 데이터 불변 SPEC-005) | SPEC-301-AC-01/02/03/12/14/22/23 | C | 활동을 공간 표현(위치=기존 필드 결정적 함수, 서버 좌표 불추가; [[08-Decisions|D-035]]). image-ground placement·ground-ratio 게이트도 client-derived 결정적 |
-| R-UI-012 | **SPEC-203** (data SPEC-103, dock 공존 SPEC-201, store SPEC-200, a11y SPEC-202) | SPEC-203-AC-01~16; SPEC-201-AC-17/18; SPEC-202-AC-03/04 | C | **Terminal Workspace**(map↔terminal 모드·orc rail·스위칭/퀵스위처·xterm·관전/조종). accepted 2026-07-02([[08-Decisions|D-045]]/[[08-Decisions|D-046]]) |
+| R-UI-012 | **SPEC-203** (data SPEC-103, dock 공존 SPEC-201, store SPEC-200, a11y SPEC-202) | SPEC-203-AC-01~17; SPEC-201-AC-17/18; SPEC-202-AC-03/04 | C | **Terminal Workspace**(map↔terminal 모드·orc rail·스위칭/퀵스위처·xterm·관전/조종). accepted 2026-07-02([[08-Decisions|D-045]]/[[08-Decisions|D-046]]) |
 
 ### 2.5 R-PRIV — Terminal preview·Privacy (1차 [[SPEC-006-privacy-redaction]], R-PRIV-006은 [[SPEC-201-dashboard-screens]]/[[SPEC-500-settings-persistence]]/[[SPEC-101-snapshot-api]])
 

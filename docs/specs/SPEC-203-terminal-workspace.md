@@ -2,7 +2,7 @@
 spec: SPEC-203
 title: Terminal Workspace — terminal 모드 화면·orc rail·스위칭·xterm.js·관전/조종 표시
 status: approved
-updated: 2026-07-02
+updated: 2026-07-03
 requirements: [R-UI-012, R-UI-005, R-UI-007, R-UI-008, R-PRIV-006]
 decisions: [D-045, D-046, D-044, D-043, D-035]
 tags:
@@ -227,6 +227,21 @@ terminal 모드는 [[SPEC-201-dashboard-screens]] §2.6 상태 모델과 §2.7 �
 - **disconnected ≠ stale(확정, 직교)**: [[SPEC-201-dashboard-screens]] §2.6/§3.2와 동일하게 두 상태를 구분 렌더한다. terminal 모드 진입 후 WS가 끊겨도 `loading`으로 복귀하지 않고 마지막 화면 + disconnected overlay를 유지한다.
 - **pane_view_end 매핑(확정, 2026-07-02 리뷰 반영 — [[SPEC-103-pane-live-stream]] §3.2 정합)**: `reason='pane_gone'` → "pane closed"(orc terminated 안내), `reason='detached'`/`'tab_hidden'` → **client가 조건 충족 시 새 `view.attach`를 명시적으로 재발행**(탭 visible + exposure on + focus 시 재-attach; **server auto-resume 없음**, re-attach는 exposure+focus 게이트를 다시 통과), `reason='superseded'` → 다른 attach로 대체됨, `reason='error'` → error 상태(refresh 진입점). 어떤 end도 전체 workspace 장애로 전파되지 않는다(범위 한정, 레이어 C).
 
+### 2.9 waiting-transition 토스트 — orchestration nudge (R-UI-012, [[SPEC-400-control-actions]] §2.11 toast host 재사용, [[SPEC-202-design-accessibility]] §2.4)
+
+terminal 모드에서 한 orc를 조종/관전하는 동안, **다른** orc가 working→needs-input으로 뒤집히면 rail을 뒤지지 않아도 알리는 orchestration nudge다(강조 신호의 2차 채널 — 1차는 §2.3 rail waiting 강조).
+
+- **목적(확정)**: 조작자가 한 orc(=tmux pane)에 집중해 있을 때 **다른** orc의 `active → waiting`(입력 대기) 전이를 rail을 스캔하지 않고도 알아차리게 한다.
+- **트리거(확정, edge-only)**: 어떤 orc의 status가 **`active → waiting`으로 전이**하는 **진짜 edge**일 때만 발화한다. terminal 모드 진입 시점에 이미 `waiting`인 orc는 발화하지 않는다(진입 시 baseline을 seed). `active`가 아닌 선행 상태에서의 전이(예 `idle → waiting`)는 edge가 아니며 발화하지 않는다.
+- **스코프 조건(확정, 모두 충족 AND)**: (a) terminal 모드가 활성(**구조적** — 이 기능은 Terminal Workspace 컴포넌트 안에서만 존재), (b) 전이한 orc가 **현재 선택/조회 중인 orc(`?orc=`)가 아님**(이미 보고 있으므로 알릴 필요 없음).
+- **동작(확정)**: `info` 토스트를 올리고 메시지는 `"<tmuxTarget> is waiting for input"`이며, 클릭 가능한 **"View" 액션 버튼**을 실어 그 orc를 선택한다 — "View"는 별도 selection 경로를 만들지 않고 §2.2/§2.5의 스위칭 수렴점 `onSelectOrc(orcId)`를 거쳐 `?orc=`를 갱신한다(선택 SSOT, 불변식 ①). 재사용하는 것은 **기존에 구현된 글로벌 토스트 표면(`addToast` + toast host)** — [[SPEC-400-control-actions]] §2.11 control-result 토스트도 사용하는 바로 그 host — 의 **렌더 host·`info` severity·`aria-live` 영역뿐**이다.
+- **control-result 의미 비상속(확정, audit/result 분리)**: nudge는 [[SPEC-400-control-actions]] §2.11의 **control-result 의미를 상속하지 않는다** — pessimistic update 없음, **activity-rail / audit event를 생성하지 않는다**. nudge는 **egress-free·비영속·비-audit**이다. **신규 server 요청 0** — 기존 scan/diff status 스트림에서 순수 파생될 뿐이다(egress 없음·폴링 없음, 불변식 ③ 정합).
+- **노이즈 감축(확정, 값 가설)**: per-orc 쿨다운(`WAITING_TOAST_COOLDOWN_MS`, CLIENT 가설, 기본 45s — `TERMINAL_LRU_MAX`처럼 §6 가설로 표기)으로 scan 사이 `active↔waiting`을 flapping하는 orc의 재알림을 억제한다. **첫 edge는 발화**하고, 창 안의 이후 edge는 **억제되며 타이머를 갱신하지 않는다**.
+- **exposure 직교(확정, AC-10 정합)**: nudge는 **status-파생**이라 preview exposure와 **직교**하며, 글로벌 exposure가 off여도 발화할 수 있다 — 메시지는 gated되지 않는 `tmuxTarget` + status 메타만 싣고 **pane 콘텐츠는 절대 싣지 않는다**(노출면 확장 없음, 불변식 ②/③). "View" 클릭은 viewport를 §2.8 exposure-off gated 상태로 수렴시킬 뿐 노출 게이트를 우회하지 않는다.
+- **접근성(확정)**: 기존 토스트의 `aria-live="polite"` / `role=status` 영역을 상속한다. 메시지는 **색-비의존**(텍스트만)이고 "View"는 실제 focusable 버튼(키보드 도달 가능)이다(불변식 ④, [[SPEC-202-design-accessibility]] §2.4 정합).
+- **소유 forward-note(선-기존 gap, write scope 밖)**: 토스트 store-slice(`addToast`)·글로벌 toast host의 소유는 아직 architecture spec에 비준되지 않았다 — [[SPEC-200-frontend-architecture]] §2.4 `UiSlice`에 toast slice가 정의되어 있지 않고, 표면은 구현체에 이미 존재하며 [[SPEC-400-control-actions]] §2.11이 이를 소비한다. 본 spec은 이 표면을 **소비만** 하며, `addToast`/toast host의 store-shape 소유 비준은 [[SPEC-200-frontend-architecture]] 소유자에게 위임한다(본 batch에서 해소하지 않는 **선-기존 gap** — SPEC-200 소유자 추적 대상, §6 C6).
+- **비목표(확정)**: 글로벌/백그라운드 알림 아님(terminal 모드 중에만 동작); 영속화 없음; 기존 토스트 외 추가 사운드/애니메이션 없음.
+
 ## 3. Behavior rules
 
 확정 규칙과 PoC 검증 가설(임계값)을 구분한다([[SPEC-000-conventions]]).
@@ -241,7 +256,7 @@ terminal 모드는 [[SPEC-201-dashboard-screens]] §2.6 상태 모델과 §2.7 �
 8. **detach→attach 전환(확정)**: orc 전환은 workspace 유지 + detach→attach이며 LRU 캐시는 redacted-only·상한·stale 표식(§2.5).
 9. **zero layout shift(확정)**: 모드 전환·스위칭·상태 변화·리사이즈가 layout/scroll을 밀지 않는다(§2.2, [[SPEC-202-design-accessibility]] M3/B6).
 10. **reduced-motion(확정)**: waiting 강조·전환·campfire류 장식 모션은 `prefers-reduced-motion: reduce`에서 정적으로 대체하고 정보는 icon/label 교체로 전달한다(§2.3, [[SPEC-202-design-accessibility]] §2.5).
-11. **상수(가설)**: `TERMINAL_LRU_MAX`(LRU 항목 수)·latency 표식 임계·스위칭 단축키 정확 바인딩·auto-disarm 카운트다운 경고 시점은 **PoC 검증 가설**이다([[SPEC-007-test-validation]]·사용성 검증). `PASSTHROUGH_IDLE_MS`(240s)는 [[SPEC-401-interactive-input]] server 값을 UI가 상속(독자 값 없음).
+11. **상수(가설)**: `TERMINAL_LRU_MAX`(LRU 항목 수)·`WAITING_TOAST_COOLDOWN_MS`(waiting-transition 토스트 per-orc 쿨다운, §2.9)·latency 표식 임계·스위칭 단축키 정확 바인딩·auto-disarm 카운트다운 경고 시점은 **PoC 검증 가설**이다([[SPEC-007-test-validation]]·사용성 검증). `PASSTHROUGH_IDLE_MS`(240s)는 [[SPEC-401-interactive-input]] server 값을 UI가 상속(독자 값 없음).
 
 ## 4. Acceptance criteria
 
@@ -385,17 +400,30 @@ SPEC-203-AC-16 (R-UI-012, 비기능 접근성, [[SPEC-202-design-accessibility]]
        비어있지 않은 accessible name(aria-label / role=status 류)을 가지며, SR 텍스트도 redacted lines 만 노출한다.
 ```
 
+```text
+SPEC-203-AC-17 (R-UI-012, orchestration nudge; [[SPEC-400-control-actions]] §2.11 toast 재사용; [[SPEC-202-design-accessibility]] §2.4) — waiting-transition 토스트
+  Given terminal 모드에서 한 orc 가 선택(?orc=)된 상태에서
+  When 다른 orc 들의 status 전이가 발생하면
+  Then (i) 다른(선택되지 않은) orc 가 active→waiting 으로 전이하면 "View" 액션을 실은 info 토스트가 정확히 하나 뜨고,
+       그 "View" 클릭은 waiting orc 를 선택한다(→ ?orc=),
+       (ii) 현재 조회 중인 orc 자신의 active→waiting 전이는 토스트를 발화하지 않으며,
+       (iii) terminal 모드 진입 시 이미 waiting 이던 orc, 또는 active 가 아닌 상태에서의 전이(idle→waiting)는 발화하지 않고(edge-only),
+       (iv) 동일 orc 가 WAITING_TOAST_COOLDOWN_MS(가설, 기본 45s) 안에서 재알림하려 하면 억제되고,
+       억제된 edge 는 쿨다운 타이머를 연장·리셋하지 않는다(고정 창 — sliding window 구현은 이 AC 를 통과하지 못한다),
+       (v) 신규 server egress 없이 — 알림은 기존 status 스트림의 순수 client 파생이다.
+```
+
 ## 5. Traceability
 
 | 요구사항 | 다루는 방식 | 검증 AC |
 | --- | --- | --- |
-| R-UI-012 | terminal 모드 진입/레이아웃·orc rail·스위칭 4수단+퀵 스위처+LRU·xterm lazy-load·관전/조종 표시·재현 한계·screen reader(전 항목) | SPEC-203-AC-01~AC-16 |
+| R-UI-012 | terminal 모드 진입/레이아웃·orc rail·스위칭 4수단+퀵 스위처+LRU·xterm lazy-load·관전/조종 표시·재현 한계·screen reader·waiting-transition 토스트(전 항목) | SPEC-203-AC-01~AC-17 |
 | R-PRIV-006 | exposure off/`exposure_off` end → gated 상태(raw 미표시), 글로벌 exposure 상속([[08-Decisions|D-044]]), LRU 캐시 exposure-우선 purge | SPEC-203-AC-05, AC-10 |
 | R-UI-005 | terminal-mode 표준 상태 구분(loading/empty/exposure-off/disconnected/stale) + waiting 강조([[SPEC-201-dashboard-screens]] §2.6/§2.7 재사용) | SPEC-203-AC-11, AC-12 |
 | R-UI-007 | raw tmuxTarget+paneId·cwd·mode 상시 노출, 표시 전용 vs 권위 키(orcId) | SPEC-203-AC-03, AC-13 |
 | R-UI-008 (부수) | terminal 모드가 map 모드(공간 status 표현, [[SPEC-301-camp-map-movement]])를 대체 않고 병존·동일 status source | SPEC-203-AC-01 |
 
-> 부수 충족(1차 소유는 타 spec): **R-CTRL-009**(관전/조종 2단계 — server 의미 1차 [[SPEC-401-interactive-input]]; 본 spec은 focus/트랩/`C-c` 라우팅/카운트다운 표시, AC-06/AC-07/AC-08), **R-ORC-005**(status/estimated 사실-단정 금지 — 데이터 1차 [[SPEC-005-data-contract]]; 본 spec은 rail 렌더, AC-12), **비기능 접근성**(색-비의존/키보드/reduced-motion/screen reader — 규칙 1차 [[SPEC-202-design-accessibility]]; 본 spec은 terminal-mode 적용, AC-06/AC-09/AC-12/AC-14/AC-16). 전체 추적 매트릭스 통합은 [[SPEC-900-traceability-rollup]].
+> 부수 충족(1차 소유는 타 spec): **R-CTRL-009**(관전/조종 2단계 — server 의미 1차 [[SPEC-401-interactive-input]]; 본 spec은 focus/트랩/`C-c` 라우팅/카운트다운 표시, AC-06/AC-07/AC-08), **R-ORC-005**(status/estimated 사실-단정 금지 — 데이터 1차 [[SPEC-005-data-contract]]; 본 spec은 rail 렌더, AC-12), **비기능 접근성**(색-비의존/키보드/reduced-motion/screen reader/toast aria-live·focusable action — 규칙 1차 [[SPEC-202-design-accessibility]]; 본 spec은 terminal-mode 적용, AC-06/AC-09/AC-12/AC-14/AC-16/AC-17). 전체 추적 매트릭스 통합은 [[SPEC-900-traceability-rollup]].
 >
 > R-UI-012·[[08-Decisions|D-045]]/[[08-Decisions|D-046]]/[[08-Decisions|D-044]]는 spec-reviewer + 도메인 리뷰(product-ui / security-privacy / tmux-systems) 게이트 통과 후 **2026-07-02 Accepted 승인**됐다(본 spec `approved`).
 
@@ -408,6 +436,7 @@ SPEC-203-AC-16 (R-UI-012, 비기능 접근성, [[SPEC-202-design-accessibility]]
 - **C3 — [[SPEC-200-frontend-architecture]] `layoutMode`·code-split·store 배선 (RESOLVED 2026-07-02)**: [[SPEC-200-frontend-architecture]] §2.3 `UiSlice`에 `layoutMode: 'map' | 'terminal'`가 추가되고 §2.1에 terminal 번들 xterm lazy chunk(code-split, [[08-Decisions|D-046]]) note가 명시되어 계약이 정합화됐다. `?orc=` mirror는 기존 SSOT를 재사용한다(신규 URL param 없음). 잔여 없음.
 - **C4 — [[SPEC-500-settings-persistence]] exposure 재사용**: terminal 모드 attach는 preview와 **동일 글로벌 exposure 설정**을 상속하며([[08-Decisions|D-044]]) 신규 per-pane 저장 필드를 만들지 않는다. SPEC-500과 정합(신규 필드 없음).
 - **C5 — [[18-Terminal-Workspace]]·[[DESIGN]] 청사진 정합(write scope 밖)**: 본 spec은 설계안(§3)을 구현 계약으로 고정했다. DESIGN.md의 3-pane/preview-tab 서술이 terminal 모드를 포함하지 않으므로 orchestrator/user가 DESIGN을 "map 모드 + terminal 모드(xterm workspace)" 병존으로 갱신할 것을 제안한다(직접 수정하지 않음).
+- **C6 — [[SPEC-200-frontend-architecture]] toast store-slice 소유 미비준(선-기존 gap, write scope 밖)**: §2.9 waiting-transition 토스트가 소비하는 글로벌 toast host·`addToast` store action은 구현체에 이미 존재하고 [[SPEC-400-control-actions]] §2.11 control-result 토스트도 이를 사용하나, [[SPEC-200-frontend-architecture]] §2.4 `UiSlice`에는 toast slice가 아직 정의되어 있지 않다. 본 spec은 이 표면을 **소비만** 하고 소유를 주장하지 않는다. `addToast`/toast host의 store-shape 소유 비준은 **SPEC-200 소유자에게 위임**한다(spec-reviewer P1-a; 본 spec/batch write scope 밖 — 직접 수정하지 않음). **SPEC-200 소유자 추적 대상.**
 
 ### Open Questions (검토 필요 / PoC·정합 대상)
 
@@ -416,3 +445,4 @@ SPEC-203-AC-16 (R-UI-012, 비기능 접근성, [[SPEC-202-design-accessibility]]
 - **Q3 — 스위칭/disarm 키 바인딩(해소, 2026-07-02 리뷰 반영)**: S3=`Alt+1..9`(비예약, 브라우저 탭 전환 비충돌)·S4=`Cmd/Ctrl+K`(1차 점프)·`DISARM_KEY=Ctrl+Alt+.`(대안 double-Escape; Escape 단독/C-c/Tab 금지)로 확정했다(§2.5/§2.6). S2 `[`/`]`는 Control 모드에서 rail 포커스일 때만 동작. 남은 것은 사용성 PoC 미세 튜닝(정확 chord 최종 확인)뿐. **PoC 튜닝.**
 - **Q4 — exposure off에서 arm 허용 여부**: [[08-Decisions|D-044]] 글로벌 exposure off이면 viewport가 gated(§2.8)라 화면을 못 보는데 blind arm/타이핑을 허용할지. 본 spec은 exposure off 시 ComposedInput/arm disabled(§2.8)로 **보수적 거부** 1차([[SPEC-401-interactive-input]] §6 Q3와 정합). **검토 필요.**
 - **Q5 — latency 표식 임계·near-real-time 표현**: status bar latency(§2.7) 임계·표현(수치 vs 등급)과 `viewSeq` 기반 지연 산출은 [[SPEC-103-pane-live-stream]] 폴링 주기(`PANE_VIEW_INTERVAL_MS` 250–500ms 가설)와 정합해 [[SPEC-007-test-validation]] 측정으로 보정. **검토 필요.**
+- **Q6 — waiting-transition 토스트 쿨다운(값 가설, 2026-07-03 추가)**: `WAITING_TOAST_COOLDOWN_MS`(per-orc 재알림 억제 창, §2.9/AC-17)는 **미검증 CLIENT 가설**(기본 45s)이다 — `TERMINAL_LRU_MAX`와 동일한 성격으로 PoC 사용성 검증([[SPEC-007-test-validation]])에서 flapping 억제 강도 대 알림 지연의 trade-off를 보정한다. server 값이 아니며 status 스트림의 client 파생이다(egress 없음, 불변식 ③). 또한 쿨다운은 **per-orc**이므로 N개 orc가 **동시에** `active→waiting`으로 전이하면 최대 N개 토스트가 뜰 수 있다 — 글로벌 rate-limit/집계(aggregation, 예 "3 orcs waiting")가 필요한지는 PoC 사용성 질문이다. **PoC 튜닝.**

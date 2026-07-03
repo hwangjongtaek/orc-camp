@@ -9,7 +9,7 @@
  * happens ONLY in Control mode via this container (Observe never traps — Tab escapes, AC-06); the
  * routing decision is delegated to `routeKey` and surfaced through `onKey`.
  */
-import { Suspense, lazy, useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import type { PaneScreen } from '../../realtime/paneView';
 import { renderPane } from '../../realtime/paneView';
 import { routeKey, type KeyRoute } from '../../terminal/passthrough';
@@ -43,6 +43,12 @@ export function TerminalViewport(props: TerminalViewportProps): JSX.Element {
   const armed = controlMode === 'control';
   const modeLabel = armed ? 'CONTROL — armed' : 'Observing';
   const modeIcon = armed ? '⌨' : '👁';
+
+  // On arm, pull focus into the viewport so keystrokes are captured without a manual click
+  // (the container only traps keys while it holds focus). Disarm drops tabIndex → focus releases.
+  useEffect(() => {
+    if (armed) containerRef.current?.focus();
+  }, [armed]);
 
   const onKeyDown = (e: React.KeyboardEvent): void => {
     if (!armed || !props.onKey) return;

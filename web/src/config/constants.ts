@@ -11,3 +11,9 @@ export const TERMINAL_LRU_MAX = 8;
  */
 export const TERMINAL_LATENCY_FRESH_MS = 1500;
 export const TERMINAL_LATENCY_STALE_MS = 4000;
+/**
+ * Reduced-noise cooldown for the waiting-transition toast (SPEC-203 §2.9). An orc that flaps
+ * active↔waiting between scans must not re-announce within this window; the first active→waiting
+ * edge fires, later edges are suppressed until the cooldown lapses.
+ */
+export const WAITING_TOAST_COOLDOWN_MS = 45_000;

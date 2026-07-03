@@ -984,6 +984,21 @@ img {
 .oc-toast--error {
   border-color: var(--oc-color-danger);
 }
+.oc-toast__action {
+  margin-left: auto;
+  flex: none;
+  background: none;
+  border: 1px solid var(--oc-color-accent);
+  border-radius: var(--oc-radius-pixel);
+  color: var(--oc-color-accent);
+  cursor: pointer;
+  font-size: var(--oc-font-size-label);
+  line-height: 1.2;
+  padding: 2px var(--oc-space-2);
+}
+.oc-toast__action:hover {
+  background: color-mix(in srgb, var(--oc-color-accent) 15%, transparent);
+}
 .oc-toast__close {
   background: none;
   border: none;

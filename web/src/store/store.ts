@@ -93,10 +93,16 @@ export interface UiSlice {
 }
 
 export type ToastSeverity = 'info' | 'warn' | 'error';
+/** An optional inline action rendered as a button on a toast (e.g. "View" → select an orc). */
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
 export interface Toast {
   id: string;
   severity: ToastSeverity;
   message: string;
+  action?: ToastAction;
 }
 
 /**
@@ -151,7 +157,7 @@ export interface StoreState {
   // --- misc ---
   setSettings: (settings: SettingsResponse | null) => void;
   setReducedMotion: (value: boolean) => void;
-  addToast: (severity: ToastSeverity, message: string) => string;
+  addToast: (severity: ToastSeverity, message: string, action?: ToastAction) => string;
   dismissToast: (id: string) => void;
 }
 
@@ -334,9 +340,9 @@ export const useStore = create<StoreState>()((set, get) => ({
   setSettings: (settings) => set({ settings }),
   setReducedMotion: (reducedMotion) => set({ reducedMotion }),
 
-  addToast: (severity, message) => {
+  addToast: (severity, message, action) => {
     const id = `t${++toastSeq}`;
-    set((state) => ({ toasts: [...state.toasts, { id, severity, message }] }));
+    set((state) => ({ toasts: [...state.toasts, { id, severity, message, action }] }));
     return id;
   },
   dismissToast: (id) => {

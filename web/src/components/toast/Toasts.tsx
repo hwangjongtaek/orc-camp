@@ -32,6 +32,17 @@ function ToastItem({ toast }: { toast: Toast }): JSX.Element {
       role={toast.severity === 'error' ? 'alert' : 'status'}
     >
       <span>{toast.message}</span>
+      {toast.action && (
+        <button
+          className="oc-toast__action"
+          onClick={() => {
+            toast.action!.onClick();
+            dismiss(toast.id);
+          }}
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         className="oc-toast__close"
         aria-label="Dismiss notification"
