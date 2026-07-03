@@ -13,6 +13,8 @@ import { isAllowedOrigin, type SecurityConfig } from './security';
 import { tokensEqual } from './token';
 import { parseViewControlFrame } from './live-view';
 import { PaneViewSession, type LiveViewHost, type LiveViewSend } from './pane-view';
+import { ControlModeBridge, buildBridgeArgv, type BridgeDeadReason } from './bridge';
+import type { NewActivity } from './activity';
 
 export const DEFAULT_HEARTBEAT_MS = 15_000;
 
@@ -122,6 +124,55 @@ function handleConnection(ws: WebSocket, req: IncomingMessage, cfg: WsConfig, he
     now: cfg.now,
   };
   const liveView = new PaneViewSession(host, sendLive);
+
+  // SPEC-104 — optional control-mode bridge (opt-in, DEFAULT OFF). The bridge is a
+  // low-latency TRIGGER only; on any failure the session silently falls back to
+  // SPEC-103 polling (D-049). Lifecycle is per-attach.
+  const MAX_BRIDGE_RESTARTS = 3;
+  let bridge: ControlModeBridge | null = null;
+  let bridgeRestart: { clear: () => void } | null = null;
+  let bridgeAttempts = 0;
+  const bridgeAudit = (code: string, orcId: string, severity: 'info' | 'warn', reason?: string): NewActivity => ({
+    type: 'live.bridge', severity, code, target: { orcId }, message: `bridge ${code}`, ...(reason ? { detail: { reason } } : {}),
+  });
+  const teardownBridge = (): void => {
+    if (bridgeRestart) { bridgeRestart.clear(); bridgeRestart = null; }
+    if (bridge) { bridge.dispose(); bridge = null; }
+    bridgeAttempts = 0;
+    liveView.disarmExternal();
+  };
+  const spawnBridge = (orcId: string): void => {
+    if (!cfg.runtime.liveBridgeEnabled()) return;
+    const spawn = cfg.runtime.bridgeSpawn();
+    const sessionTarget = cfg.runtime.bridgeSessionTargetFor(orcId);
+    if (spawn === null || sessionTarget === null) return;
+    if (liveView.attachedPaneId() === null) return; // attach ended before we spawned
+    const argv = buildBridgeArgv(cfg.runtime.bridgeSocketArgs(), sessionTarget);
+    const onDead = (reason: BridgeDeadReason): void => {
+      bridge = null;
+      liveView.disarmExternal(); // atomic handoff back to polling — client sees nothing
+      cfg.runtime.recordActivity(bridgeAudit('control.bridge_fallback', orcId, 'warn', reason));
+      if (liveView.attachedPaneId() !== null && bridgeAttempts < MAX_BRIDGE_RESTARTS) {
+        bridgeAttempts += 1;
+        const delay = 250 * 2 ** (bridgeAttempts - 1); // bounded backoff; polling runs throughout
+        const tt = setTimeout(() => { bridgeRestart = null; spawnBridge(orcId); }, delay);
+        if (typeof tt.unref === 'function') tt.unref();
+        bridgeRestart = { clear: () => clearTimeout(tt) };
+      }
+    };
+    try {
+      bridge = new ControlModeBridge(spawn, argv, {
+        onStart: () => cfg.runtime.recordActivity(bridgeAudit('control.bridge_started', orcId, 'info')),
+        onDirty: (paneId) => { if (paneId === liveView.attachedPaneId()) liveView.requestCapture(); },
+        onLayoutChange: () => { if (liveView.attachedPaneId() !== null) liveView.requestCapture(); },
+        onDead,
+      });
+      liveView.armExternal(); // disarm interval polling — bridge drives the cadence
+    } catch {
+      bridge = null; // spawn failed → stay on polling (never armed)
+    }
+  };
+
   ws.on('message', (data) => {
     let msg: unknown;
     try {
@@ -131,13 +182,21 @@ function handleConnection(ws: WebSocket, req: IncomingMessage, cfg: WsConfig, he
     }
     const frame = parseViewControlFrame(msg);
     if (frame === null) return; // not a live-view control frame
-    if (frame.type === 'view.attach') void liveView.onAttach(frame.orcId);
-    else liveView.onDetach(frame.orcId);
+    if (frame.type === 'view.attach') {
+      teardownBridge(); // supersede any bridge for the previous attach
+      void liveView.onAttach(frame.orcId).then(() => {
+        if (liveView.attachedPaneId() !== null) spawnBridge(frame.orcId);
+      });
+    } else {
+      teardownBridge();
+      liveView.onDetach(frame.orcId);
+    }
   });
 
   const cleanup = (): void => {
     unsub();
     clearInterval(hb);
+    teardownBridge();
     liveView.dispose();
   };
   ws.on('close', cleanup);

@@ -19,6 +19,7 @@ export type ActivityType =
   | 'orc.terminated'
   | 'control.result'
   | 'control.passthrough_session' // SPEC-401 §2.9 — arm-session summary (per-keystroke never emitted)
+  | 'live.bridge' // SPEC-104 §2.9 — control-mode bridge lifecycle (start/fallback/stop; no raw content)
   | 'tmux.error'
   | 'connection.disconnected'
   | 'connection.reconnected'

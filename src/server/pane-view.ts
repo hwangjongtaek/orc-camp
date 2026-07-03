@@ -155,6 +155,7 @@ export type LiveViewSend = (
 export interface PaneViewSessionOptions {
   intervalMs?: number;
   maxFailures?: number;
+  minIntervalMs?: number; // SPEC-104 §2.8 bridge min-capture floor (external-trigger mode)
   setTimer?: (fn: () => void, ms: number) => { clear: () => void }; // injectable for tests
 }
 
@@ -176,8 +177,14 @@ export class PaneViewSession {
   private viewSeq = 0;
   private failCount = 0;
   private timer: { clear: () => void } | null = null;
+  // SPEC-104 §2.5/§2.8 — single capture scheduler + external (bridge) trigger source.
+  private externalArmed = false; // bridge drives the cadence → interval polling disarmed
+  private capturing = false; // at-most-one in-flight capture (coalesce guard)
+  private pending = false; // a dirty signal arrived while capturing → capture once more
+  private lastCaptureAt = 0; // min-interval floor for external triggers
   private readonly intervalMs: number;
   private readonly maxFailures: number;
+  private readonly minIntervalMs: number;
   private readonly setTimer: (fn: () => void, ms: number) => { clear: () => void };
 
   constructor(
@@ -187,7 +194,44 @@ export class PaneViewSession {
   ) {
     this.intervalMs = opts.intervalMs ?? PANE_VIEW_INTERVAL_MS;
     this.maxFailures = opts.maxFailures ?? MAX_VIEW_CAPTURE_FAILURES;
+    this.minIntervalMs = opts.minIntervalMs ?? 60;
     this.setTimer = opts.setTimer ?? defaultSetTimer;
+  }
+
+  /**
+   * SPEC-104 §2.5 atomic handoff — arm the bridge (external) trigger source: disarm
+   * interval polling; captures now come from `requestCapture()`. Idempotent. The
+   * attach/viewSeq/session are UNCHANGED (§2.6, no re-attach, no seed re-send).
+   */
+  armExternal(): void {
+    if (this.externalArmed) return;
+    this.externalArmed = true;
+    this.clearTimer(); // stop interval polling (single scheduler)
+  }
+
+  /** SPEC-104 §2.5 — bridge died: resume interval polling. viewSeq stays monotonic. */
+  disarmExternal(): void {
+    if (!this.externalArmed) return;
+    this.externalArmed = false;
+    this.pending = false;
+    if (this.orcId !== null && !this.capturing) this.scheduleNext();
+  }
+
+  /**
+   * SPEC-104 §2.3/§2.8 — a bridge dirty-signal for the attached pane requests a
+   * capture. at-most-one in-flight (coalesce via `pending`), and never below the
+   * min-interval floor (deferred to the boundary). Only effective while armed.
+   */
+  requestCapture(): void {
+    if (!this.externalArmed || this.orcId === null) return;
+    if (this.capturing) { this.pending = true; return; } // coalesce-to-latest
+    const elapsed = this.host.now().getTime() - this.lastCaptureAt;
+    if (elapsed < this.minIntervalMs) {
+      this.clearTimer();
+      this.timer = this.setTimer(() => void this.tick(), this.minIntervalMs - elapsed); // one deferred
+      return;
+    }
+    void this.tick();
   }
 
   /** `view.attach {orcId}` — reject with pane_view_end, or seed + start polling. */
@@ -211,6 +255,11 @@ export class PaneViewSession {
     this.scheduleNext();
   }
 
+  /** The paneId this session is currently attached to (for bridge dirty routing), or null. */
+  attachedPaneId(): string | null {
+    return this.paneId;
+  }
+
   /** `view.detach {orcId}` — stop + end(detached); no-op if not attached to that orc. */
   onDetach(orcId: string): void {
     if (this.orcId !== orcId) return; // §3.3 no-op
@@ -222,34 +271,62 @@ export class PaneViewSession {
     this.clearTimer();
     this.orcId = null;
     this.paneId = null;
+    this.externalArmed = false;
+    this.pending = false;
   }
 
   private scheduleNext(): void {
+    if (this.externalArmed) return; // bridge drives the cadence — no interval polling
     this.clearTimer();
     this.timer = this.setTimer(() => void this.tick(), this.intervalMs);
   }
 
   private async tick(): Promise<void> {
+    if (this.capturing) return; // at-most-one in-flight (external requestCapture also guards)
     const orcId = this.orcId;
     const paneId = this.paneId;
     if (orcId === null || paneId === null) return;
     if (!this.host.exposureEnabled()) return this.endAndStop('exposure_off'); // gate broke (§3.2)
 
-    const cap = await this.host.capture(paneId);
+    this.capturing = true;
+    let cap;
+    try {
+      cap = await this.host.capture(paneId);
+    } finally {
+      this.capturing = false;
+      this.lastCaptureAt = this.host.now().getTime();
+    }
     if (this.orcId !== orcId || this.paneId !== paneId) return; // detached/superseded during await
 
     if (!cap.ok) {
       if (cap.kind === 'gone') return this.endAndStop('pane_gone');
       this.failCount += 1;
       if (this.failCount >= this.maxFailures) return this.endAndStop('error');
-      this.scheduleNext(); // transient: skip this tick's frame, keep polling
+      this.afterCapture(true); // transient: skip this tick's frame
       return;
     }
 
     this.failCount = 0;
     this.viewSeq += 1;
     this.send('pane_view', this.viewFrom(orcId, cap, this.viewSeq));
-    this.scheduleNext();
+    this.afterCapture(false);
+  }
+
+  /** Schedule the next capture: interval polling, or (external) a deferred retry on
+   * transient failure / drain a coalesced dirty signal. */
+  private afterCapture(transientFailure: boolean): void {
+    if (!this.externalArmed) {
+      this.scheduleNext();
+      return;
+    }
+    if (transientFailure) {
+      // No new dirty signal may arrive on a stuck pane — keep failure progress bounded.
+      this.clearTimer();
+      this.timer = this.setTimer(() => void this.tick(), this.intervalMs);
+    } else if (this.pending) {
+      this.pending = false;
+      this.requestCapture(); // drain the coalesced dirty (respects min-interval)
+    }
   }
 
   private endAndStop(reason: PaneViewEndReason): void {
@@ -257,6 +334,7 @@ export class PaneViewSession {
     this.clearTimer();
     this.orcId = null;
     this.paneId = null;
+    this.pending = false; // external re-arm happens on the next attach (WS layer)
     if (orcId !== null) this.emitEnd(orcId, reason);
   }
 

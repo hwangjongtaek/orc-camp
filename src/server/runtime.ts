@@ -9,6 +9,7 @@
  */
 import { PREVIEW_LINES, type AgentType, type Camp, type Orc, type ScanResult } from '../types';
 import { capturePaneView, type PaneViewCapture } from './pane-view';
+import type { SpawnBridgeFn } from './bridge';
 import { ScanRunner, type ScanRuntimeDeps } from '../scan';
 import { collectInventory } from '../tmux/inventory';
 import { diffSnapshots, snapshotChanged, type DiffEvent } from './diff';
@@ -236,6 +237,26 @@ export class SnapshotRuntime {
       },
       paneId,
     );
+  }
+
+  // --- SPEC-104 control-mode bridge (opt-in low-latency trigger; DEFAULT OFF) ---
+
+  /** True iff the bridge is opt-in AND a spawner is wired (§2.7 coexist default). */
+  liveBridgeEnabled(): boolean {
+    return this.opts.deps.liveViewBridge === true && this.opts.deps.spawnBridge !== undefined;
+  }
+  bridgeSpawn(): SpawnBridgeFn | null {
+    return this.opts.deps.spawnBridge ?? null;
+  }
+  /** §2.2 P1-F — must equal tmuxExec's socket specifier (default [] = default socket). */
+  bridgeSocketArgs(): string[] {
+    return this.opts.deps.bridgeSocketArgs ?? [];
+  }
+  /** The tmux session id to attach the bridge to for `orcId` (from its camp), or null. */
+  bridgeSessionTargetFor(orcId: string): string | null {
+    if (this.published === null) return null;
+    const camp = this.published.camps.find((c) => c.orcs.some((o) => o.id === orcId));
+    return camp ? camp.id.slice('session:'.length) : null; // "session:$0" → "$0"
   }
 
   // --- read accessors ---

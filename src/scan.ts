@@ -35,6 +35,7 @@ import { assembleScanResult } from './assemble';
 import { tmuxExec as defaultTmuxExec, safeSpawn } from './tmux/exec';
 import { makeProcessSnapshot } from './tmux/introspect';
 import { redact, sanitizeCapture, sanitizeStyledCapture, type StyledCapture } from './redaction/redact';
+import { makeBridgeSpawn, type SpawnBridgeFn } from './server/bridge';
 import { detectOrc as defaultDetectOrc, defaultDetectors } from './detection/detect';
 import { inferStatus as defaultInferStatus } from './status/infer';
 import { makeUsageCollector } from './usage/collect';
@@ -47,6 +48,12 @@ export interface ScanRuntimeDeps {
   // `liveViewStyled` is the gate flag; `sanitizeStyled` the SPEC-006 §2.8 producer.
   liveViewStyled?: boolean;
   sanitizeStyled?: (rawE: string) => StyledCapture;
+  // SPEC-104 Phase 2 control-mode bridge (opt-in low-latency trigger; DEFAULT OFF).
+  // `liveViewBridge` is the gate flag; `spawnBridge` the resident tmux -C spawner;
+  // `bridgeSocketArgs` must equal tmuxExec's -L/-S (P1-F, default [] = default socket).
+  liveViewBridge?: boolean;
+  spawnBridge?: SpawnBridgeFn;
+  bridgeSocketArgs?: string[];
   redact: RedactFn;
   detectOrc: DetectOrcFn;
   inferStatus: InferStatusFn;
@@ -69,6 +76,9 @@ export function createDefaultDeps(spawn: ProcessSpawn = safeSpawn): ScanRuntimeD
     // (span charset/structure violation → null → plain fail-safe). Enabled by default.
     liveViewStyled: true,
     sanitizeStyled: sanitizeStyledCapture,
+    // SPEC-104 bridge spawner is wired but the gate flag stays OFF (opt-in, D-049);
+    // the settings/CLI gate to flip liveViewBridge is forward (SPEC-104 §6 Q2).
+    spawnBridge: makeBridgeSpawn(),
     redact,
     detectOrc: defaultDetectOrc,
     inferStatus: defaultInferStatus,

@@ -125,6 +125,9 @@ export interface DoctorDiagnostics {
   installHealth: InstallHealth;
   log: LogPathDetail;
   recentErrors: { windowEntries: number; counts: { error: number; warn: number }; lastErrorAt: string | null; topCodes: { code: string; count: number }[] };
+  // SPEC-104 §2.9 / §6 Q3 — control-mode bridge advisory (non-exit-bearing). The
+  // bridge is opt-in DEFAULT OFF; live view works fully on SPEC-103 polling either way.
+  liveView: { controlModeBridge: 'off (opt-in — SPEC-104)'; tmuxControlModeAvailable: boolean };
 }
 
 /** Node major floor mirrored from package.json#engines.node (SPEC-700 §2.2). */
@@ -198,6 +201,7 @@ export async function buildDiagnostics(opts: DoctorOptions = {}): Promise<Doctor
     installHealth: buildInstallHealth(env),
     log: { path: dl.path(), writable: checkWritableDir(sdir).ok, sizeBytes: dl.sizeBytes(), level: dl.getLevel(), rotation: dl.rotation() },
     recentErrors: { windowEntries: entries.length, counts, lastErrorAt, topCodes },
+    liveView: { controlModeBridge: 'off (opt-in — SPEC-104)', tmuxControlModeAvailable: tmuxVersion !== null },
   };
 }
 

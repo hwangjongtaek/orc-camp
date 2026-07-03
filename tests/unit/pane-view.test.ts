@@ -133,7 +133,7 @@ const okCap = (over: Partial<Extract<PaneViewCapture, { ok: true }>> = {}): Pane
   ok: true, cols: 80, rows: 24, cursor: { x: 0, y: 0 }, lines: ['a'], redacted: false, byteClamped: false, ...over,
 });
 
-function harness(hostOver: Partial<LiveViewHost> = {}) {
+function harness(hostOver: Partial<LiveViewHost> = {}, sessionOpts: { minIntervalMs?: number } = {}) {
   const frames: Frame[] = [];
   let scheduled: (() => void) | null = null;
   const host: LiveViewHost = {
@@ -144,6 +144,7 @@ function harness(hostOver: Partial<LiveViewHost> = {}) {
     ...hostOver,
   };
   const session = new PaneViewSession(host, (type, payload) => frames.push({ type, payload }), {
+    ...sessionOpts,
     setTimer: (fn) => {
       scheduled = fn;
       return { clear: () => { scheduled = null; } };
@@ -243,5 +244,70 @@ describe('PaneViewSession (SPEC-103 §2.2/§2.3/§3)', () => {
     expect(hasPending()).toBe(false);
     await runTick();
     expect(frames.map((f) => f.type)).toEqual(['pane_view_seed']); // nothing after dispose
+  });
+});
+
+describe('PaneViewSession — external (bridge) trigger + handoff (SPEC-104 §2.5/§2.6)', () => {
+  const drain = (): Promise<void> => new Promise((r) => setImmediate(r));
+
+  it('armExternal disarms interval polling; requestCapture drives captures', async () => {
+    const { frames, session, hasPending } = harness();
+    await session.onAttach('pane:%10');
+    expect(hasPending()).toBe(true); // interval polling armed
+    session.armExternal();
+    expect(hasPending()).toBe(false); // disarmed — bridge drives (single scheduler)
+    session.requestCapture();
+    await drain();
+    expect(frames.map((f) => f.type)).toEqual(['pane_view_seed', 'pane_view']);
+    expect(frames[1]?.payload.viewSeq).toBe(1);
+  });
+
+  it('viewSeq stays monotonic across bridge→polling fallback (no re-attach, no seed re-send)', async () => {
+    const { frames, session, runTick } = harness();
+    await session.onAttach('pane:%10');
+    session.armExternal();
+    session.requestCapture();
+    await drain(); // bridge-triggered viewSeq=1
+    session.disarmExternal(); // bridge died → resume polling
+    await runTick(); // polling-triggered viewSeq=2
+    expect(frames.map((f) => f.type)).toEqual(['pane_view_seed', 'pane_view', 'pane_view']);
+    expect(frames.map((f) => f.payload.viewSeq)).toEqual([0, 1, 2]); // monotonic; NO reset to 0
+  });
+
+  it('requestCapture below the min-interval floor is deferred (backpressure), then fires', async () => {
+    const { frames, session, runTick, hasPending } = harness(); // fixed clock → 2nd request is within floor
+    await session.onAttach('pane:%10');
+    session.armExternal();
+    session.requestCapture();
+    await drain(); // viewSeq=1, lastCaptureAt=now
+    session.requestCapture(); // same instant → below floor → deferred
+    expect(hasPending()).toBe(true);
+    await runTick(); // deferred fires
+    expect(frames.map((f) => f.payload.viewSeq)).toEqual([0, 1, 2]);
+  });
+
+  it('coalesces concurrent dirty signals while a capture is in-flight (at-most-one pending)', async () => {
+    let calls = 0;
+    const resolvers: Array<() => void> = [];
+    const { frames, session } = harness({
+      capture: async () => {
+        calls += 1;
+        if (calls === 1) return okCap(); // seed resolves immediately
+        await new Promise<void>((r) => resolvers.push(r)); // external captures gate on release
+        return okCap();
+      },
+    }, { minIntervalMs: 0 }); // isolate coalesce from the min-interval floor
+    await session.onAttach('pane:%10'); // seed (calls=1)
+    session.armExternal();
+    session.requestCapture(); // capture #2 starts, in-flight
+    await drain();
+    session.requestCapture(); // in-flight → pending
+    session.requestCapture(); // in-flight → still just pending (coalesced to one)
+    resolvers[0]!(); // finish #2 → viewSeq 1, then drains the single pending → capture #3
+    await drain(); await drain();
+    resolvers[1]!(); // finish #3 → viewSeq 2
+    await drain();
+    expect(calls).toBe(3); // 1 seed + 2 captures (3 dirty signals → 1 extra capture)
+    expect(frames.filter((f) => f.type === 'pane_view').map((f) => f.payload.viewSeq)).toEqual([1, 2]);
   });
 });
