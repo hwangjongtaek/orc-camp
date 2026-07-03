@@ -15,6 +15,7 @@ import { createHttpServer } from './http';
 import { bindWithFallback, PREFERRED_PORT, isLoopback } from './net';
 import { generateToken } from './token';
 import { ControlService, makeControlExec } from './control';
+import { BroadcastService } from './broadcast';
 import { PassthroughService } from './passthrough';
 import { safeSpawn } from '../tmux/exec';
 import { SettingsStore, resolveConfigDir, resolveStateDir } from './settings';
@@ -74,13 +75,14 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
   const runtime = new SnapshotRuntime({ deps, settings: store, runtimeEpoch, now, debugLog });
   const passthrough = new PassthroughService(runtime, now); // SPEC-401 arm-session manager
   const control = new ControlService(runtime, makeControlExec(opts.controlSpawn ?? safeSpawn), now, passthrough);
+  const broadcast = new BroadcastService(runtime, control, now); // SPEC-402 orchestration (reuses control gate)
   const security: SecurityConfig = {
     host,
     port: preferred,
     allowExternal: opts.allowExternal ?? false,
     devOrigins: opts.devOrigins ?? DEV_ORIGINS,
   };
-  const server = createHttpServer({ runtime, security, token, now, settings: store, control, passthrough, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
+  const server = createHttpServer({ runtime, security, token, now, settings: store, control, broadcast, passthrough, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
 
   const { port, fellBack } = await bindWithFallback(server, host, preferred, opts.explicitPort ?? false);
   security.port = port; // fix CORS/Host to the actual port (single source, §3.4)

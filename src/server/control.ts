@@ -24,7 +24,7 @@ export const MAX_INPUT_BYTES = 4 * 1024;
 // confirm. Reject them (AC-20). Newline/Tab included: submit uses the Enter key
 // template, and Tab goes via /key — literal text carries none of these.
 // eslint-disable-next-line no-control-regex
-const CONTROL_BYTE_RE = /[\x00-\x1f\x7f]/;
+export const CONTROL_BYTE_RE = /[\x00-\x1f\x7f]/;
 
 export const KEY_ALLOWLIST = new Set([
   'Enter', 'Tab', 'BTab', 'Escape', 'Space', 'BSpace',

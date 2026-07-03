@@ -18,6 +18,7 @@ import { bearerFromAuthHeader, tokensEqual } from './token';
 import { attachWebSocket } from './ws';
 import type { SettingsStore } from './settings';
 import type { ControlService, ControlAction } from './control';
+import type { BroadcastService } from './broadcast';
 import type { PassthroughService, ExpectedTarget } from './passthrough';
 import type { ApiError } from './types';
 
@@ -30,6 +31,7 @@ export interface HttpConfig {
   security: SecurityConfig;
   settings: SettingsStore;
   control: ControlService;
+  broadcast: BroadcastService;
   passthrough: PassthroughService;
   token: string;
   now: () => Date;
@@ -181,6 +183,26 @@ async function handle(req: IncomingMessage, res: ServerResponse, cfg: HttpConfig
       emittedAt: cfg.now().toISOString(),
       data: camp,
     }, { ...corsHeaders, ETag: `"${runtime.snapshotVersion}"` });
+    return;
+  }
+
+  // SPEC-402 broadcast (state-changing; behind the auth gate above). length 3.
+  if (route[0] === 'camps' && route.length === 3 && route[2] === 'broadcast') {
+    if (method !== 'POST') return methodNotAllowed(res, requestId, corsHeaders);
+    const campId = decode(route[1]!);
+    if (!CAMP_ID_RE.test(campId)) {
+      sendError(res, 400, 'bad_request', 'invalid camp id', requestId, undefined, corsHeaders);
+      return;
+    }
+    let body: unknown;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      sendError(res, 400, 'bad_request', 'invalid JSON body', requestId, undefined, corsHeaders);
+      return;
+    }
+    const result = await cfg.broadcast.handle(campId, body);
+    sendJson(res, result.status, result.body, corsHeaders);
     return;
   }
 

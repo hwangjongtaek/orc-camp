@@ -39,12 +39,19 @@ export interface ActivityDetail {
   durationMs?: number;
   fromStatus?: string;
   toStatus?: string;
-  action?: 'input' | 'key' | 'interrupt';
+  action?: 'input' | 'key' | 'interrupt' | 'broadcast';
   controlOutcome?: 'success' | 'partial' | 'aborted' | 'failed';
   reason?: string;
   keyName?: string;
   inputByteLength?: number;
   inputRedactedFlag?: boolean;
+  // SPEC-402 §2.7 / SPEC-600 — control.broadcast batch aggregate scalars ONLY.
+  // Never the broadcast command text / key sequence / token. perOrc = structural
+  // identifiers + result only (orcId, ok, errorCode).
+  targetCount?: number;
+  successCount?: number;
+  failureCount?: number;
+  perOrc?: Array<{ orcId: string; ok: boolean; errorCode: string | null }>;
   // SPEC-401 §2.9 / SPEC-600 §2.1 — control.passthrough_session aggregate scalars ONLY.
   // Never any raw keystroke / literal text / key sequence / token.
   keystrokeCount?: number;
