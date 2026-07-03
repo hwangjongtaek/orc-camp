@@ -169,3 +169,40 @@ tags:
 - 폴링 주기/attach 상한의 구체 수치와 tmux 서버 부하 실측 방법 (qa-test-strategist 하니스).
 - xterm.js 도입 시 번들 크기·라이선스(MIT) — "런타임 의존성 최소" 원칙과의 조율(web SPA 측 의존이므로 CLI 원칙과는 별개임을 명시).
 - 이전 오크 화면 LRU 캐시의 메모리 상한과 redaction 재적용 여부.
+
+## 8. Phase 2/3 Spec 작성 위임 브리프 (→ opus-1 세션, 2026-07-03)
+
+> **전제(완료 상태)**: Phase 1([[SPEC-103-pane-live-stream]]·[[SPEC-203-terminal-workspace]]·[[SPEC-401-interactive-input]], D-041~D-046)과 Phase 1.5 styled(SPEC-103 §2.3.1 spans-over-redacted-plain, [[SPEC-006-privacy-redaction]] §2.8, [[08-Decisions|D-042]] 게이트 해소)는 **구현·라이브 실증·main 머지 완료**다. §5의 P0 중 1(ANSI)·3(passthrough)·5(재현 수준)은 해소됐고, 2(read-only 재정의)의 브리지 부분이 Phase 2로 이월돼 있다([[08-Decisions|D-041]] (c) forward, SPEC-103 §6 Q6). 본 절은 남은 두 축의 spec 위임 브리프다.
+
+### 신규 spec
+
+| ID(제안) | 범위 | 참조 |
+| --- | --- | --- |
+| **SPEC-104-control-mode-bridge** (SPEC-103 §6 Q6의 name-placeholder 확정) | `tmux -C attach` 상주 브리지의 read-only sub-계약: 브리지가 발행 가능한 명령 sub-allowlist(초기 attach·refresh-client·subscribe류만, `send-keys` 등 write 전면 금지)와 그 **강제 지점**(브리지 stdin 단일 writer), 수명주기(기동/crash/tmux 재시작 감지), **폴링 fallback**(실패 시 SPEC-103 경로로 silent degrade — 클라 무변경), 부하/백프레셔(`%output` 폭주 coalescing), audit | §4 Phase 2, §5.2 |
+| **SPEC-402-orchestration** (또는 SPEC-400 §확장) | broadcast: 대상 orc 집합 선택 → **단일 confirm(대상 목록 명시)** → per-orc 순차 실행(기존 single-writer 유지) + 결과 집계(성공/실패 per orc), audit(`control.broadcast` batch), 대상 필터(waiting만/active 전체 등), 프롬프트 템플릿은 scope 판정(P1 이월 가능) | §4 Phase 3 |
+
+### P0 결정 필요 (D-047+)
+
+1. **브리지 redaction 경계**: `%output`은 escape 포함 **chunk 스트림**이라 secret이 chunk 경계에서 쪼개질 수 있다(Phase 1은 매 tick 전체 window 재캡처라 무풍). 후보: (a) **하이브리드(권장 검토): `%output`을 dirty-signal로만 쓰고 실제 프레임은 기존 `capture-pane` 경로 유지** — 레이턴시는 폴링→이벤트 트리거로 <100ms 달성하면서 redaction 경로·wire 계약(§2.3.1) 완전 불변, (b) 라인-완성 버퍼링 후 line 단위 `sanitizeStyledCapture`, (c) 화면 상태 재구성 후 sanitize. security-privacy-engineer 검토 필수 — **이 결정이 SPEC-104의 게이트**.
+2. **브리지 read-only sub-allowlist**: 구체 명령 세트와 위반 시 fail-close(브리지 즉시 종료→폴링 fallback) 계약. 상주 subprocess는 `tmuxExec` allowlist 밖의 **새 진입점**이므로 별도 강제 메커니즘이 필요하다.
+3. **broadcast 경로 vs arm 모델**: passthrough arm은 연결당 1 pane([[08-Decisions|D-041]])이다. broadcast는 (a) **composed-input(폼) 경로만 사용(권장)** — arm/passthrough 무관, 기존 `POST /input` per-orc + 재검증(expected) 재사용, 오폭 위험 최소, (b) multi-arm 실시간 전파 — **비권장/forward pre-flag**(파괴 반경 큼). 결정으로 고정할 것.
+4. **broadcast confirm·audit 계약**: 대상 N≥2일 때 confirm 필드(대상 목록·agentType·command), 부분 실패 시 중단 vs 계속, audit 스키마(원문 비저장 원칙 유지 — byteLength/대상 수/실패 수만).
+
+### 개정
+
+- **SPEC-103**: §6 Q6 해소(브리지가 동일 `pane_view_seed`/`pane_view`/`pane_view_end` 프레임을 발행 — wire 계약 불변이 목표), fallback 전환 시 viewSeq/재-attach 의미.
+- **SPEC-006**: §2.8 입력이 스트림일 때의 적용 노트(P0-1 결정 반영; 하이브리드 채택 시 "변경 없음" 명시로 충분).
+- **SPEC-401/400**: broadcast가 재사용하는 gate pipeline(재검증·rate)과 새 audit action.
+- **SPEC-203**: broadcast UI(대상 선택·결과 집계·waiting toast(§2.9 기구현)와의 연결), SPEC-102(신규 프레임 없으면 불변 확인), **02-Requirements** R-* 신설, **08-Decisions** D-047+.
+
+### 권장 파이프라인 (roster)
+
+1. spec-author — SPEC-104/402 초안 + 개정.
+2. 병렬 리뷰: tmux-systems-engineer(브리지 수명주기·`%output` 실제 semantics·부하), security-privacy-engineer(P0-1/2·broadcast 오폭·audit), product-ui-designer(broadcast UX·confirm 모달 정합).
+3. spec-reviewer — P0 gap 게이트 → 제품 오너 D-047+ 승인 → 구현 배치 분할(예: A=src/ 브리지, B=web/ broadcast UI).
+
+### 오픈 퀘스천 (spec에서 판정)
+
+- 브리지 상주 프로세스의 리소스 계약(1개 고정? tmux 서버당?)과 `doctor` 진단 항목.
+- broadcast 대상 상한(N 상한, rate)과 camp 경계(단일 camp 내로 제한?).
+- Phase 2가 Phase 1 폴링을 **대체**하는지 **공존**(기본 폴링, opt-in 브리지)하는지 — 기본값 결정.
