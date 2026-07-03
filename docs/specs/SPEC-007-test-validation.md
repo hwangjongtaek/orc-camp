@@ -2,7 +2,7 @@
 spec: SPEC-007
 title: 테스트 전략·PoC 측정·수용 매트릭스
 status: approved
-updated: 2026-06-29
+updated: 2026-07-03
 requirements: [R-CLI-004, R-TMUX-001, R-TMUX-002, R-TMUX-004, R-TMUX-005, R-TMUX-006, R-ORC-001, R-ORC-002, R-ORC-003, R-ORC-004, R-ORC-005, R-ORC-006, R-ORC-007, R-PRIV-001, R-PRIV-002, R-PRIV-003, R-PRIV-004, R-PRIV-005, R-PRIV-006, R-OBS-003, R-UI-007]
 decisions: [D-012, D-014, D-020, D-021]
 tags:
@@ -58,7 +58,7 @@ tags:
 
 - **결정적 경계(확정)**: unit·integration·fixture 기반 measurement는 **live tmux server나 머신의 tmux 상태에 의존하지 않고 CI에서 끝까지 돈다**(SPEC-007-AC-10). live tmux에 의존하는 것은 **e2e와 latency 측정뿐**이며, 별도 job(macOS+tmux 보장)에서 비-게이트로 돌린다.
 - **시간 결정성(확정)**: timeout·idle·active·terminated TTL 검증은 fake timers와 주입된 `scannedAt`/`lastActivityAt`/`prior.observedAt`로 고정한다(실시간 의존 금지).
-- **순수 함수 분리 전제**: detection/status/redaction/schema 로직은 tmux I/O와 분리된 순수 함수로 구현돼야 unit·measurement가 결정적이 된다. 이 분리는 [[SPEC-003-agent-detection]] `detect(pane)`, [[SPEC-004-status-inference]] `inferStatus(input)`, [[SPEC-006-privacy-redaction]] `sanitizeCapture(raw)`의 인터페이스가 이미 보장한다.
+- **순수 함수 분리 전제**: detection/status/redaction/schema 로직은 tmux I/O와 분리된 순수 함수로 구현돼야 unit·measurement가 결정적이 된다. 이 분리는 [[SPEC-003-agent-detection]] `detect(pane)`, [[SPEC-004-status-inference]] `inferStatus(input)`, [[SPEC-006-privacy-redaction]] `sanitizeCapture(raw)`, 그리고 styled 경로의 **`sanitizeStyledCapture(rawE)`([[SPEC-006-privacy-redaction]] §2.8 pure-function seam — `TC-M-STYLED`가 직접 호출)**의 인터페이스가 이미 보장한다.
 
 ### 2.2 mock tmux 경계(integration)
 
@@ -113,6 +113,7 @@ tags:
 | `CORPUS-SECRET` | 라벨 코퍼스 | "반드시 가려야 할" secret 샘플 집합(placeholder) | SPEC-006-AC-15, SPEC-007-AC-04 |
 | `CORPUS-KEEP` | 라벨 코퍼스 | "가리면 안 되는" 의미 텍스트(경로/hash/UUID/agent banner 토큰) | SPEC-006-AC-15, SPEC-007-AC-04, SPEC-003 banner coherence |
 | `CORPUS-CWD` | 라벨 코퍼스 | `cwd`/`cmdline` 샘플: 마스킹 대상(home/username·argv token) vs 보존 대상(프로젝트 경로) 혼합 — cwd/cmdline redaction 판정용. 정확한 마스킹 규칙·AC는 [[SPEC-006-privacy-redaction]] 소유([[SPEC-006-privacy-redaction]] §6 Q3) | SPEC-006 cwd/cmdline-redaction AC(SPEC-006 소유), SPEC-007-AC-04 |
+| `CORPUS-STYLED` | 라벨 코퍼스(styled) | `capture-pane -e` **escape-fragmented** secret 케이스 집합(placeholder). ① **SGR-split**: 카탈로그 secret 리터럴이 색 변경 SGR(`ESC[31m`)으로 토큰 중간에서 쪼개짐(예: `ghp_` + `ESC[31m` + 나머지). ② **non-SGR-split**: 동일 secret 이 **비-SGR escape**(OSC title `ESC]0;…BEL` 또는 CSI cursor-move `ESC[…H`)로 중간에 낌 — strip-ALL-escapes 규칙(T-13) 검증. ③ **malformed/incomplete SGR**: 미종결 CSI(`ESC[` 뒤 종결 byte 없이 텍스트로 이어짐) + CSI private-parameter byte(`<=>?`) 포함 — gold 는 escape 가 strip 되어 **zero span(또는 charset-clean span)** 을 내고 secret 은 여전히 redacted(`sgr` 에 텍스트/private byte 가 새지 않음, SGR_RE 검증). ④ **byte-capped mid-escape**: byte cap `B` 초과 `-e` 입력에서 tail-clamp 이 escape 중간을 자르는 케이스 — gold 는 선두 partial escape 를 텍스트로 재해석하지 않고 strip 하며 인접 secret 을 재분할하지 않음([[SPEC-006-privacy-redaction]] §2.8 clamp-before-tokenize + mid-escape 절단 규칙). 각 케이스는 대응 **plain 기대 산출**(= `redact(stripAllEscapes(SAME -e raw))`, escape 제거+redacted)과 기대 **SGR span**을 gold 로 동봉 | SPEC-007-AC-15, SPEC-006-AC-20/AC-22, SPEC-103-AC-18~21 |
 | `LABELED-DETECT` | 라벨 데이터셋 | agent type gold 라벨 pane 샘플(§2.4) | SPEC-007-AC-01/03 |
 | `LABELED-STATUS` | 라벨 데이터셋 | status gold 라벨 pane 샘플(prior 포함, §2.4) | SPEC-007-AC-02/03, SPEC-004-AC-14 |
 
@@ -251,6 +252,7 @@ interface LabeledPaneSample {
 | `TC-M-CALIB-TYPE` | agentTypeConfidence band 단조성(M3) | SPEC-007-AC-03 |
 | `TC-M-CALIB-STATUS` | statusConfidence band 단조성(M3) | SPEC-007-AC-03, SPEC-004-AC-14 |
 | `TC-M-FALSERED` | secret-recall=1.0 · false-redaction-rate ≤ τ(M5) | SPEC-007-AC-04, SPEC-006-AC-15 |
+| `TC-M-STYLED` | styled(`-e`) 경로 결정적 fixture 검증 — pure seam `sanitizeStyledCapture([[SPEC-006-privacy-redaction]] §2.8)`을 `CORPUS-STYLED`(SGR-split·non-SGR-split·malformed-SGR·byte-capped)에 적용해 5개 단언: (a) 모든 케이스 secret-recall==1.0==plain, (b) styled `lines`(string[])가 `redact(stripAllEscapes(SAME -e raw))` `lines`(string[])와 **element-wise 동등**, (c) style span이 `[REDACTED:*]` 비관통, (d) 어떤 프레임 필드에도 raw ESC byte 없음, (e) 모든 span 의 `sgr` 이 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=32) 만족. **CI-게이트 결정적 fixture check**(styled emit unlock 게이트, [[SPEC-103-pane-live-stream]] §3.4-3(b)) | SPEC-007-AC-15, SPEC-006-AC-20/AC-22, SPEC-103-AC-18~21 |
 | `TC-M-BANNER` | banner 토큰 비-redaction + redacted 출력에서 G-OUT 발화(coherence) | SPEC-006 C4 / SPEC-003 Q |
 | `TC-M-LATENCY` | 20 pane p50/p95 — `--watch` cycle-to-cycle latency(e2e, M4) | SPEC-007-AC-05 |
 
@@ -341,6 +343,13 @@ interface LabeledPaneSample {
   - `secret_recall = #(secret placeholder literal이 산출에서 완전 부재) / #(CORPUS-SECRET)`.
   - `false_redaction_rate = #(CORPUS-KEEP 중 redaction 매칭이 발생한 샘플) / #(CORPUS-KEEP)`.
 - **Pass**: `secret_recall == 1.0`(known secret 전부 마스킹, 확정 목표) 그리고 `false_redaction_rate ≤ τ`(가설 초기값 0.05, 수동 검토로 허용 가능 — [[14-MVP-PoC-Scope]]). banner 토큰이 가려지면 detection coherence(`TC-M-BANNER`)와 함께 RP-10 보정([[SPEC-006-privacy-redaction]] §3.5, Q1).
+- **styled secret-recall 게이트(확정, `CORPUS-STYLED`/`TC-M-STYLED`, [[SPEC-006-privacy-redaction]] §2.8, [[08-Decisions|D-042]])**: Phase 1.5 styled(`-e`) 노출은 별도 CI-게이트 결정적 검증을 통과해야 emit이 unlock된다([[SPEC-103-pane-live-stream]] §3.4-3(b)). pure seam `sanitizeStyledCapture(rawE)`을 `CORPUS-STYLED`(SGR-split·non-SGR-split·malformed-SGR·byte-capped)에 적용해 다음 **다섯 구조적 단언**을 모두 만족해야 한다:
+  - **(a) styled secret-recall == 1.0 == plain**: `CORPUS-STYLED`의 모든 secret이 tokenize→**strip-ALL-escapes**→plain-redact→style-remap([[SPEC-006-privacy-redaction]] §2.8) 후 마스킹되며, 그 값이 동일 secret의 plain 경로 recall과 같다(escape가 미탐을 만들지 않음, T-13; malformed/byte-cap 케이스에서도 partial escape가 텍스트로 재해석돼 미탐을 만들지 않음).
+  - **(b) 비파괴 오버레이(element-wise 동등)**: styled `lines`(string[])가 baseline **`redact(stripAllEscapes(SAME -e raw))`**(= `sanitizeStyledCapture(rawE).lines`, 별도 `capture-pane -p` 재호출 아님)의 `lines`(string[])와 **element-wise 동등**(원소별 `===`, 길이·각 원소 일치; join separator 불명확성 없음)이다([[SPEC-103-pane-live-stream]] AC-20).
+  - **(c) 토큰 비관통·정렬**: 어떤 style span도 `[REDACTED:<class>]` 토큰을 가로지르거나 쪼개지 않고, 각 `spans[i]`는 정렬·비중첩(`spans[i][k].end <= spans[i][k+1].start`)이며 run 개수 ≤ `MAX_SPANS_PER_LINE`([[SPEC-103-pane-live-stream]] AC-19, §2.3.1 rule 7).
+  - **(d) no raw ESC**: 어떤 emit 프레임 필드에도 raw escape byte(ESC 0x1B / OSC / DCS / C0 / C1)가 나타나지 않는다([[SPEC-103-pane-live-stream]] AC-18, [[SPEC-006-privacy-redaction]] AC-22).
+  - **(e) sgr charset**: 모든 span의 `sgr`이 정규식 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=32)를 만족한다(SGR 숫자 파라미터 only — server 생성 두 번째 콘텐츠 필드로 secret 텍스트가 새는 blind spot 차단; malformed-SGR 케이스가 이를 직접 겨냥)([[SPEC-103-pane-live-stream]] AC-18(e), [[SPEC-006-privacy-redaction]] AC-22(e)).
+  하나라도 실패하면 styled emit을 비활성(plain fallback, D-042 (c)). 이 검증은 `CORPUS-STYLED` 결정적 fixture 기반이라 **CI 게이트**(§3.1-1)에 포함된다.
 
 ### 3.4 privacy 검증 접근(모든 출력 경로)
 
@@ -434,6 +443,11 @@ interface LabeledPaneSample {
   - When detection·status에 M1(process-tree oracle)·M3 절차를 적용하면
   - Then (a) wrapper-체인 샘플은 `claude-code`로 검출되고(recall — `signal="process"`/Tier A), (b) subtree에 agent가 없는 샘플은 `active`로 보고되지 않으며(precision/active FP 차단 — `terminated`/비-active), oracle 대비 precision/recall이 산출돼 ≥0.9(가설) 진척이 판정된다.
 
+- **SPEC-007-AC-15** (R-PRIV-008 / styled emit unlock 게이트, [[08-Decisions|D-042]])
+  - Given `CORPUS-STYLED` fixture(SGR-split · non-SGR-split · malformed-SGR · byte-capped escape-fragmented secret 케이스, 대응 plain 기대 산출 `redact(stripAllEscapes(SAME -e raw))`·기대 SGR span gold 동봉)에서
+  - When pure seam `sanitizeStyledCapture(rawE)`([[SPEC-006-privacy-redaction]] §2.8, tokenize→strip-ALL-escapes→plain-redact→style-remap)를 적용해 M5 styled 확장 절차로 측정하면
+  - Then 다섯 구조적 단언이 모두 성립한다 — (a) styled secret-recall == 1.0 == plain(SGR·non-SGR·malformed·byte-cap escape 모두 미탐 없음, T-13), (b) styled `lines`(string[])가 baseline `redact(stripAllEscapes(SAME -e raw))`의 `lines`(string[])와 **element-wise 동등**(별도 `capture-pane -p` 재호출 아님, 비파괴 오버레이, SPEC-103-AC-20), (c) 어떤 style span도 `[REDACTED:*]` 토큰을 가로지르지 않고 각 `spans[i]`는 정렬·비중첩·run≤`MAX_SPANS_PER_LINE`(SPEC-103-AC-19, §2.3.1 rule 7), (d) 어떤 프레임 필드에도 raw ESC byte 부재(SPEC-103-AC-18, SPEC-006-AC-22), (e) 모든 span의 `sgr`이 `^[0-9;:]{1,SGR_MAX}$`(SGR_MAX=32) 만족(SPEC-103-AC-18(e), SPEC-006-AC-22(e)). 이 검증은 결정적 fixture 기반 CI 게이트이며, 통과가 styled emit unlock의 필요조건이다([[SPEC-103-pane-live-stream]] §3.4-3(b)). 실패 시 plain fallback.
+
 ## 5. Traceability
 
 > 본 spec은 1차 소유 product `R-*`가 없다(검증·측정·통합 지점). 아래는 **슬라이스 전체 통합 매트릭스**다. AC ID는 sibling spec에서 그대로 인용했다.
@@ -460,6 +474,7 @@ interface LabeledPaneSample {
 | **R-PRIV-003** | [[SPEC-006-privacy-redaction]], [[SPEC-001-scan-cli]] | SPEC-006-AC-01~05,15 + cmdline/cwd-redaction AC(SPEC-006 소유); SPEC-001-AC-12 | `TC-U-RED-PATTERNS`, `TC-U-RED-CMDLINE`, `TC-M-FALSERED`, `TC-I-SECRET-ALLPATHS` (U,I,M) |
 | **R-PRIV-004** | [[SPEC-006-privacy-redaction]] | SPEC-006-AC-10 | `TC-I-NONPERSIST` (I) |
 | **R-PRIV-005** | [[SPEC-006-privacy-redaction]] | SPEC-006-AC-11,18 | `TC-I-SECRET-ALLPATHS`(log 경로), `TC-I-PROC-SUBTREE-SECRET` (I) |
+| R-PRIV-008 | [[SPEC-006-privacy-redaction]] (styled redaction 메커니즘), [[SPEC-103-pane-live-stream]] (live 채널 적용) | SPEC-006-AC-19,20,22; SPEC-103-AC-18,19,20,21 | `TC-M-STYLED`, `TC-M-FALSERED` (M, CI-게이트) — **cross-slice**: redaction 메커니즘은 scan-slice 교차 검증(`CORPUS-STYLED` 결정적 fixture), live egress 통합 `TC-*`는 Epic 2 test spec 소유(§6 C4). SPEC-007-AC-15 |
 | R-PRIV-006 | [[SPEC-001-scan-cli]] (preview-toggle 부재 negative) | SPEC-001-AC-15 (parse-only/negative) | `TC-U-CLI-PREVIEWFLAG` (U) — **DEFERRED-BY-DECISION ([[08-Decisions\|D-021]]), §5.4** |
 | **R-OBS-003** | [[SPEC-006-privacy-redaction]] | SPEC-006-AC-11,13 | `TC-I-SECRET-ALLPATHS`, `TC-I-DIAG-PRIVACY` (I) |
 | **R-UI-007** | [[SPEC-005-data-contract]] (table TARGET) | SPEC-005-AC-02,03 | `TC-I-SCAN-NORMAL`, `TC-U-SCHEMA-VALID` (U,I) — table 표면 한정 |
@@ -488,6 +503,7 @@ interface LabeledPaneSample {
 | confidence calibration(type+status) | 단조 증가 | §3.3 M3 | `TC-M-CALIB-TYPE`, `TC-M-CALIB-STATUS` (SPEC-007-AC-03) |
 | scan latency | 20 pane p95 < 1s | §3.3 M4 | `TC-M-LATENCY` (SPEC-007-AC-05) |
 | false redaction | 수동 검토 허용(τ 가설) | §3.3 M5 | `TC-M-FALSERED` (SPEC-007-AC-04, SPEC-006-AC-15) |
+| styled(`-e`) secret-recall(=plain) | secret-recall == 1.0 == plain (styled emit unlock 게이트) | §3.3 M5 styled 확장 | `TC-M-STYLED` (SPEC-007-AC-15, SPEC-006-AC-20/22, SPEC-103-AC-18~21) |
 
 ### 5.4 커버리지 결과와 P0 GAP
 
@@ -499,6 +515,7 @@ interface LabeledPaneSample {
 - **OUT-OF-SCOPE — R-CLI-002 (RESOLVED)**: [[README]] specs index의 SPEC-001 mislabel("R-CLI-002(부분)")은 index에서 정정 완료됐고(SPEC-001을 R-CLI-004로 표기), 같은 index 노트가 SPEC-006의 `R-TMUX-001`을 **read-only 강제 wrapper 공동 소유분**(command-set 정의는 SPEC-002)으로 명확화했다. R-CLI-002(browser open 실패 시 dashboard URL stdout)는 `serve` 슬라이스 소유이며 read-only stdout-only `scan`에는 적용되지 않는다([[SPEC-001-scan-cli]] §6 C1 RESOLVED). 본 매트릭스는 scan에 URL 표면이 없음을 negative(SPEC-001-AC-14)로 검증한다. **잔여 조치 없음.**
 - **PRE-FLAG — R-TMUX-003 (GAP 아님, 의도된 사전 표기)**: R-TMUX-003(tmux session/window/pane 생성·삭제·rename·종료가 dashboard에 반영)은 **serve/dashboard 슬라이스 소유**이며 scan-MVP 범위가 아니다(sibling AC 없음). 다만 scan은 `--watch` 재-scan이 **현재 inventory를 다시 반영**하므로(새 scan = 현재 시점 inventory) **PARTIALLY 충족**한다(`TC-I-WATCH`/`TC-E-WATCH`가 cycle별 현재 inventory 반영을 관측). scan-MVP가 소유하지 않는 요구사항을 silent 누락하지 않도록 **의도된 pre-flag**로 표기하며, 실시간 mutation 반영(event-driven)은 후속 슬라이스가 소유한다. **scan-MVP의 P0 GAP이 아니다.**
 - **R-UI-007(부분 표면)**: scan 슬라이스는 table TARGET 컬럼이 raw `tmuxTarget`을 항상 노출(SPEC-005-AC-02/03)하는 범위에서 충족한다. inspector 등 dashboard UI 표면은 Slice 2~3 소유(본 슬라이스 GAP 아님).
+- **CROSS-SLICE — R-PRIV-008 (styled/live redaction, Epic 2 요구사항)**: R-PRIV-008은 live pane view([[SPEC-103-pane-live-stream]]) 채널 요구사항으로 **scan-MVP(Epic 1) in-scope P0가 아니다**. 다만 그 **redaction 메커니즘**(ANSI/styled tokenize→strip-ALL-escapes→plain-redact→style-remap)은 [[SPEC-006-privacy-redaction]] §2.8이 scan-slice 교차(cross-cutting)로 소유하므로, 본 spec은 그 메커니즘을 **결정적 fixture(`CORPUS-STYLED`)로 CI 게이트 검증**한다(`TC-M-STYLED`, SPEC-007-AC-15 → SPEC-006-AC-20/22·SPEC-103-AC-18~21). live egress 통합/e2e `TC-*`(WS 프레임 실전송·xterm 렌더)는 **Epic 2 test spec 소유**(§6 C4)이며 본 scan 매트릭스의 GAP이 아니다.
 - **측정 의존성(갱신, [[08-Decisions|D-014]])**: prior 의존 status(`active`, status transition, 사라짐 기반 `terminated`)의 정확도/calibration은 (a) `prior`를 동봉한 합성 fixture/라벨 샘플(결정적 CI 게이트)과 (b) [[08-Decisions|D-014]]가 확정한 `--watch` cycle-to-cycle prior 기반 **live pane 측정**(`TC-E-WATCH`, e2e job) 양쪽으로 측정된다. 즉 종전의 "fixture 동봉 prior에만 의존" 제한은 D-014로 해소돼, live cycle 데이터에서도 검증된다. latency 가설(M4)도 `--watch` cycle 분포로 e2e job이 소유하며 CI 게이트가 아니다(§3.1-2).
 
 ## 6. Open Questions / Conflicts
