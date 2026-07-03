@@ -117,6 +117,12 @@ describe('capturePaneView — Phase 1.5 styled (SPEC-103 §2.5/§2.3.1, AC-06/AC
     expect(r.lines.join('\n')).not.toContain(GH);
     expect(r.lines.join('\n')).toContain('[REDACTED:github-token]');
   });
+
+  it('a throwing styled producer → transient failed (never emits raw -e; loop-safe)', async () => {
+    const boom = (): never => { throw new Error('styled boom'); };
+    const deps = { tmuxExec: tmuxWith('%10 80 24 0 0 1 0\n', `${ESC}[31mx\n`), sanitize: sanitizeCapture, styled: true, sanitizeStyled: boom };
+    expect(await capturePaneView(deps, '%10')).toEqual({ ok: false, kind: 'failed' });
+  });
 });
 
 // ── PaneViewSession ────────────────────────────────────────────────────────────

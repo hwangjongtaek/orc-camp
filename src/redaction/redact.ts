@@ -91,13 +91,26 @@ export interface StyledCapture {
 
 /**
  * After a tail byte-clamp the kept region can begin mid-escape (the leading `ESC`
- * was dropped). Strip a leading CSI-body remnant so it is not re-interpreted as text
- * (SPEC-006 §2.8 mid-escape tail-cut clause). Requires ≥1 param/intermediate byte
- * before the final so a bare leading letter is never eaten. Only used when clamped.
+ * was dropped). Strip at most one leading partial-escape remnant so it is not
+ * re-interpreted as text (SPEC-006 §2.8 mid-escape tail-cut clause). Only used when
+ * clamped; the clamp cuts at most once, so at most one partial sequence can lead.
+ *   (a) CSI remnant `<params/intermediates><final>` — requires ≥1 param/intermediate
+ *       byte before the final so a bare leading letter is never eaten.
+ *   (b) OSC(BEL) remnant — a BEL before the first ESC and first LF marks a lost OSC
+ *       introducer's terminator; strip through it (a pane does not emit a leading BEL
+ *       as text). ST-terminated OSC/DCS remnants fall through as text and are still
+ *       caught by `redact()` for standard secrets (narrow non-standard residual).
  */
-function stripLeadingCsiRemnant(s: string): string {
-  const m = /^(?:[\x30-\x3f]+[\x20-\x2f]*|[\x20-\x2f]+)[\x40-\x7e]/.exec(s);
-  return m ? s.slice(m[0].length) : s;
+function stripLeadingEscRemnant(s: string): string {
+  const csi = /^(?:[\x30-\x3f]+[\x20-\x2f]*|[\x20-\x2f]+)[\x40-\x7e]/.exec(s);
+  if (csi) return s.slice(csi[0].length);
+  const bel = s.indexOf('\x07');
+  if (bel >= 0) {
+    const esc = s.indexOf('\x1b');
+    const lf = s.indexOf('\n');
+    if ((esc === -1 || bel < esc) && (lf === -1 || bel < lf)) return s.slice(bel + 1);
+  }
+  return s;
 }
 
 /**
@@ -114,7 +127,7 @@ function stripLeadingCsiRemnant(s: string): string {
 export function sanitizeStyledCapture(rawE: string): StyledCapture {
   const byteClamped = utf8ByteLength(rawE) > BYTE_CAP;
   let clamped = byteClamped ? clampBytesTail(rawE, BYTE_CAP) : rawE;
-  if (byteClamped) clamped = stripLeadingCsiRemnant(clamped);
+  if (byteClamped) clamped = stripLeadingEscRemnant(clamped);
 
   const { plain, events } = stripAnsi(clamped);
   const { text, redacted } = redact(plain);

@@ -73,9 +73,13 @@ export function stripAnsi(rawE: string): StripResult {
             events.push({ offset: plain.length, params });
           }
           i = j + 1;
+        } else if (j >= n) {
+          i = n; // truly unterminated at EOF: consume the rest, no event
         } else {
-          // Unterminated CSI (ran off the end): consume the rest, no event.
-          i = n;
+          // Non-final byte inside the CSI (e.g. an embedded control): resync AT that
+          // byte instead of dropping the whole tail — the `ESC[<params>` is discarded
+          // (no event), the offending byte is handled by the next loop turn.
+          i = j;
         }
         continue;
       }

@@ -109,17 +109,25 @@ export async function capturePaneView(deps: PaneViewCaptureDeps, paneId: string)
   if (!execOk(cap)) return { ok: false, kind: 'failed' }; // pane exists (list-panes ok) → capture glitch is transient
 
   if (useStyled) {
-    const s = deps.sanitizeStyled!(cap.stdout); // strip→redact→style-remap chokepoint; raw discarded
-    return {
-      ok: true,
-      cols: geom.cols,
-      rows: geom.rows,
-      cursor: geom.cursor,
-      lines: s.lines,
-      redacted: s.redacted,
-      byteClamped: s.byteClamped,
-      ...(s.spans !== null ? { spans: s.spans } : {}), // null = styled fail-safe → plain frame
-    };
+    // The styled producer is verified non-throwing for any string input, but guard the
+    // 250ms poll loop regardless: a throw must NOT become an unhandled rejection that
+    // kills polling, and we must never emit the raw `-e` buffer. A throw → transient
+    // `failed` (safe skip; §3.7 counter). Reaching here means the styled path ran.
+    try {
+      const s = deps.sanitizeStyled!(cap.stdout); // strip→redact→style-remap chokepoint; raw discarded
+      return {
+        ok: true,
+        cols: geom.cols,
+        rows: geom.rows,
+        cursor: geom.cursor,
+        lines: s.lines,
+        redacted: s.redacted,
+        byteClamped: s.byteClamped,
+        ...(s.spans !== null ? { spans: s.spans } : {}), // null = styled fail-safe → plain frame
+      };
+    } catch {
+      return { ok: false, kind: 'failed' };
+    }
   }
   const s = deps.sanitize(cap.stdout); // redaction chokepoint; raw discarded after this
   return { ok: true, cols: geom.cols, rows: geom.rows, cursor: geom.cursor, lines: s.lines, redacted: s.redacted, byteClamped: s.byteClamped };

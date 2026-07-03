@@ -73,6 +73,13 @@ describe('stripAnsi (SPEC-006 §2.8 tokenize→strip-ALL)', () => {
     expect(stripAnsi(`ab${ESC}[`).plain).toBe('ab'); // unterminated CSI at EOF
     expect(stripAnsi(`ab${ESC}[`).events).toEqual([]);
   });
+
+  it('resyncs (does not drop the tail) on a control byte embedded in CSI params', () => {
+    // ESC[31<BEL>m tail — non-final byte at the BEL; CSI discarded, tail survives.
+    const r = stripAnsi(`x${ESC}[31\x07m tail`);
+    expect(r.plain).toBe('xm tail'); // '31' params dropped, BEL dropped, 'm tail' kept
+    expect(r.events).toEqual([]); // no SGR event (never saw a valid final 'm' for the params)
+  });
 });
 
 // ── sanitizeStyledCapture: secret-recall == plain (T-13) ──────────────────────────
