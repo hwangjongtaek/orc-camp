@@ -3,8 +3,8 @@ spec: SPEC-203
 title: Terminal Workspace — terminal 모드 화면·orc rail·스위칭·xterm.js·관전/조종 표시
 status: approved
 updated: 2026-07-03
-requirements: [R-UI-012, R-UI-005, R-UI-007, R-UI-008, R-PRIV-006]
-decisions: [D-045, D-046, D-044, D-043, D-035]
+requirements: [R-UI-012, R-UI-005, R-UI-007, R-UI-008, R-PRIV-006, R-UI-013]
+decisions: [D-045, D-046, D-044, D-043, D-035, D-050, D-051]
 tags:
   - specs
   - frontend
@@ -121,10 +121,13 @@ interface OrcRailItem {
   summaryLine: string;            // currentWorkSummary 1줄 요약(estimated 마커 동반)
   summaryIsEstimated: boolean;
   tmuxTarget: string;             // raw target 라벨(R-UI-007)
-  selected: boolean;              // selectedOrcId === orcId
+  selected: boolean;              // selectedOrcId === orcId (단일 조종 focus, ?orc= SSOT)
   emphasized: boolean;            // status === 'waiting' (§2.3 orchestration 신호)
+  broadcastTargeted: boolean;     // broadcast 대상 집합 membership (§2.10, selected와 직교; broadcast-selection-mode에서만 노출)
 }
 ```
+
+- **`selected` ≠ `broadcastTargeted`(확정, §2.10 P1-K)**: `selected`(단일 조종 focus)와 `broadcastTargeted`(broadcast 대상 membership)는 **직교하는 별개 상태**다 — 색-비의존으로 구별하고(focus ring vs checkbox tick), broadcast checkbox는 single-click 스위치와 **별개 hit target**이며 checkbox 토글이 `?orc=` selection을 바꾸지 않는다. 상세 상호작용·selection-mode 진입/이탈·키보드 토글은 §2.10 소유.
 
 - **항목 구성(확정)**: 각 rail 항목은 `portrait 썸네일` + `StatusBadge`(icon+label+confidence, [[SPEC-202-design-accessibility]] §2.3) + `summaryLine`(한 줄) + `tmuxTarget` 라벨을 가진다. status는 항상 `statusConfidence`와 함께, summary는 `summaryIsEstimated=true`면 estimated 마커와 함께 렌더한다(R-UI-005/R-ORC-005 정합).
 - **waiting 강조(확정, orchestration 1차 신호; 2026-07-02 리뷰 반영)**: `status === 'waiting'`(입력 대기) 항목은 rail-item 수준에서 **StatusBadge와 별개의 뚜렷한 emphasis 채널**을 갖는다 — StatusBadge(icon+label+confidence, [[SPEC-202-design-accessibility]] 소유)를 **대체하지 않고 그 위에 덧붙인다**(ownership 충돌 없음): (a) rail 항목 자체의 **leading emphasis marker/pip**("needs input"), (b) **정렬 승격**(waiting 항목을 rail 상단 그룹으로 pin), (c) 항목 컨테이너 **border/weight 강조**. 세 채널 모두 **색-비의존**이라 grayscale에서 일반 `waiting` StatusBadge와도 구분되는 별도 emphasis level이 식별된다(불변식 ④, AC-12 검증). reduced-motion에서는 emphasis를 정적 표현(정적 marker·pin·정적 badge)으로 한다([[SPEC-202-design-accessibility]] M2). 카운트/토스트 orchestration은 [[18-Terminal-Workspace]] §3.4 후속.
@@ -241,6 +244,32 @@ terminal 모드에서 한 orc를 조종/관전하는 동안, **다른** orc가 w
 - **접근성(확정)**: 기존 토스트의 `aria-live="polite"` / `role=status` 영역을 상속한다. 메시지는 **색-비의존**(텍스트만)이고 "View"는 실제 focusable 버튼(키보드 도달 가능)이다(불변식 ④, [[SPEC-202-design-accessibility]] §2.4 정합).
 - **소유 forward-note(선-기존 gap, write scope 밖)**: 토스트 store-slice(`addToast`)·글로벌 toast host의 소유는 아직 architecture spec에 비준되지 않았다 — [[SPEC-200-frontend-architecture]] §2.4 `UiSlice`에 toast slice가 정의되어 있지 않고, 표면은 구현체에 이미 존재하며 [[SPEC-400-control-actions]] §2.11이 이를 소비한다. 본 spec은 이 표면을 **소비만** 하며, `addToast`/toast host의 store-shape 소유 비준은 [[SPEC-200-frontend-architecture]] 소유자에게 위임한다(본 batch에서 해소하지 않는 **선-기존 gap** — SPEC-200 소유자 추적 대상, §6 C6).
 - **비목표(확정)**: 글로벌/백그라운드 알림 아님(terminal 모드 중에만 동작); 영속화 없음; 기존 토스트 외 추가 사운드/애니메이션 없음.
+
+### 2.10 broadcast UI — 대상 다중 선택·단일 confirm·결과 집계 (R-UI-013, [[SPEC-402-orchestration]] 정합, [[08-Decisions|D-050]]/[[08-Decisions|D-051]])
+
+terminal workspace는 여러 orc에 동일 입력을 **broadcast**하는 orchestration 표면을 갖는다. 계약 본체(경로·재검증·순차 실행·batch audit·camp 범위)는 [[SPEC-402-orchestration]] server가 소유하고, 본 절은 그 **UI 표면**(대상 선택·confirm·결과 표시·waiting 연결)만 소유한다. 아래 어느 것도 §2.6 관전/조종·§2.9 nudge 불변식을 느슨하게 하지 않는다.
+
+- **두 선택 레이어 — `selected` ≠ `broadcastTargeted`(확정, P1-K)**: rail 항목은 **직교하는 두 선택 상태**를 갖는다 — (1) **`selected`**(단일 조종 focus, `?orc=` SSOT, §2.2/§2.5), (2) **`broadcastTargeted`**(broadcast 대상 집합 membership, §2.3 `OrcRailItem.broadcastTargeted`). 둘은 **색-비의존으로 구별**된다: `selected`는 기존 focus 표시(테두리/배경), `broadcastTargeted`는 **별도 checkbox 표식**(checked glyph + "in broadcast" label). grayscale 합성에서 두 상태가 동시에 참이면 **각각 독립 채널**(focus ring + checkbox tick)로 읽혀 서로를 가리지 않는다(불변식 ④, [[SPEC-202-design-accessibility]] §2.3).
+- **checkbox = 스위치와 별개 hit target(확정, P1-K)**: rail 항목의 **broadcast checkbox는 single-click 스위치 제스처와 물리적으로 분리된 hit target**이다 — 항목 본문 single-click은 §2.5 스위칭(`?orc=` 갱신)을 그대로 하고, **checkbox 클릭만** `broadcastTargeted`를 토글한다(조종 focus 미이동). 이로써 다중 선택이 스위칭 SSOT를 오염시키지 않는다.
+- **broadcast-selection-mode 진입/이탈(확정, P1-K)**: broadcast 대상 선택은 **명시적 selection-mode**(예: rail 헤더의 "Broadcast" 토글, 또는 checkbox 최초 체크로 진입)에서 활성화하고, 실행(confirm)·명시적 취소·terminal-mode 이탈 시 종료하며 종료 시 `broadcastTargeted` 집합을 비운다. mode 밖에서는 checkbox가 비노출(스위칭 UX 단순 유지).
+- **키보드 다중 선택(확정, P1-L, [[SPEC-202-design-accessibility]] 정합)**: broadcast 대상 토글은 **키보드로 조작 가능**하다 — rail 항목 포커스에서 **Space(또는 지정 키)로 `broadcastTargeted` 토글**, 화살표로 selection-set 순회, "waiting만/active 전체" 벌크 선택도 키보드 도달 가능한 버튼이다. select→confirm→result 전체 흐름이 **마우스 없이 완결**된다(AC-18 (vi)).
+- **각 대상 `expected` seed · snapshot-at-selection(확정, R-CTRL-005 정합, P2)**: 각 선택 orc의 `expected`(paneId/tmuxTarget/agentType/command)는 client가 **선택 시점 snapshot에서 seed**한다 — server가 대상마다 fresh 재검증하므로([[SPEC-402-orchestration]] §2.4) UI는 "사용자가 본 값"을 싣는 책임만 진다(오폭 방어의 client 절반). "waiting만" 벌크 선택의 **waiting 집합은 선택 시점 snapshot**이며(이후 drift는 결과 집계로 표면화), UI는 waiting 집합을 실시간 재계산해 대상을 몰래 바꾸지 않는다.
+- **단일 ConfirmModal — 모든 대상 나열·스케일 대응(확정, N≥2, [[08-Decisions|D-051]], P1-N)**: 대상이 2개 이상이면 실행 전 **기존 ConfirmModal을 재사용**하되([[SPEC-400-control-actions]] §2.7 interrupt confirm과 같은 host·같은 focus-trap) **broadcast variant**(second content mode: cwd를 빼고 `paneId`를 넣은 N-행 목록, §6 C7)로 렌더한다:
+  - **sticky action footer(확정)**: Cancel/Confirm은 목록 스크롤과 **독립적으로 항상 보이는 고정 footer**에 둔다(긴 목록에서 액션이 스크롤 밖으로 사라지지 않게).
+  - **scroll container는 focus-trap 안(확정)**: 대상 목록은 **focus-trap 내부의 자체 스크롤 컨테이너**다(키보드로 목록 스크롤 가능, 배경 비활성 유지).
+  - **대상 수 = 권위 blast-radius 신호(확정)**: 대상 **개수(N)**를 액션 근처에 **권위 신호**로 표시한다(조작자가 확인 직전 blast radius를 인지).
+  - **per-row truncation(확정)**: 각 행 필드(특히 `command`)는 **truncate**하고 **포커스/hover 시 전체값**을 노출한다.
+  - **`BROADCAST_MAX_TARGETS` 동작(확정)**: 상한에서의 동작을 정의한다 — 상한 초과 선택은 confirm 진입 전 차단하고 사유를 표시한다([[SPEC-402-orchestration]] §2.8 server cap과 정합).
+  - **초기 포커스 Cancel**(파괴적 fan-out 보수성, [[SPEC-400-control-actions]] §2.11 정신). 확인 시 `confirmed:true`로 [[SPEC-402-orchestration]] `POST /api/camps/:campId/broadcast` 호출. N==1은 일반 `/input` UX(별도 broadcast confirm 없음).
+- **용어(확정, P1-O)**: 대상 행의 실행 명령 필드는 **"running"/"current cmd"**로, modal 상단의 broadcast 입력은 **"Broadcast input"**으로 라벨한다 — **둘 다 "command"로 부르지 않는다**(혼동 방지).
+- **결과 집계 표시 · severity 매핑(확정, P2)**: broadcast 응답(`BroadcastResult`, per-orc `{ok, outcome, errorCode}`)을 받아 **성공/실패를 per-orc로 집계 표시**한다. 요약 토스트 **severity는 [[SPEC-402-orchestration]] §2.7 batch severity와 일치**한다 — 전부 성공→`info`, 일부 실패→`warn`, 전부 실패→`error`(색-비의존 icon/label). 부분 실패는 감추지 않고 성공·실패를 모두 투명 표기한다([[SPEC-402-orchestration]] §2.6 best-effort).
+- **durable failure surface + retry(확정, P1-M)**: per-orc 실패는 휘발 토스트에만 두지 않고 **Activity Rail의 내구 항목**으로 검토 가능하다 — rail은 이미 per-orc `control.result`(N건) + batch `control.broadcast`(1건)를 싣는다([[SPEC-600-observability]], [[SPEC-402-orchestration]] §2.7). 요약 토스트는 **"실패 N건 검토"**로 그 rail 항목/결과 패널로 유도하고, **"retry failed" affordance**는 실패한 orc 부분집합을 **새 ConfirmModal에 pre-select**해 재전송한다(재검증은 server가 다시 수행). (retry 미구현 결정 시 §6 Open Question으로 명시 이월 — 본 spec은 affordance를 정의하고 구현 범위는 게이트에서 판정.)
+- **per-orc rail result-hint의 component home(확정, P2)**: rail 항목에 붙는 per-orc broadcast 결과 힌트(성공/실패)는 **StatusBadge와 별개의 보조 배지 컴포넌트**에 담긴다(StatusBadge는 orc status 소유, [[SPEC-202-design-accessibility]]) — 결과 힌트는 status를 사실로 단정하지 않고 broadcast 결과만 표기하며 색-비의존이다.
+- **waiting-transition 토스트 affordance(확정, §2.9 재사용, P1-P)**: §2.9 nudge("`<tmuxTarget>` is waiting for input")의 **"broadcast to all waiting"**는 mass action이므로 navigation인 "View"와 **뚜렷이 구별**한다 — (a) **명시 라벨**("Broadcast to all waiting", 개수 포함 가능), (b) **de-emphasized 시각 위계**(primary "View"보다 낮은 강조), (c) **"View"와 인접 배치 금지**(오클릭 방지, 시각·DOM 순서 분리). 클릭 시 현재 waiting 집합(snapshot)을 `broadcastTargeted`로 pre-select하고 ConfirmModal(broadcast variant)을 연다. **selection SSOT(`?orc=`)는 바꾸지 않는다**(다중 선택 seed만).
+- **focus 복귀(확정, P2)**: 토스트 액션("broadcast to all waiting")으로 연 ConfirmModal이 닫히면(확인/취소), 트리거 토스트가 이미 auto-dismiss됐을 수 있으므로 **focus를 결정적 대상(예 rail 또는 broadcast 토글)으로 복귀**시킨다(포커스 소실 방지).
+- **접근성(확정, [[SPEC-202-design-accessibility]] 정합)**: ConfirmModal·결과 토스트·checkbox·result-hint 모두 **reduced-motion**(정적)·**키보드 완결**(선택 토글·목록 스크롤·Cancel/Confirm·retry)·**focus-trap**(모달 배경 비활성)을 §2.6/§2.9 및 기존 ConfirmModal과 **일관**되게 지키고 **색만으로 상태·성공/실패를 전달하지 않는다**(icon/label + 텍스트).
+- **소유 forward-note(참조)**: broadcast 결과 토스트도 §2.9와 같은 `addToast`/toast host를 소비하며 그 store-shape 소유 비준은 [[SPEC-200-frontend-architecture]]에 위임된다(§6 C6, 본 batch write scope 밖). `broadcastTargeted` 선택 집합은 terminal-mode UI-local state이며 selection SSOT(`?orc=`)와 분리된다. ConfirmModal broadcast variant(cwd 제거·paneId 추가·N-행 목록)의 디자인 시스템 계약 note는 [[SPEC-400-control-actions]] §2.7 및 DESIGN.md `components.confirmModal`에 반영을 **제안**한다(§6 C7, blueprint 직접 수정 안 함).
+- **비목표(확정)**: cross-camp broadcast UI(단일 camp만, [[08-Decisions|D-051]]); 프롬프트 템플릿/이력 UI(P1 이월, [[SPEC-402-orchestration]] §2.8); multi-arm 실시간 전파 UI(비채택, [[08-Decisions|D-050]]).
 
 ## 3. Behavior rules
 
@@ -413,6 +442,23 @@ SPEC-203-AC-17 (R-UI-012, orchestration nudge; [[SPEC-400-control-actions]] §2.
        (v) 신규 server egress 없이 — 알림은 기존 status 스트림의 순수 client 파생이다.
 ```
 
+```text
+SPEC-203-AC-18 (R-UI-013, broadcast UI; [[SPEC-402-orchestration]] 정합; [[08-Decisions|D-050]]/[[08-Decisions|D-051]] proposed) — 대상 다중 선택·단일 confirm·결과 집계
+  Given terminal 모드에서 camp 안 여러 orc 를 broadcast 대상으로 다중 선택(waiting만/active/수동)할 때
+  When broadcast 를 실행하면
+  Then (i) 선택은 client-side 필터이고 server 에는 targets:[{orcId, expected}] 로만 보내지며,
+           broadcast checkbox 토글(broadcastTargeted)은 single-click 스위치와 별개 hit target 이라 selection SSOT(?orc=)를 바꾸지 않고
+           selected 와 broadcastTargeted 가 색-비의존으로 구별된다(P1-K),
+       (ii) 대상 N≥2 면 실행 전 기존 ConfirmModal(broadcast variant)이 모든 대상의 paneId·tmuxTarget·agentType·running-cmd 와
+            "Broadcast input" 요약·대상 수(blast-radius)를 나열하고, sticky Cancel/Confirm footer·focus-trap 내부 스크롤 목록·per-row truncation(포커스 시 전체값)을 가지며 초기 포커스가 Cancel 이다(N==1 은 일반 /input UX),
+       (iii) 확인 시 confirmed:true 로 [[SPEC-402-orchestration]] broadcast 를 호출하고 응답의 per-orc {ok, outcome, errorCode} 를 집계 표시하며(부분 실패 투명),
+            요약 토스트 severity 가 [[SPEC-402-orchestration]] §2.7 batch severity(전부성공 info/일부 warn/전부 error)와 일치하고,
+            per-orc 실패는 Activity Rail 내구 항목(control.result N + control.broadcast 1)으로 검토 가능하며 "retry failed" 는 실패 부분집합을 새 ConfirmModal 에 pre-select 한다(또는 §6 로 명시 이월),
+       (iv) §2.9 waiting-transition 토스트의 "Broadcast to all waiting" affordance 는 navigation "View" 와 뚜렷이 구별되고(명시 라벨·de-emphasized·비인접) waiting 집합(snapshot)을 대상으로 pre-select 해 이 ConfirmModal 을 열며(색-비의존·focusable) selection SSOT 를 바꾸지 않고,
+       (v) ConfirmModal·결과 표시가 reduced-motion·focus-trap·toast-launched confirm 종료 후 결정적 focus 복귀를 [[SPEC-202-design-accessibility]] 및 기존 ConfirmModal 과 일관되게 지키고 색만으로 성공/실패를 전달하지 않으며,
+       (vi) 대상 토글(Space 등)·selection-set 순회·벌크 선택·confirm·retry 가 전부 키보드로 완결되어 select→confirm→result 흐름이 마우스 없이 조작 가능하다(P1-L).
+```
+
 ## 5. Traceability
 
 | 요구사항 | 다루는 방식 | 검증 AC |
@@ -422,6 +468,7 @@ SPEC-203-AC-17 (R-UI-012, orchestration nudge; [[SPEC-400-control-actions]] §2.
 | R-UI-005 | terminal-mode 표준 상태 구분(loading/empty/exposure-off/disconnected/stale) + waiting 강조([[SPEC-201-dashboard-screens]] §2.6/§2.7 재사용) | SPEC-203-AC-11, AC-12 |
 | R-UI-007 | raw tmuxTarget+paneId·cwd·mode 상시 노출, 표시 전용 vs 권위 키(orcId) | SPEC-203-AC-03, AC-13 |
 | R-UI-008 (부수) | terminal 모드가 map 모드(공간 status 표현, [[SPEC-301-camp-map-movement]])를 대체 않고 병존·동일 status source | SPEC-203-AC-01 |
+| R-UI-013 (proposed, [[08-Decisions|D-050]]/[[08-Decisions|D-051]]) | broadcast UI — 대상 다중 선택(client-side)·단일 ConfirmModal(전 대상 나열)·per-orc 결과 집계·waiting toast "broadcast to all waiting" 연결·접근성(reduced-motion/키보드/focus-trap). server 계약 [[SPEC-402-orchestration]] | SPEC-203-AC-18 |
 
 > 부수 충족(1차 소유는 타 spec): **R-CTRL-009**(관전/조종 2단계 — server 의미 1차 [[SPEC-401-interactive-input]]; 본 spec은 focus/트랩/`C-c` 라우팅/카운트다운 표시, AC-06/AC-07/AC-08), **R-ORC-005**(status/estimated 사실-단정 금지 — 데이터 1차 [[SPEC-005-data-contract]]; 본 spec은 rail 렌더, AC-12), **비기능 접근성**(색-비의존/키보드/reduced-motion/screen reader/toast aria-live·focusable action — 규칙 1차 [[SPEC-202-design-accessibility]]; 본 spec은 terminal-mode 적용, AC-06/AC-09/AC-12/AC-14/AC-16/AC-17). 전체 추적 매트릭스 통합은 [[SPEC-900-traceability-rollup]].
 >
@@ -437,6 +484,7 @@ SPEC-203-AC-17 (R-UI-012, orchestration nudge; [[SPEC-400-control-actions]] §2.
 - **C4 — [[SPEC-500-settings-persistence]] exposure 재사용**: terminal 모드 attach는 preview와 **동일 글로벌 exposure 설정**을 상속하며([[08-Decisions|D-044]]) 신규 per-pane 저장 필드를 만들지 않는다. SPEC-500과 정합(신규 필드 없음).
 - **C5 — [[18-Terminal-Workspace]]·[[DESIGN]] 청사진 정합(write scope 밖)**: 본 spec은 설계안(§3)을 구현 계약으로 고정했다. DESIGN.md의 3-pane/preview-tab 서술이 terminal 모드를 포함하지 않으므로 orchestrator/user가 DESIGN을 "map 모드 + terminal 모드(xterm workspace)" 병존으로 갱신할 것을 제안한다(직접 수정하지 않음).
 - **C6 — [[SPEC-200-frontend-architecture]] toast store-slice 소유 미비준(선-기존 gap, write scope 밖)**: §2.9 waiting-transition 토스트가 소비하는 글로벌 toast host·`addToast` store action은 구현체에 이미 존재하고 [[SPEC-400-control-actions]] §2.11 control-result 토스트도 이를 사용하나, [[SPEC-200-frontend-architecture]] §2.4 `UiSlice`에는 toast slice가 아직 정의되어 있지 않다. 본 spec은 이 표면을 **소비만** 하고 소유를 주장하지 않는다. `addToast`/toast host의 store-shape 소유 비준은 **SPEC-200 소유자에게 위임**한다(spec-reviewer P1-a; 본 spec/batch write scope 밖 — 직접 수정하지 않음). **SPEC-200 소유자 추적 대상.**
+- **C7 — ConfirmModal broadcast variant 디자인 계약(제안, write scope 밖, P2)**: §2.10 broadcast confirm은 기존 ConfirmModal의 **두 번째 content mode**(interrupt variant는 cwd 포함 단일 대상, broadcast variant는 cwd 제거·paneId 추가·N-행 목록·sticky footer·스크롤 목록)를 요구한다. 이를 [[SPEC-400-control-actions]] §2.7 confirm 계약과 DESIGN.md `components.confirmModal`에 "list/broadcast variant" note로 반영할 것을 **제안**한다(blueprint 직접 수정 안 함 — orchestrator/user 위임, R-UI-013 승인 시 정합). **표시만.**
 
 ### Open Questions (검토 필요 / PoC·정합 대상)
 
@@ -446,3 +494,5 @@ SPEC-203-AC-17 (R-UI-012, orchestration nudge; [[SPEC-400-control-actions]] §2.
 - **Q4 — exposure off에서 arm 허용 여부**: [[08-Decisions|D-044]] 글로벌 exposure off이면 viewport가 gated(§2.8)라 화면을 못 보는데 blind arm/타이핑을 허용할지. 본 spec은 exposure off 시 ComposedInput/arm disabled(§2.8)로 **보수적 거부** 1차([[SPEC-401-interactive-input]] §6 Q3와 정합). **검토 필요.**
 - **Q5 — latency 표식 임계·near-real-time 표현**: status bar latency(§2.7) 임계·표현(수치 vs 등급)과 `viewSeq` 기반 지연 산출은 [[SPEC-103-pane-live-stream]] 폴링 주기(`PANE_VIEW_INTERVAL_MS` 250–500ms 가설)와 정합해 [[SPEC-007-test-validation]] 측정으로 보정. **검토 필요.**
 - **Q6 — waiting-transition 토스트 쿨다운(값 가설, 2026-07-03 추가)**: `WAITING_TOAST_COOLDOWN_MS`(per-orc 재알림 억제 창, §2.9/AC-17)는 **미검증 CLIENT 가설**(기본 45s)이다 — `TERMINAL_LRU_MAX`와 동일한 성격으로 PoC 사용성 검증([[SPEC-007-test-validation]])에서 flapping 억제 강도 대 알림 지연의 trade-off를 보정한다. server 값이 아니며 status 스트림의 client 파생이다(egress 없음, 불변식 ③). 또한 쿨다운은 **per-orc**이므로 N개 orc가 **동시에** `active→waiting`으로 전이하면 최대 N개 토스트가 뜰 수 있다 — 글로벌 rate-limit/집계(aggregation, 예 "3 orcs waiting")가 필요한지는 PoC 사용성 질문이다. **PoC 튜닝.**
+- **Q7 — broadcast "retry failed" 구현 범위(2026-07-03 리뷰 P1-M)**: §2.10은 실패 부분집합을 새 ConfirmModal에 pre-select하는 "retry failed" affordance를 정의했다. MVP에서 이를 구현할지, durable failure 검토(Activity Rail)만 제공하고 retry는 다음 wave로 이월할지 판정이 필요하다 — 두 경우 모두 부분 실패는 rail 내구 항목으로 검토 가능하다([[SPEC-402-orchestration]] §2.7). **검토 필요(범위).**
+- **Q8 — broadcast 대상 다중 선택 상호작용 세부(2026-07-03 리뷰 P1-K/L)**: broadcast-selection-mode 진입 트리거(전용 토글 vs 첫 checkbox), 벌크 선택(waiting만/active) 정확 키 바인딩, `broadcastTargeted` 대량 선택 시 rail 성능은 사용성 PoC로 보정한다([[SPEC-202-design-accessibility]] 키보드 규칙 정합). **PoC 튜닝.**

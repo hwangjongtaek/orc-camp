@@ -46,6 +46,7 @@ Epic은 [[07-Roadmap]] Milestone과 [[02-Requirements]] `R-*`를 따라 분해�
 | [[SPEC-101-snapshot-api]] | snapshot runtime·REST API | R-API-003/004/005 | Backend Lead | approved |
 | [[SPEC-102-realtime-sync]] | WebSocket event·reconnect (+live-view frame catalog) | R-API-001/002/003/006 | Backend Lead + Frontend | approved |
 | [[SPEC-103-pane-live-stream]] | live pane view 채널(attach/detach·폴링·부하 한도·`pane_view` 프레임·redaction egress·커서/스크롤백 seed) | R-API-006, R-PRIV-008, R-UI-012 | Backend Lead + Security | approved |
+| [[SPEC-104-control-mode-bridge]] | control-mode 브리지 저지연 트리거(HYBRID `%output`=dirty-signal·read-only sub-allowlist fail-close·fallback 투명·coexist default polling) | R-API-007(proposed), R-PRIV-008, R-UI-012 | Backend Lead + Security | draft |
 
 ### Epic 3 — Dashboard (Frontend)
 
@@ -72,6 +73,7 @@ Epic은 [[07-Roadmap]] Milestone과 [[02-Requirements]] `R-*`를 따라 분해�
 | --- | --- | --- | --- | --- |
 | [[SPEC-400-control-actions]] | text/key/interrupt·안전장치·audit·UI flow (+passthrough 접점·control-byte 필터) | R-CTRL-001~009, R-UI-004 | Backend Lead + Security + UI/UX | approved |
 | [[SPEC-401-interactive-input]] | keyboard passthrough·관전/조종 arm/disarm·확장 allowlist·rate limit·batch audit | R-CTRL-009/001/002/005/007 | Backend Lead + Security | approved |
+| [[SPEC-402-orchestration]] | command broadcast(대상 다중 선택·단일 confirm·per-orc 순차·best-effort 집계·`control.broadcast` batch audit·단일 camp) | R-CTRL-010(proposed)/005/007/008 | Backend Lead + Security + UI/UX | draft |
 
 ### Epic 6 — Settings & Persistence
 
@@ -161,4 +163,11 @@ Epic은 [[07-Roadmap]] Milestone과 [[02-Requirements]] `R-*`를 따라 분해�
 - **확정 결정**: [[08-Decisions|D-041]]~[[08-Decisions|D-046]] — **2026-07-02 제품 오너 Accepted 승인**. 관련 spec(신규 SPEC-103/203/401 + 개정 SPEC-006/102/201/400/600/200/202) 전부 `approved` 승격.
 - **남은 항목(비-blocker)**: 다수 임계값(폴링 주기·부하 한도·`PASSTHROUGH_IDLE_MS`·키스트로크 rate·RP-10/11 min-length·번들 예산 등)은 [[SPEC-007-test-validation]]/사용성 QA로 보정할 가설. Phase 1.5 styled(ANSI) redaction·Phase 2 `tmux -C` 브리지(제안 [[SPEC-103-pane-live-stream]] §6 후속 `SPEC-104-control-mode-bridge`)는 forward pre-flag. 블루프린트 [[18-Terminal-Workspace]] §4 `display-message`→`list-panes` 문구는 정합화 완료.
 
-> 다음 게이트는 구현 중 spec 변경이 생기거나 P2 forward epic을 착수할 때 수행한다. 구현 시 전 epic이 `docs/specs/`를 SSOT로 따른다. Terminal Workspace 결정(D-041~046)은 **2026-07-02 제품 오너 승인 완료**로 관련 spec이 `approved`이며 구현 착수됐다(Phase 1 백엔드 SPEC-103/401).
+### 2026-07-03 — Terminal Workspace Batch 3 (Phase 2/3) 초안 작성 (spec-author)
+
+- **범위**: [[18-Terminal-Workspace]] §8 Phase 2/3 위임. Phase 1/1.5(SPEC-103/203/401, D-041~D-046)는 구현·라이브 실증·main 머지 완료. 본 batch는 남은 두 축의 초안 — 신규 [[SPEC-104-control-mode-bridge]](저지연 control-mode 브리지)·[[SPEC-402-orchestration]](command broadcast), 개정 [[SPEC-103-pane-live-stream]](§6 Q6 해소)·[[SPEC-006-privacy-redaction]](§2.8 stream=변경 없음)·[[SPEC-400-control-actions]](§2.13 broadcast 접점)·[[SPEC-401-interactive-input]](broadcast≠arm out-of-scope)·[[SPEC-600-observability]](`control.broadcast` taxonomy)·[[SPEC-203-terminal-workspace]](§2.10 broadcast UI)·[[SPEC-102-realtime-sync]](broadcast=신규 프레임 없음). 결정 [[08-Decisions|D-047]]~[[08-Decisions|D-051]](**Proposed 미승인**), 요구사항 R-API-007/R-CTRL-010/R-UI-013(proposed).
+- **상태**: 신규 SPEC-104/402는 `draft`, 개정 spec은 `approved` 유지(추가 절만 proposed forward). **결정 D-047~D-051은 Proposed(미승인)** — 하드 불변식(wire 계약 frozen·read-only allowlist·redaction-before-egress 단일 chokepoint·audit 비저장)을 위반하지 않도록 작성했다.
+- **도메인 리뷰 1차(2026-07-03) 반영**: tmux-systems·security·product-ui 3개 리뷰 완료. **SPEC-104 = 2 BLOCK(P0)**: (P0-A) `BRIDGE_COMMAND_ALLOWLIST` verb-only 안이 tmux 3.6b에서 `refresh-client -C` resize(read-only BROKEN)·`capture-pane` chokepoint 우회(redaction BYPASS)로 실증 → **유효 allowlist=∅**로 고정([[08-Decisions|D-048]] 개정, §2.4). (P0-B) control-mode stdin의 newline/`;` second-line 주입 → **line-granular fail-close + wrapper-전용 stdin handle + 비신뢰 문자열 비-보간 + strict id 패턴**(§2.4, AC-01/AC-09 line 채널 검증). P1 6건(size-neutral `ignore-size`·stdin-open lifecycle·bounded reader+flow-control·socket 공유·단일 scheduler atomic handoff·structural-fact 진단) folded, AC-10/AC-11 신설. **SPEC-402 = PASS-with-P1**: de-dup(P1-I, AC-07)·exposure 독립(P1-J, AC-10) 반영. **SPEC-203 broadcast UI P1 6건**(두 선택 레이어·키보드 다중선택·durable failure+retry·confirm at-scale·용어·waiting-toast 구별) + P2(severity 매핑·focus 복귀·rail result-hint home·snapshot-at-selection) folded, AC-18 (i)~(vi)로 확장, §2.3 `broadcastTargeted` 신설, §6 C7/Q7/Q8 추가.
+- **다음 단계(미실행)**: spec-reviewer P0 gap 게이트 → **제품 오너 D-047~D-051 승인** → 구현 배치 분할(A=src/ 브리지, B=web/ broadcast UI). 승인 전까지 SPEC-104/402는 forward이고 live view는 SPEC-103 폴링·control은 SPEC-400/401로만 동작한다. [[18-Terminal-Workspace]] §8 상태 라인은 리뷰 게이트 후 orchestrator가 flip한다(본 batch는 미표기).
+
+> 다음 게이트는 구현 중 spec 변경이 생기거나 P2 forward epic을 착수할 때 수행한다. 구현 시 전 epic이 `docs/specs/`를 SSOT로 따른다. Terminal Workspace 결정(D-041~046)은 **2026-07-02 제품 오너 승인 완료**로 관련 spec이 `approved`이며 구현 착수됐다(Phase 1 백엔드 SPEC-103/401). Phase 2/3(D-047~D-051)은 **2026-07-03 초안(Proposed)**으로 리뷰 게이트 대기.

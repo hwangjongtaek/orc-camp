@@ -141,6 +141,8 @@ interface WsEnvelope<P = unknown> {
 | `view.attach` | C→S | null | `{orcId}` live view 시작 요청 | payload·의미 [[SPEC-103-pane-live-stream]] §2.2 |
 | `view.detach` | C→S | null | `{orcId}` live view 중단 요청 | payload·의미 [[SPEC-103-pane-live-stream]] §2.2 |
 
+> **command broadcast = 신규 프레임 없음(unchanged, 2026-07-03, [[08-Decisions|D-050]]/[[08-Decisions|D-051]])**: command broadcast([[SPEC-402-orchestration]], R-CTRL-010)는 본 spec `WsFrameType` 카탈로그에 **어떤 프레임도 추가하지 않는다**. broadcast의 actor 결과는 [[SPEC-402-orchestration]] §2.1 **동기 REST 응답**(`BroadcastResult`, per-orc 집계)이고, rail 항목은 기존 **`activity` frame**(batch `control.broadcast` 1건 + per-orc `control.result` N건, [[SPEC-600-observability]])으로 흐른다. 진행 상황도 기존 activity stream으로 표현되므로 broadcast 전용 progress frame이 필요 없다 — 본 spec은 broadcast에 대해 **불변**이다.
+
 > **live pane view 채널(별도 채널, [[08-Decisions|D-041]])**: `pane_view_seed`/`pane_view`/`pane_view_end`와 `view.attach`/`view.detach`는 [[SPEC-103-pane-live-stream]]가 소유하는 **live view 채널**의 프레임이다. 본 spec은 이들을 `WsEnvelope`로 감싸 **전송**할 뿐 payload shape·폴링·부하·redaction·exposure gate를 정의하지 않는다. 이 프레임의 `WsEnvelope.version`은 **항상 `null`**이며(스냅샷 sequence 아님), 순서·중복 판정은 payload의 **`viewSeq`**(per-attach 단조 증가, seed=0)로 한다. 따라서 이 프레임은 §2.4 version 모델, §3.1 재조립, §3.5 gap→resync, §3.3 replay **어느 것의 대상도 아니다**(별도 채널이므로 스냅샷 store·`Vlast`에 영향 없음). **`WsEnvelope.seq` 예외(2026-07-02 리뷰 반영)**: live view frame은 연결 `seq` sequence에 **참여하지 않는다** — seq를 증가시키지 않고 직전 state seq를 반복(비증가)해 실으며, client는 §3.5-2 seq-gap 검사에서 이들을 **type 필터로 제외**한다. 즉 고빈도 `pane_view` 유실/coalesce가 state 채널 re-snapshot resync를 트리거하지 않는다(§2.2 seq 정의, [[SPEC-103-pane-live-stream]] §2.4).
 
 #### 2.3.1 state-diff payload (convergent partial)

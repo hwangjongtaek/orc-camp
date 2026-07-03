@@ -333,7 +333,7 @@
 - **상태**: Accepted
 - **결정일**: 2026-07-02 (승인 2026-07-02)
 - **맥락**: [[18-Terminal-Workspace]] §4 Phase 1은 focused pane 1개를 sub-second로 갱신하기 위해 `capture-pane`을 고빈도(250–500ms) 폴링한다. 이는 스캔 루프(1–5s)와 독립된 새 채널이며 "tmux를 절대 변경하지 않는다"는 read-only 불변식([[08-Decisions|D-019]])과 부하 관점에서 충돌 가능성이 제기됐다(§5.2).
-- **결정**: (a) live view의 `capture-pane`은 기존 [[SPEC-006-privacy-redaction]] §2.6 `tmuxExec` **READONLY_ALLOWLIST 안에서만** 수행한다(`capture-pane`은 이미 allowlist에 있음) — read-only 불변식은 그대로 유지되고 새 write 경로를 만들지 않는다. (b) 부하 한도를 **계약**으로 고정한다: **연결당 동시 attach 1 pane**(MVP), 폴링 주기 `PANE_VIEW_INTERVAL_MS` **250–500ms(가설)**, 폴링은 **exposure on([[08-Decisions|D-044]]) + 탭 활성 + attach 유지 중**일 때만 수행하고 `view.detach`/연결 종료/exposure off/탭 hidden 시 **즉시 중단**한다. (c) Phase 2 `tmux -C`(control mode) 브리지는 tmux 바이너리를 상주 attach하는 **새 subprocess 진입점**이라 `tmuxExec` allowlist 밖이므로, 브리지가 발행하는 명령을 **read-only allowlist(attach·refresh-client·subscribe류, send-keys 금지)로 별도 고정**하는 sub-계약을 요구하며 **forward**로 pre-flag한다.
+- **결정**: (a) live view의 `capture-pane`은 기존 [[SPEC-006-privacy-redaction]] §2.6 `tmuxExec` **READONLY_ALLOWLIST 안에서만** 수행한다(`capture-pane`은 이미 allowlist에 있음) — read-only 불변식은 그대로 유지되고 새 write 경로를 만들지 않는다. (b) 부하 한도를 **계약**으로 고정한다: **연결당 동시 attach 1 pane**(MVP), 폴링 주기 `PANE_VIEW_INTERVAL_MS` **250–500ms(가설)**, 폴링은 **exposure on([[08-Decisions|D-044]]) + 탭 활성 + attach 유지 중**일 때만 수행하고 `view.detach`/연결 종료/exposure off/탭 hidden 시 **즉시 중단**한다. (c) Phase 2 `tmux -C`(control mode) 브리지는 tmux 바이너리를 상주 attach하는 **새 subprocess 진입점**이라 `tmuxExec` allowlist 밖이므로, 브리지가 발행하는 명령을 **read-only allowlist(attach·refresh-client·subscribe류, send-keys 금지)로 별도 고정**하는 sub-계약을 요구하며 **forward**로 pre-flag한다. **(2026-07-03 갱신: 이 sub-계약은 [[08-Decisions|D-047]]/[[08-Decisions|D-048]]가 소유·확정했다. 위 예시의 `refresh-client·subscribe` 목록은 D-048에서 effective allowlist=∅로 대체됐다 — `refresh-client -C`는 window resize를 유발하고 `capture-pane`은 redaction chokepoint를 우회하므로 금지이며, 브리지는 명령을 발행하지 않는다. 본 D-041 결정 자체는 변경 없음.)**
 - **근거**: capture-pane은 정의상 pane을 변경하지 않으므로 빈도만 오를 뿐 read-only 성질은 불변이다. 위험은 tmux 서버 부하이므로 이를 문서가 아니라 **측정 가능한 상한 계약**(동시 수·Hz·게이트)으로 강제한다. control mode는 임의 명령 실행이 가능한 채널이라 도입 전 별도 게이트가 필요하다.
 - **영향**: R-API-006(accepted 2026-07-02) 신설. [[SPEC-103-pane-live-stream]] 신규(attach/detach·폴링·부하 한도·프레임 소유), [[SPEC-102-realtime-sync]] 프레임 카탈로그 확장, [[SPEC-002-tmux-discovery]]/[[SPEC-006-privacy-redaction]] read-only 경계 참조. 실측 방법은 [[SPEC-007-test-validation]] 하니스.
 - **근거 spec**: [[SPEC-103-pane-live-stream]], [[SPEC-006-privacy-redaction]], [[SPEC-102-realtime-sync]].
@@ -387,3 +387,62 @@
 - **근거**: ANSI·커서·스크롤백을 신뢰성 있게 렌더하는 성숙한 표준 라이브러리를 자체 구현보다 채택하는 편이 안전하고 빠르다. web-only + lazy-load면 CLI 원칙과 초기 로드에 영향이 없다.
 - **영향**: [[SPEC-203-terminal-workspace]] xterm.js 통합 계약, [[SPEC-200-frontend-architecture]] 의존/코드-스플릿 note, [[SPEC-700-packaging-release]] "web 의존 ≠ CLI 의존" 명시.
 - **근거 spec**: [[SPEC-203-terminal-workspace]], [[SPEC-200-frontend-architecture]].
+
+---
+
+> D-047 ~ D-051은 2026-07-03 [[18-Terminal-Workspace]] §8 Phase 2/3 위임 브리프를 구현 spec으로 고정하기 위해 제안한 결정이다. Phase 1/1.5(D-041~D-046)는 구현·라이브 실증·main 머지 완료이고, 본 묶음은 남은 두 축 — Phase 2 control-mode 브리지(저지연) + Phase 3 orchestration(broadcast) — 을 다룬다. 근거 spec은 신규 [[SPEC-104-control-mode-bridge]]·[[SPEC-402-orchestration]] 및 개정 [[SPEC-103-pane-live-stream]]·[[SPEC-006-privacy-redaction]]·[[SPEC-400-control-actions]]·[[SPEC-401-interactive-input]]·[[SPEC-600-observability]]·[[SPEC-203-terminal-workspace]]·[[SPEC-102-realtime-sync]]. **상태는 전부 Proposed(미승인)** — 도메인 리뷰(tmux-systems / security-privacy / product-ui) + spec-reviewer 게이트 후 제품 오너 승인이 남아 있다(승인 전까지 관련 spec은 `draft`).
+
+## D-047: control-mode 브리지의 redaction 경계는 HYBRID(`%output`=dirty-signal only)로 고정한다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-03
+- **맥락**: [[18-Terminal-Workspace]] §8 P0-1 / [[SPEC-103-pane-live-stream]] §6 Q6 — Phase 2 저지연(<100ms) push는 `tmux -C attach` 상주 브리지로 구현한다. 그러나 control-mode `%output`은 escape 포함 **chunk 스트림**이라 secret이 chunk 경계에서 쪼개질 수 있다(Phase 1은 매 tick 전체 window 재캡처라 무풍). 이는 [[SPEC-006-privacy-redaction]] §2.8이 미룬 "입력이 stream일 때"의 물음이다.
+- **결정**: **HYBRID(권장)** — `%output`(및 `%window-pane-changed`(focus)/`%layout-change`(window-scoped)/`%pane-mode-changed`) 이벤트는 **dirty-signal로만**(어떤 pane이 바뀌었는지) 소비한다. 실제 프레임은 여전히 **기존 [[SPEC-103-pane-live-stream]] 경로** — `list-panes` geometry + `capture-pane -p`/`-p -e` → `sanitizeCapture`/`sanitizeStyledCapture` → 동일 `pane_view*` 프레임 — 으로 만든다. 따라서 redaction chokepoint와 §2.3.1 wire 계약이 **완전히 불변**이고, `%output`의 **octal-escaped text payload**(raw byte가 아니라 tmux가 `\NNN` octal로 인코딩한 텍스트)는 프레임·로그·`redact()`에 **버퍼링·redact·log·emit되지 않는다**(reader는 prefix만 파싱하고 나머지 라인을 버퍼 없이 drain). <100ms 지연은 고정 interval 폴링을 **event-triggered(debounced) capture**로 바꿔 달성한다. **[[SPEC-006-privacy-redaction]] §2.8 "stream input" 답 = 변경 없음(HYBRID)**.
+- **근거**: 색·저지연은 부가가치지만 redaction은 비-negotiable([[08-Decisions|D-027]]/[[08-Decisions|D-042]] 정신). HYBRID는 지연 문제를 **트리거 타이밍**으로 풀어 **새 redaction 표면을 0으로** 유지한다 — tmux가 이미 재조립한 pane 화면을 다시 capture하므로 chunk-boundary split이 구조적으로 발생하지 않는다.
+- **기각 대안**: (b) 라인-완성 버퍼링 후 line 단위 `sanitizeStyledCapture`, (c) 화면 상태 재구성 후 sanitize — **둘 다 raw escape-bearing `%output` chunk를 새 redaction 경로로 route**해 secret-split-at-chunk-boundary 위험을 만든다. HYBRID는 그 위험을 애초에 없앤다.
+- **영향**: R-API-007(proposed) 신설. [[SPEC-104-control-mode-bridge]] 신규(HYBRID 트리거 소유), [[SPEC-103-pane-live-stream]] §6 Q6 RESOLVED(브리지가 동일 프레임 트리거), [[SPEC-006-privacy-redaction]] §2.8 "stream=변경 없음" 노트. 측정은 [[SPEC-007-test-validation]] 하니스.
+- **근거 spec**: [[SPEC-104-control-mode-bridge]], [[SPEC-103-pane-live-stream]], [[SPEC-006-privacy-redaction]].
+
+## D-048: 브리지는 read-only sub-allowlist + fail-close로 강제한다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-03
+- **맥락**: [[18-Terminal-Workspace]] §8 P0-2 — 상주 `tmux -C` 브리지는 tmux 바이너리를 attach하는 **새 subprocess 진입점**이라 [[SPEC-006-privacy-redaction]] §2.6 `tmuxExec`의 per-call allowlist **밖**이다. 브리지는 원리상 임의 tmux 명령을 발행할 수 있으므로 별도 강제가 필요하다. **2026-07-03 도메인 리뷰(tmux-systems + security)가 초기 안(verb-only allowlist에 `refresh-client -C`/subscribe·`capture-pane` 허용)에서 2개 P0를 실증**했다 — (P0-A) tmux 3.6b에서 `refresh-client -C 80x24`가 실제 window를 200×50→80×24로 **resize**하고 `%layout-change`+SIGWINCH를 유발(read-only BROKEN)하며, 브리지가 발행한 `capture-pane`는 control-mode stdout으로 산출을 반환해 **`sanitizeCapture` chokepoint를 우회**(redaction BYPASS)한다. 둘 다 verb-only allowlisting을 통과한다. (P0-B) control-mode stdin은 newline/`;`-구분 텍스트 채널이라 first-token verb 검사만으로는 조작된 인자(pane/window/session 이름·OSC title의 newline/`;`/control byte)가 **검사되지 않은 두 번째 라인(send-keys 등)**을 주입할 수 있다.
+- **결정(2026-07-03 개정)**: (a) **유효 `BRIDGE_COMMAND_ALLOWLIST = ∅`(빈 집합)**. MVP 브리지는 **정상 상태에서 어떤 tmux 명령도 발행하지 않는다** — `refresh-client`(‑C가 resize)·`capture-pane`(chokepoint 우회)·`list-panes`를 포함해 **전부 금지**한다(초기 안의 예시 문구가 이 P0를 인코딩했으므로 폐기). 리뷰 실증대로 **stdin을 열어둔 채 attach하면 명령 없이 `%output`이 스트리밍**되므로 MVP는 명령이 필요 없다. 향후 명령 추가(예: read-only `refresh-client -B name:what:format` subscription — 단 `-B`는 redraw cadence라 <100ms `%output` 대체 아님)는 **flag-level 검증 + 새 결정**을 요구한다. (b) 강제 = 브리지 stdin **single-writer wrapper의 line-granular fail-close** — child stdin handle은 wrapper 전용(다른 모듈 write 불가, [[SPEC-006-privacy-redaction]] §2.6 sole-writer 동형), 각 **line**을 검사하고(verb만이 아니라 line 전체) 비신뢰 관측 문자열을 stdin line에 **보간 금지**, id 인자는 strict 패턴(pane `/^%\d+$/`·session/window `/^[$@]\d+$/`, newline/`;`/control byte 포함 시 거부). allowlist=∅의 최강 형태는 "spawn 이후 stdin은 teardown 외 **명령 byte 0**". (c) 브리지는 `shell:false`·fixed argv로 spawn하되 **fixed-argv/shell:false는 SPAWN만 보호하는 필요조건이며 stdin line 채널은 별도로 no-injection 부담**을 진다. size는 `-r`가 아니라 **`ignore-size`**로 중립화하고(‑r는 키보드만 막고 resize를 막지 못함) 브리지는 크기를 절대 보내지 않는다. socket specifier(`-L`/`-S`)는 `tmuxExec`와 동일하게 싣는다. (d) **위반 OR 브리지 crash/`%exit`/EOF/tmux 재시작/prolonged `%pause`(staleness) → 브리지 종료 → SPEC-103 폴링으로 silent fallback**(client 무변경).
+- **근거**: 상주 채널은 read-only([[08-Decisions|D-019]])·redaction chokepoint의 최대 위협이므로 **명령 표면을 0으로** 만들어(allowlist=∅) 위협을 원천 제거하고, 남는 유일 채널(stdin)을 line 단위 fail-close로 닫는다. write·capture는 여전히 각각 [[SPEC-400-control-actions]] `controlExec`·[[SPEC-103-pane-live-stream]] `tmuxExec`(→`sanitizeCapture`) 단일 경로로만 나간다.
+- **기각 대안**: (i) verb-only allowlist에 `refresh-client`/`capture-pane` 허용 — 리뷰가 resize·redaction-bypass로 실증한 초기 안(폐기). (ii) 브리지를 신뢰해 강제 없이 두기 — 불변식을 문서 수준으로 약화. (iii) `tmuxExec` per-call allowlist 재사용 — 상주 stdin 스트림에는 per-call 모델이 맞지 않아 별도 line-granular wrapper가 필요.
+- **영향**: R-API-007(proposed). [[SPEC-104-control-mode-bridge]] §2.2/§2.4(allowlist=∅·line fail-close·size-neutral·socket 공유), [[SPEC-103-pane-live-stream]]/[[SPEC-006-privacy-redaction]] read-only·chokepoint 경계 참조, [[SPEC-400-control-actions]] single-writer 불변 유지.
+- **근거 spec**: [[SPEC-104-control-mode-bridge]], [[SPEC-006-privacy-redaction]], [[SPEC-400-control-actions]].
+
+## D-049: Phase 2 브리지는 Phase 1 폴링과 coexist하며 기본값은 폴링이다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-03
+- **맥락**: [[18-Terminal-Workspace]] §8 오픈 퀘스천 — Phase 2가 Phase 1 폴링을 **대체**하는지 **공존**하는지, 기본값을 무엇으로 둘지.
+- **결정**: Phase 2 브리지는 Phase 1 폴링을 **대체하지 않고 공존**한다 — **opt-in 저지연 최적화**이며 **기본 트리거 소스는 폴링([[SPEC-103-pane-live-stream]])**이다. **ANY 브리지 장애(crash/`%exit`/EOF/fail-close/미지원 tmux) → 폴링으로 silent degrade**한다. 트리거 소스와 무관하게 **client-visible 프레임은 동일**하다(같은 `PaneViewSession`·같은 chokepoint·`viewSeq` 단조·재-attach 없음).
+- **근거**: 브리지는 **정확성이 아니라 지연에만** 관여하므로 기본을 폴링(검증된 경로)으로 두면 어떤 브리지 장애도 데이터 손실·에러 표면을 만들지 않는다. 저지연이 필요한 사용자만 opt-in한다.
+- **기각 대안**: Phase 2가 폴링을 **대체** — 브리지 장애 시 live view가 통째로 끊기고 fallback 경로가 사라져 신뢰성이 떨어진다.
+- **영향**: R-API-007(proposed). [[SPEC-104-control-mode-bridge]] §2.6/§2.7(fallback 투명·coexist), [[SPEC-103-pane-live-stream]] §6 Q6(fallback = 트리거 소스 swap). opt-in 게이트 위치는 forward([[SPEC-500-settings-persistence]]).
+- **근거 spec**: [[SPEC-104-control-mode-bridge]], [[SPEC-103-pane-live-stream]].
+
+## D-050: broadcast는 composed-input(form) 경로만 재사용하고 arm/passthrough를 쓰지 않는다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-03
+- **맥락**: [[18-Terminal-Workspace]] §8 P0-3 — 멀티 orc broadcast를 (a) composed-input(폼) 경로만 쓸지 (b) multi-arm 실시간 전파로 할지. passthrough arm은 **연결당 1 pane**([[08-Decisions|D-041]])의 interactive single-pane 미러링이다.
+- **결정**: broadcast는 각 대상에 기존 [[SPEC-400-control-actions]] `POST /api/orcs/:orcId/input`(composed-input) + **`expected` 재검증**을 per-orc 재사용한다(**arm/passthrough 미사용**). 대상 선택·필터는 client-side이고 server에는 명시적 `{targets:[{orcId, expected}], input}`으로만 온다.
+- **근거**: arm은 interactive single-pane 미러링이고 broadcast는 **의도된 one-shot fan-out**이다 — form 경로가 이미 재검증(R-CTRL-005)·single-writer·per-action audit을 갖추고 있어 재사용이 안전하다. mis-target 오폭 위험을 최소화한다.
+- **기각 대안**: **multi-arm 실시간 전파** — 다중 pane에 동시 raw 키스트로크를 흘려 **blast radius가 과대**하다. **forward pre-flag**로만 남긴다([[SPEC-401-interactive-input]] §6).
+- **영향**: R-CTRL-010(proposed) 신설. [[SPEC-402-orchestration]] 신규(broadcast 경로 소유), [[SPEC-400-control-actions]] gate pipeline·`expected` 재검증 재사용, [[SPEC-401-interactive-input]] out-of-scope 노트(broadcast≠arm).
+- **근거 spec**: [[SPEC-402-orchestration]], [[SPEC-400-control-actions]], [[SPEC-401-interactive-input]].
+
+## D-051: broadcast는 단일 confirm·per-orc 순차·best-effort 집계·batch audit(원문 비저장)로 고정한다
+
+- **상태**: Proposed (미승인)
+- **결정일**: 2026-07-03
+- **맥락**: [[18-Terminal-Workspace]] §8 P0-4 — 대상 N≥2일 때 confirm 필드, 부분 실패 시 중단 vs 계속, audit 스키마(원문 비저장 원칙 유지).
+- **결정**: (a) **N≥2 → 모든 대상(paneId/tmuxTarget/agentType/command)을 나열한 단일 confirm** 필수(`confirmed:true` 없으면 `422 confirm_required`). (b) 실행 = per-orc **순차**로 [[SPEC-400-control-actions]] §2.5 **동일 gate pipeline**(schema→controllability→fresh `expected` 재검증→execute→audit) 통과 — per-pane single-writer 직렬화 보존. (c) 부분 실패 = **best-effort continue, per-orc 결과 집계(ok/errorCode)** — 각 orc 독립·조작자가 대상 집합을 명시 confirm했으므로. (d) audit = **`control.broadcast` batch event 1건**에 `{targetCount, successCount, failureCount, command byteLength + redactedFlag, perOrc[{orcId, ok, errorCode}]}`만 저장 — **command 원문 텍스트는 어떤 필드에도 비저장**([[08-Decisions|D-028]] non-storage 유지). (e) MVP는 **단일 camp 범위**(cross-camp = forward).
+- **근거**: 단일 confirm은 조작자가 blast radius를 한눈에 검토하게 하고, 순차는 single-writer·부하를 보존하며, best-effort는 명시적으로 confirm된 독립 대상에 부분 성공을 투명 보고한다. batch audit 비저장은 [[08-Decisions|D-028]]/R-PRIV-004를 broadcast로 확장한다.
+- **기각 대안(문서화)**: **stop-on-first**(첫 실패에서 중단) — 독립 대상 집합에는 조작자 의도와 덜 부합. 대안으로만 기록하고 향후 옵션화는 forward([[SPEC-402-orchestration]] §6 Q3).
+- **영향**: R-CTRL-010(proposed)·R-UI-013(proposed) 신설. [[SPEC-402-orchestration]] confirm/순차/집계/audit 소유, [[SPEC-600-observability]] `control.broadcast` taxonomy·code·detail 확장, [[SPEC-203-terminal-workspace]] broadcast UI(다중 선택·ConfirmModal·결과 집계·waiting toast 연결), [[SPEC-102-realtime-sync]] 신규 프레임 불필요(REST + 기존 activity stream).
+- **근거 spec**: [[SPEC-402-orchestration]], [[SPEC-600-observability]], [[SPEC-203-terminal-workspace]].

@@ -244,6 +244,8 @@ live pane view([[SPEC-103-pane-live-stream]])가 **색(SGR)** 을 재현하려�
 - SGR span의 파라미터 문자열 `sgr`은 **`SGR_RE = /^[0-9;:]{1,SGR_MAX}$/`(SGR_MAX=64)를 MUST match**한다 — charset `[0-9;:]`·길이 1..32의 SGR 숫자 파라미터만(예: `"1;31"`, `"38;5;204"`). 임의 텍스트·문자·ESC를 담을 수 없어 **구조적으로 secret 콘텐츠를 밀반출할 수 없다**(server 생성 두 번째 콘텐츠 필드의 blind spot을 charset 검사가 닫음). style span은 §2.8 step 4대로 `[REDACTED:<class>]` 토큰을 **가로지르거나 쪼갤 수 없다**(토큰은 원자 단위, 경계에서 clip).
 - **구조적 검증성**: wire에 escape가 존재하지 않으므로, secret이 노출되려면 redacted plain `lines`에 literal로 나타나야 하는데 그 `lines`는 이미 §2.1 `sanitizeCapture`/§2.8 plain-redact를 통과했다 — 따라서 **T-14/PF-05를 프레임 경계에서 구조적으로 검증**할 수 있다(escape 안에 숨을 여지가 없음). → AC-22, AC-19/AC-20 보강.
 
+- **stream input(Phase 2 control-mode `%output`) = 메커니즘 변경 없음(2026-07-03, [[08-Decisions|D-047]] HYBRID)**: Phase 2 저지연 브리지([[SPEC-104-control-mode-bridge]])는 `tmux -C` control-mode의 `%output`(escape 포함 **chunk 스트림**)을 다룬다. 이는 "입력이 line/window 스냅샷이 아니라 stream일 때 §2.8을 어떻게 적용하나"의 물음이지만, **HYBRID 결정으로 본 §2.8 메커니즘은 변경되지 않는다** — `%output` chunk byte는 **dirty-signal로만**(어떤 pane이 바뀌었는지) 소비돼 즉시 폐기되고, 실제 프레임은 여전히 `capture-pane` 재-read → **동일한 `sanitizeCapture`/`sanitizeStyledCapture` chokepoint**(§2.1/§2.8 위 절)를 통과한 값만 싣는다. 따라서 raw `%output`은 **redaction·egress에 도달하지 않으며**(chunk-boundary secret-split 위험이 구조적으로 없음), tokenize→strip→redact→style-remap 순서·`SGR_RE` charset bound·PF-05 egress 불변식은 그대로다. 이 절에는 **새 stream-redaction 경로를 추가하지 않는다**([[08-Decisions|D-047]] 기각 대안 (b)/(c) — chunk를 새 redaction 경로로 route하는 방식 — 는 채택하지 않음). 브리지 read-only 강제는 [[SPEC-104-control-mode-bridge]] §2.4가 소유한다.
+
 ## 3. Behavior rules
 
 확정 규칙과 PoC 검증 가설을 구분한다.

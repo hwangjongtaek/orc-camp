@@ -29,6 +29,7 @@ tags:
 - **비기능 커버리지**(§3.1): local-first·보안·개인정보·성능·scan latency·신뢰성·확장성·사용성·접근성·관측성·배포 11개 영역 → 소유 spec/AC.
 - **채택 P1 커버리지**(§3.2): R-P1-001/002/004/006/010/011 → spec/AC.
 - **Terminal Workspace 채택 R-* 커버리지**(2026-07-02, [[08-Decisions|D-041]]~[[08-Decisions|D-046]] Accepted): R-UI-012(§2.4)·R-API-006(§2.7)·R-PRIV-008(§2.5)·R-CTRL-009(§2.6) → spec/AC. P0 슬라이스 이후 채택된 기능 요구사항이며 각 family 표에 반영한다.
+- **Terminal Workspace Phase 2/3 제안 R-* 커버리지**(2026-07-03, [[08-Decisions|D-047]]~[[08-Decisions|D-051]] **Proposed 미승인**): R-API-007(§2.7, [[SPEC-104-control-mode-bridge]] 저지연 브리지)·R-CTRL-010(§2.6, [[SPEC-402-orchestration]] broadcast)·R-UI-013(§2.4, broadcast UI) → spec/AC. **proposed**이므로 각 family 표에 `(proposed)`로 반영하며 **P0 orphan-0 카운트(58 P0)에는 포함하지 않는다**(승인 시 정식 편입).
 - **P2 pre-flag ledger**(§3.3): R-P2-001~008 → forward pre-flag + 스트레스 불변식.
 - **롤업 자체의 수용 기준**(§4): 완결성 기준(`SPEC-900-AC-NN`) — "모든 P0가 ≥1 AC에 매핑된다" 등.
 - **Epic→spec→status 개요 + no-silent-truncation 명세**(§5): 의도적으로 후속 슬라이스로 미룬 항목을 빠짐없이 명시.
@@ -106,6 +107,7 @@ tags:
 | R-UI-007 | SPEC-201 (deep-link SPEC-200, 데이터 SPEC-005) | SPEC-201-AC-08/15; SPEC-200-AC-02; SPEC-202-AC-21; SPEC-005-AC-02/03 | C·U | raw tmux target 상시 노출(dock Details 탭 포함) |
 | R-UI-008 | SPEC-301 (sprite SPEC-300, 데이터 불변 SPEC-005) | SPEC-301-AC-01/02/03/12/14/22/23 | C | 활동을 공간 표현(위치=기존 필드 결정적 함수, 서버 좌표 불추가; [[08-Decisions|D-035]]). image-ground placement·ground-ratio 게이트도 client-derived 결정적 |
 | R-UI-012 | **SPEC-203** (data SPEC-103, dock 공존 SPEC-201, store SPEC-200, a11y SPEC-202) | SPEC-203-AC-01~17; SPEC-201-AC-17/18; SPEC-202-AC-03/04 | C | **Terminal Workspace**(map↔terminal 모드·orc rail·스위칭/퀵스위처·xterm·관전/조종). accepted 2026-07-02([[08-Decisions|D-045]]/[[08-Decisions|D-046]]) |
+| R-UI-013 (proposed) | **SPEC-203** (server SPEC-402) | SPEC-203-AC-18 | C | **broadcast UI**(대상 다중 선택·단일 ConfirmModal·per-orc 결과 집계·waiting toast 연결·a11y). proposed 2026-07-03([[08-Decisions|D-050]]/[[08-Decisions|D-051]]) |
 
 ### 2.5 R-PRIV — Terminal preview·Privacy (1차 [[SPEC-006-privacy-redaction]], R-PRIV-006은 [[SPEC-201-dashboard-screens]]/[[SPEC-500-settings-persistence]]/[[SPEC-101-snapshot-api]])
 
@@ -132,6 +134,7 @@ tags:
 | R-CTRL-007 | SPEC-400 (모델 SPEC-600) | SPEC-400-AC-12/13; SPEC-600-AC-02/16 | I | 결과 = canonical `control.result` ActivityEvent([[08-Decisions|D-028]]) |
 | R-CTRL-008 | SPEC-400 | SPEC-400-AC-09, AC-10 | U·I | `controlExec` single-writer·shell:false·임의 shell 구조적 불가 |
 | R-CTRL-009 | **SPEC-401** (write 경로 SPEC-400, audit SPEC-600, UI SPEC-203) | SPEC-401-AC-01~15; SPEC-400-AC-18/19/20; SPEC-600-AC-17 | I·U | keyboard passthrough·관전/조종 arm/disarm·확장 allowlist·control-byte 필터·arm-session 배치 audit(원문 비저장)·single-writer 재사용. accepted 2026-07-02([[08-Decisions|D-043]]) |
+| R-CTRL-010 (proposed) | **SPEC-402** (write 경로 SPEC-400, audit SPEC-600, UI SPEC-203) | SPEC-402-AC-01~10; SPEC-203-AC-18 | I·C | **command broadcast**(composed-input only·단일 confirm·per-orc 순차·중복 de-dup·exposure 독립·best-effort 집계·`control.broadcast` batch audit 비저장·단일 camp). proposed 2026-07-03([[08-Decisions|D-050]]/[[08-Decisions|D-051]]) |
 
 ### 2.7 R-API — Realtime sync·API (1차 [[SPEC-101-snapshot-api]]/[[SPEC-102-realtime-sync]], client [[SPEC-200-frontend-architecture]])
 
@@ -143,6 +146,7 @@ tags:
 | R-API-004 | SPEC-101 (client SPEC-200) | SPEC-101-AC-06/07/08/13; SPEC-200-AC-10 | I·C | manual refresh `POST /api/refresh`→GET fallback([[08-Decisions|D-033]]) |
 | R-API-005 | SPEC-101 (client SPEC-200) | SPEC-101-AC-09/10/11; SPEC-200-AC-12 | I·C | API error 사용자 envelope vs debug log 분리 |
 | R-API-006 | **SPEC-103** (frame 카탈로그 SPEC-102) | SPEC-103-AC-01~04/07~12; SPEC-102-AC-14/15 | I·C | live pane view 채널(attach/detach·250–500ms 폴링·부하 한도·`version:null`/`viewSeq` 별도 채널·read-only). accepted 2026-07-02([[08-Decisions|D-041]]) |
+| R-API-007 (proposed) | **SPEC-104** (frame·session SPEC-103, chokepoint SPEC-006) | SPEC-104-AC-01~11 | I·E | **control-mode 브리지** 저지연 트리거(HYBRID `%output`=dirty-signal·allowlist=∅ stdin line fail-close·size-neutral ignore-size·단일 scheduler handoff·fallback 투명·coexist default polling). proposed 2026-07-03([[08-Decisions|D-047]]/[[08-Decisions|D-048]]/[[08-Decisions|D-049]]) |
 
 ### 2.8 R-SET — Settings·Local persistence (1차 [[SPEC-500-settings-persistence]])
 
@@ -265,10 +269,10 @@ tags:
 | Epic | spec | status(헤더 SSOT) | 게이트 |
 | --- | --- | --- | --- |
 | 1 Scan | SPEC-001~007 | **approved** | 1차 게이트 통과(2026-06-26), P0 gap 0 |
-| 2 Server·API | SPEC-100/101/102 | draft | full-product 게이트(2026-06-27) 통과, 미승격 |
+| 2 Server·API | SPEC-100/101/102/103 · **SPEC-104**(proposed) | draft (SPEC-103 approved) | full-product 게이트(2026-06-27) 통과, 미승격. **SPEC-104**(control-mode 브리지, R-API-007 proposed)는 [[08-Decisions|D-047]]~[[08-Decisions|D-049]] 승인 대기 forward draft |
 | 3 Dashboard | SPEC-200/201/202 | draft | 동일 |
 | 4 Camp Visual | SPEC-300 / SPEC-301 / SPEC-302 / SPEC-303 | SPEC-300 draft · SPEC-301 draft · SPEC-302 draft · SPEC-303 draft | SPEC-301(camp 맵·movement·roaming) + **image-ground(단일 배경 이미지=world=2× native, 원본 크기 sprite, 고정 스케일·drag-pan only(no zoom)) 배치·ground-ratio 게이트**(SPEC-301 §2.1a/§2.7/§2.8f/AC-22/23, SPEC-300 §2.5/§2.6 backdrop full-cover) 구현 반영. 구 corner-Wang/parallax depth·zoom/fit은 superseded. **SPEC-302**(mascot prestige tier, R-P2-008 proposed)·**SPEC-303**(epic monster ambient NPC, R-UI-010 proposed·자산 [[16-Epic-Monster-NPC]]·§6 C3)는 forward draft(자산 생성 deferred). spec-reviewer 게이트 대기 |
-| 5 Control | SPEC-400 | draft | 동일 |
+| 5 Control | SPEC-400/401 · **SPEC-402**(proposed) | draft (SPEC-400/401 approved) | 동일. **SPEC-402**(orchestration broadcast, R-CTRL-010 proposed)는 [[08-Decisions|D-050]]/[[08-Decisions|D-051]] 승인 대기 forward draft |
 | 6 Settings | SPEC-500 | draft | 동일 |
 | 7 Observability | SPEC-600 | draft | 동일 |
 | 8 Packaging | SPEC-700 | draft | 동일 |

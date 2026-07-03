@@ -350,6 +350,16 @@ inspector entry → action → (interrupt) confirm modal → execute → result 
 - **rate limit 상호작용(확정)**: passthrough egress도 §2.10 **per-pane 직렬화**(at-most-one in-flight)와 global rate limit을 그대로 상속한다. [[SPEC-401-interactive-input]] §2.8은 그 위에 **arm-session 단위 keystroke rate cap**을 추가한다(본 spec §2.10을 대체하지 않고 중첩).
 - **재검증 불변 유지(확정, R-CTRL-005)**: passthrough는 §2.6 재검증을 **약화하지 않는다** — arm 시점과 매 egress burst에서 §2.6 fresh read-only 재검증을 재적용하고, drift 시 abort한다([[SPEC-401-interactive-input]] §2.5). arm/disarm endpoint([[SPEC-401-interactive-input]] §2.3)는 **`controlExec`를 호출하지 않는다**(arm=read-only 재검증, disarm=audit flush) — single-writer 단언(§2.1)은 passthrough까지 확장되어 유지된다(AC-18).
 
+### 2.13 broadcast orchestration 접점 (R-CTRL-010, [[08-Decisions|D-050]]/[[08-Decisions|D-051]]) — 2026-07-03 개정
+
+command **broadcast**의 계약 본체(대상 선택·단일 confirm·순차 오케스트레이션·부분 실패 집계·batch audit·camp 범위)는 [[SPEC-402-orchestration]]가 소유한다. 본 절은 broadcast가 **본 spec의 무엇을 재사용하는지의 경계**만 고정한다. 아래 어느 것도 §2.1~§2.12 불변식을 느슨하게 하지 않는다.
+
+- **경로 = composed-input(form) 재사용(확정, [[08-Decisions|D-050]])**: broadcast는 각 대상 orc에 대해 본 spec **`POST /api/orcs/:orcId/input`(§2.2 literal + 기본 Enter)** 를 per-orc 재사용하는 것과 의미적으로 동일하다. [[SPEC-402-orchestration]]는 **두 번째 writer나 새 egress 템플릿을 만들지 않으며** egress는 전부 §2.1 `controlExec`(single-writer, `send-keys` 3 템플릿)로만 나간다. **arm/passthrough([[SPEC-401-interactive-input]])는 broadcast에 쓰이지 않는다**(연결당 1 pane인 interactive 모델은 fan-out과 부적합, [[08-Decisions|D-041]]/[[08-Decisions|D-050]]).
+- **gate pipeline 전체 재사용(확정, R-CTRL-005/008)**: 각 대상 egress는 §2.5 gate(schema→controllability→**§2.6 fresh `expected` 재검증**→execute→audit)를 **그대로** 통과한다. 대상 선택은 client-side이므로 server는 대상마다 §2.6 재검증으로 mis-target을 방어한다(오폭 방어). 어떤 게이트도 broadcast를 위해 약화되지 않는다.
+- **순차·직렬화 계승(확정)**: broadcast는 대상들을 per-orc **순차** 실행해 §2.10 **per-pane single-writer 직렬화**를 보존한다. broadcast 요청도 §2.10 global rate limit을 상속한다.
+- **audit producer 확장(확정, R-CTRL-007)**: 각 per-orc egress는 종전대로 **per-action `control.result`**(§2.8)를 산출하고, broadcast 1회는 추가로 **batch 요약 1건**(`ActivityEvent` code **`control.broadcast`**)을 [[SPEC-402-orchestration]] §2.7이 산출한다 — 이 batch event는 `{targetCount, successCount, failureCount, inputByteLength, inputRedactedFlag, perOrc[{orcId, ok, errorCode}]}`만 담고 **broadcast command 원문 텍스트·token은 §2.8 privacy 불변식대로 어떤 필드에도 직렬화하지 않는다**([[SPEC-600-observability]] §2.7 taxonomy·code 소유, [[08-Decisions|D-028]]). `control.broadcast` code·detail의 canonical 모델 권위는 [[SPEC-600-observability]]다.
+- **신규 WS 프레임 없음(확정)**: broadcast 결과는 **동기 REST 응답**(actor) + 기존 `activity` frame(rail: batch 1건 + per-orc N건)으로 성립하며 [[SPEC-102-realtime-sync]]에 신규 프레임을 추가하지 않는다.
+
 ## 3. Behavior rules
 
 확정 규칙과 PoC 검증 가설을 구분한다.

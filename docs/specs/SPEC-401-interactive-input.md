@@ -60,6 +60,7 @@ Terminal Workspace([[18-Terminal-Workspace]] §3.3/§5.3)의 **키보드 passthr
 | redaction 패턴 카탈로그·`redact()` 구현 | privacy SSOT | [[SPEC-006-privacy-redaction]] |
 | startup token 생성·검증 메커니즘 | 공통 auth | [[SPEC-100-server-lifecycle]] §2.6 |
 | interrupt(`C-c`) confirm modal·전용 endpoint 계약 | destructive 경로(불변) | [[SPEC-400-control-actions]] §2.7 |
+| **command broadcast(멀티 orc fan-out)** | broadcast는 arm/passthrough가 아니라 composed-input(form) 경로만 재사용한다([[08-Decisions|D-050]]); **multi-arm 실시간 전파는 blast radius 과대로 forward pre-flag**(본 spec은 채택하지 않음) | [[SPEC-402-orchestration]] ([[08-Decisions|D-050]]/[[08-Decisions|D-051]]) |
 
 ## 2. Contract
 

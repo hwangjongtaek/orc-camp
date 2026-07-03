@@ -76,6 +76,8 @@ type ActivityType =
   | 'control.result'
   // interactive passthrough arm-session 요약 (R-CTRL-009, [[SPEC-401-interactive-input]] §2.9 / [[08-Decisions|D-043]]) — arm-session당 1건, per-keystroke event 미발행
   | 'control.passthrough_session'
+  // command broadcast batch 요약 (R-CTRL-010, [[SPEC-402-orchestration]] §2.7 / [[08-Decisions|D-050]]/[[08-Decisions|D-051]]) — broadcast 1회당 1건(원문 비저장); per-orc 상세는 별도 control.result N건
+  | 'control.broadcast'
   // tmux error (R-OBS-001, R-TMUX-004)
   | 'tmux.error'
   // reconnect/연결 (R-OBS-001, [[SPEC-102-realtime-sync]]) — client 합성(§2.4)
@@ -108,7 +110,12 @@ interface ActivityDetail {        // 전부 redaction-safe 구조 값 (자유 �
   keystrokeCount?: number;        // arm-session 동안 전송된 keystroke 수(수치 집계, 내용 아님)
   execFailures?: number;          // 세션 중 controlExec 실패 수
   keyHistogram?: Record<string, number>; // (optional, **기본 off**) allowlist 키 이름별 빈도. behavior side-channel이라 opt-in; literal 문자·원문은 절대 담지 않는다([[SPEC-401-interactive-input]] §2.9 Q6)
-  // 금지: capture 텍스트·preview·currentWorkSummary·token·send-keys raw text·전송 key 시퀀스·passthrough keystroke 원문·literal text
+  // control.broadcast 전용 — [[SPEC-402-orchestration]] §2.7 매핑 (R-CTRL-010 / [[08-Decisions|D-050]]/[[08-Decisions|D-051]]); 모두 redaction-safe 집계 스칼라(command 원문 미포함)
+  targetCount?: number;           // broadcast 대상 orc 수(수치 집계, 내용 아님)
+  successCount?: number;          // 성공 대상 수
+  failureCount?: number;          // 실패 대상 수
+  perOrc?: Array<{ orcId: string; ok: boolean; errorCode: string | null }>; // per-orc 결과(구조 식별자 + ok/errorCode만; command 원문 없음)
+  // 금지: capture 텍스트·preview·currentWorkSummary·token·send-keys raw text·전송 key 시퀀스·passthrough keystroke 원문·literal text·broadcast command 원문 텍스트
 }
 
 interface ActivityEvent {
@@ -142,11 +149,13 @@ R-OBS-001가 명시한 5개 class를 빠짐없이 매핑한다(severity는 대�
 | status change(종료) | `orc.terminated` | info | `orcId`/`campId` | `toStatus='terminated'` | retention(R-ORC-006) |
 | control action 결과 | `control.result` | info(성공)/warn(partial·aborted)/error(failed) | `orcId`/`paneId`/`tmuxTarget` | `action`·`controlOutcome`·`outcome`·`reason`·`exitCode`·`correlationId` | [[SPEC-400-control-actions]] §2.8(R-CTRL-007, [[08-Decisions|D-028]]) |
 | passthrough arm-session 요약 | `control.passthrough_session` | info(정상)/warn(rate-limit·drift disarm) | `orcId`/`paneId` | `keystrokeCount`·`durationMs`·`execFailures`·`inputRedactedFlag`·(opt) `keyHistogram`·`correlationId`(armSessionId) | [[SPEC-401-interactive-input]] §2.9(R-CTRL-009, [[08-Decisions|D-043]]) |
+| command broadcast batch 요약 | `control.broadcast` | info(전부 성공)/warn(일부 실패)/error(전부 실패) | `campId` | `targetCount`·`successCount`·`failureCount`·`inputByteLength`·`inputRedactedFlag`·`perOrc[{orcId,ok,errorCode}]`·`correlationId`(requestId) | [[SPEC-402-orchestration]] §2.7(R-CTRL-010, [[08-Decisions|D-050]]/[[08-Decisions|D-051]]) |
 | tmux error | `tmux.error` | warn/error | `tmuxTarget`/`orcId` | `code`·`exitCode` | tmux exec(R-TMUX-004) |
 | reconnect event | `connection.disconnected`/`connection.reconnected` | warn/info | null | `durationMs`(끊김 지속) | **client 합성**(§2.4, [[SPEC-102-realtime-sync]]) |
 
 - **control.result(R-CTRL-007 정합, canonical)**: `control.result`는 control audit의 **canonical 표현**이며([[08-Decisions|D-028]]), [[SPEC-400-control-actions]] §2.8이 control 실행 결과(success/partial/aborted/failed)를 본 모델의 `target`/`detail`로 매핑해 적재한다(§2.2.1). 실패는 `severity='error'` + `detail.outcome='failure'` + `detail.controlOutcome='failed'`이며, target 재검증 실패 등 사유는 안정 `code`(예 `control.target_revalidation_failed`)와 `detail.reason`로 식별한다(원문 echo 금지 — [[05-Backend]] "재검증 실패 시 activity event에 실패 원인 기록"을 redaction-safe code로 구현). send-keys 원문·전송 key 시퀀스는 어떤 필드에도 담지 않는다(§2.7).
 - **scanner.error / tmux.error(R-TMUX-004 정합)**: 특정 target 실패는 전체 장애가 아니라 target별 event로 기록한다([[05-Backend]] 비동기 처리). message는 tmux stderr 요약(redact 통과)이며 capture 콘텐츠를 포함하지 않는다([[SPEC-006-privacy-redaction]] AC-13 정합).
+- **control.broadcast(R-CTRL-010 정합, 2026-07-03 신설, proposed)**: command broadcast([[SPEC-402-orchestration]] §2.7, [[08-Decisions|D-050]]/[[08-Decisions|D-051]])는 broadcast **1회당 정확히 1건**의 batch 요약 event를 산출한다(per-orc 상세는 종전대로 대상별 `control.result` N건). `type`은 canonical `control.result`를 재사용하고 `code`는 안정 `control.broadcast`이며, `target`은 `campId`(단일 camp 범위, [[08-Decisions|D-051]])다. `detail`은 집계 스칼라(`targetCount`·`successCount`·`failureCount`·`inputByteLength`·`inputRedactedFlag`)와 `perOrc[{orcId,ok,errorCode}]`만 담고 **broadcast command 원문 텍스트·전송 key 시퀀스·token은 어떤 필드에도 담지 않는다**(§2.7 금지 확장, [[SPEC-006-privacy-redaction]] non-persistence 정합, [[08-Decisions|D-028]]). 매핑 producer 소유는 [[SPEC-402-orchestration]] §2.7, 모델·code·taxonomy 권위는 본 spec이다. 상태는 D-050/D-051 승인 전까지 **proposed**다.
 - **control.passthrough_session(R-CTRL-009 정합, 2026-07-02 신설)**: interactive passthrough([[SPEC-401-interactive-input]] §2.9, [[08-Decisions|D-043]])는 per-keystroke event를 발행하지 않고 **arm-session당 정확히 1건**의 요약 event를 disarm/close 시 산출한다. `detail`은 집계 스칼라(`keystrokeCount`·`durationMs`·`execFailures`·`inputRedactedFlag`, optional 기본-off `keyHistogram`)만 담고 **keystroke 원문·literal text·전송 key 시퀀스·token은 어떤 필드에도 담지 않는다**(§2.7 금지 확장, [[SPEC-006-privacy-redaction]] non-persistence 정합). `code`는 안정 `control.passthrough_session`이다. 매핑 producer 소유는 [[SPEC-401-interactive-input]] §2.9, 모델·code·taxonomy 권위는 본 spec이다([[08-Decisions|D-028]] frame-role split 정신 재사용).
 
 #### 2.2.1 control.result 필드 매핑 ([[SPEC-400-control-actions]] §2.8 → `ActivityEvent`) — canonical ([[08-Decisions|D-028]])

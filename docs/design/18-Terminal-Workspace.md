@@ -172,13 +172,15 @@ tags:
 
 ## 8. Phase 2/3 Spec 작성 위임 브리프 (→ opus-1 세션, 2026-07-03)
 
+> **상태**: **spec 작성 완료(2026-07-03, opus-1)**. 신규 [[SPEC-104-control-mode-bridge]]·[[SPEC-402-orchestration]] 작성, [[SPEC-103-pane-live-stream]](§6 Q6 RESOLVED)·[[SPEC-006-privacy-redaction]]·[[SPEC-400-control-actions]]·[[SPEC-401-interactive-input]]·[[SPEC-600-observability]]·[[SPEC-102-realtime-sync]]·[[SPEC-203-terminal-workspace]] 개정, [[02-Requirements]] R-API-007/R-CTRL-010/R-UI-013(proposed), [[08-Decisions]] D-047~D-051(Proposed·미승인). 파이프라인: spec-author → 병렬 도메인 리뷰(tmux-systems 2 BLOCK·security 2 BLOCK·ui PASS-with-P1) → 전 P0 해소 → **spec-reviewer P0-gap 게이트 PASS(P0 0)**. 결정 D-047~D-051 **제품 오너 승인 대기**(승인 전까지 SPEC-104/402는 `draft`). 구현 배치는 승인 후 분할(A=src/ 브리지, B=web/ broadcast UI).
+
 > **전제(완료 상태)**: Phase 1([[SPEC-103-pane-live-stream]]·[[SPEC-203-terminal-workspace]]·[[SPEC-401-interactive-input]], D-041~D-046)과 Phase 1.5 styled(SPEC-103 §2.3.1 spans-over-redacted-plain, [[SPEC-006-privacy-redaction]] §2.8, [[08-Decisions|D-042]] 게이트 해소)는 **구현·라이브 실증·main 머지 완료**다. §5의 P0 중 1(ANSI)·3(passthrough)·5(재현 수준)은 해소됐고, 2(read-only 재정의)의 브리지 부분이 Phase 2로 이월돼 있다([[08-Decisions|D-041]] (c) forward, SPEC-103 §6 Q6). 본 절은 남은 두 축의 spec 위임 브리프다.
 
 ### 신규 spec
 
 | ID(제안) | 범위 | 참조 |
 | --- | --- | --- |
-| **SPEC-104-control-mode-bridge** (SPEC-103 §6 Q6의 name-placeholder 확정) | `tmux -C attach` 상주 브리지의 read-only sub-계약: 브리지가 발행 가능한 명령 sub-allowlist(초기 attach·refresh-client·subscribe류만, `send-keys` 등 write 전면 금지)와 그 **강제 지점**(브리지 stdin 단일 writer), 수명주기(기동/crash/tmux 재시작 감지), **폴링 fallback**(실패 시 SPEC-103 경로로 silent degrade — 클라 무변경), 부하/백프레셔(`%output` 폭주 coalescing), audit | §4 Phase 2, §5.2 |
+| **SPEC-104-control-mode-bridge** (SPEC-103 §6 Q6의 name-placeholder 확정) | `tmux -C attach` 상주 브리지의 read-only sub-계약: 브리지가 발행 가능한 명령 sub-allowlist(초기 attach·refresh-client·subscribe류만, `send-keys` 등 write 전면 금지 — **구현 spec [[SPEC-104-control-mode-bridge]]/[[08-Decisions|D-048]]에서 effective allowlist=∅로 확정: refresh-client/capture-pane도 금지, 브리지는 명령을 발행하지 않음**)와 그 **강제 지점**(브리지 stdin 단일 writer, line-granular fail-close), 수명주기(기동/crash/tmux 재시작 감지), **폴링 fallback**(실패 시 SPEC-103 경로로 silent degrade — 클라 무변경), 부하/백프레셔(`%output` 폭주 coalescing), audit | §4 Phase 2, §5.2 |
 | **SPEC-402-orchestration** (또는 SPEC-400 §확장) | broadcast: 대상 orc 집합 선택 → **단일 confirm(대상 목록 명시)** → per-orc 순차 실행(기존 single-writer 유지) + 결과 집계(성공/실패 per orc), audit(`control.broadcast` batch), 대상 필터(waiting만/active 전체 등), 프롬프트 템플릿은 scope 판정(P1 이월 가능) | §4 Phase 3 |
 
 ### P0 결정 필요 (D-047+)
