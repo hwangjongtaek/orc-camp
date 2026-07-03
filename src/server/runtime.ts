@@ -256,7 +256,11 @@ export class SnapshotRuntime {
   bridgeSessionTargetFor(orcId: string): string | null {
     if (this.published === null) return null;
     const camp = this.published.camps.find((c) => c.orcs.some((o) => o.id === orcId));
-    return camp ? camp.id.slice('session:'.length) : null; // "session:$0" → "$0"
+    if (!camp) return null;
+    const target = camp.id.slice('session:'.length); // "session:$0" → "$0"
+    // §2.4 P0-B(iii) — the bridge argv is read-only ONLY if this token is a real tmux
+    // session id. Assert the strict pattern (self-enforcing; malformed → no bridge → polling).
+    return /^\$[0-9]+$/.test(target) ? target : null;
   }
 
   // --- read accessors ---
