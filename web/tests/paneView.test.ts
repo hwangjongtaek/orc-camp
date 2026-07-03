@@ -78,3 +78,57 @@ describe('applyView ordering (SPEC-103 §2.4)', () => {
     expect(applyView(s0, view({ viewSeq: 3 })).kind).toBe('gap');
   });
 });
+
+describe('styled overlay carriage (SPEC-103 §2.3.1)', () => {
+  const sp = (start: number, end: number, sgr = '31'): { start: number; end: number; sgr: string } => ({
+    start,
+    end,
+    sgr,
+  });
+
+  it('seed spans split at the same index as lines (scrollback vs window)', () => {
+    const s = fromSeed(seed({ spans: [[sp(0, 1)], [], [sp(0, 2)], [], [sp(1, 2)]] }));
+    expect(s.scrollbackSpans).toEqual([[sp(0, 1)], []]);
+    expect(s.windowSpans).toEqual([[sp(0, 2)], [], [sp(1, 2)]]);
+    expect(renderPane(s).spans).toEqual([[sp(0, 1)], [], [sp(0, 2)], [], [sp(1, 2)]]);
+  });
+
+  it('seed spans length mismatch → plain (fail-safe, invariant §2.3.1-5)', () => {
+    const s = fromSeed(seed({ spans: [[sp(0, 1)]] })); // 1 ≠ 5 lines
+    expect(s.scrollbackSpans).toBeNull();
+    expect(s.windowSpans).toBeNull();
+    expect(renderPane(s).spans).toBeNull();
+  });
+
+  it('absent spans (Phase 1 frame) → plain everywhere', () => {
+    const s = fromSeed(seed());
+    expect(renderPane(s).spans).toBeNull();
+  });
+
+  it('styled pane_view replaces the window overlay; plain scrollback padded with []', () => {
+    const s0 = fromSeed(seed()); // plain seed
+    const out = applyView(s0, view({ viewSeq: 1, lines: ['a', 'b', 'c'], spans: [[sp(0, 1)], [], []] }));
+    expect(out.kind).toBe('applied');
+    if (out.kind !== 'applied') return;
+    // scrollback stays plain ([] padding), window carries its overlay
+    expect(renderPane(out.next).spans).toEqual([[], [], [sp(0, 1)], [], []]);
+  });
+
+  it('a plain pane_view after a styled one resets the window to plain (server fallback)', () => {
+    const s0 = fromSeed(seed({ spans: [[], [], [sp(0, 1)], [], []] }));
+    const out = applyView(s0, view({ viewSeq: 1 })); // no spans on this frame
+    expect(out.kind).toBe('applied');
+    if (out.kind !== 'applied') return;
+    expect(out.next.windowSpans).toBeNull();
+    // seed scrollback overlay is retained; window portion renders as [] padding
+    expect(renderPane(out.next).spans).toEqual([[], [], [], [], []]);
+  });
+
+  it('pane_view spans length mismatch → that window is plain', () => {
+    const s0 = fromSeed(seed());
+    const out = applyView(s0, view({ viewSeq: 1, spans: [[sp(0, 1)]] })); // 1 ≠ 3 lines
+    expect(out.kind).toBe('applied');
+    if (out.kind !== 'applied') return;
+    expect(out.next.windowSpans).toBeNull();
+  });
+});

@@ -11,6 +11,7 @@ import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import type { RenderedPane } from '../../realtime/paneView';
+import { styleLines } from '../../terminal/styledLine';
 
 export interface XtermSurfaceProps {
   rendered: RenderedPane;
@@ -70,7 +71,9 @@ export default function XtermSurface({ rendered, cols, rows }: XtermSurfaceProps
       const buf = term.buffer.active;
       const atBottom = buf.viewportY >= buf.baseY;
       term.reset(); // deterministic full redraw (capture-based frame; clear() keeps a stale line)
-      let data = rendered.lines.join('\r\n');
+      // §2.3.1 styled overlay: SGR-wrap validated runs (plain buffer passes through untouched).
+      // Each styled run self-terminates with ESC[0m, so no style bleeds across lines.
+      let data = styleLines(rendered.lines, rendered.spans).join('\r\n');
       if (rendered.cursorRow != null && rendered.cursorCol != null) {
         // CUP addresses the VISIBLE screen; convert the buffer-absolute cursor row.
         const visRow = Math.max(0, rendered.cursorRow - Math.max(0, rendered.lines.length - rows));

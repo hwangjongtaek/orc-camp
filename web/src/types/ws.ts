@@ -135,13 +135,38 @@ export interface CursorPos {
   y: number; // [0, rows-1]
 }
 
+// --- SPEC-103 §2.3.1 styled overlay (Phase 1.5, D-042 / R-PRIV-008) -----------
+// Mirrors src/server/live-view.ts. The wire carries NO raw escape bytes: redacted
+// plain `lines` plus a structured SGR overlay. The client's ONLY styled behavior is
+// wrapping unmodified `lines[i]` slices in `ESC[<sgr>m … ESC[0m` (invariant ② — the
+// text itself is never masked/reconstructed here).
+
+/** Max length of a `StyleSpan.sgr` parameter string (SPEC-006 §2.8). */
+export const SGR_MAX = 64;
+/** `sgr` MUST match — SGR numeric params only, no ESC/letters (SPEC-103 §2.3.1 rule 3). */
+export const SGR_RE = /^[0-9;:]{1,64}$/;
+/** Per-line run cap (SPEC-103 §2.3.1 rule 7); a violating frame renders plain. */
+export const MAX_SPANS_PER_LINE = 256;
+
+/**
+ * One styled run over an already-redacted `lines[i]` string (SPEC-103 §2.3.1):
+ * half-open [start, end) UTF-16 code-unit offsets; runs sorted by `start` and
+ * non-overlapping; never crossing a `[REDACTED:<class>]` token.
+ */
+export interface StyleSpan {
+  start: number;
+  end: number;
+  sgr: string;
+}
+
 /** SPEC-103 §2.3 — attach-time scrollback seed (exactly once, viewSeq=0). */
 export interface PaneViewSeedPayload {
   orcId: string;
   cols: number;
   rows: number;
   cursor: CursorPos | null;
-  lines: string[]; // redacted scrollback seed, oldest→newest
+  lines: string[]; // redacted scrollback seed, oldest→newest (Phase 1 shape — never changes)
+  spans?: StyleSpan[][]; // §2.3.1 styled overlay; present ⇒ spans.length === lines.length. absent = plain.
   capturedAt: string; // ISO 8601
   redacted: boolean;
   byteClamped: boolean;
@@ -155,6 +180,7 @@ export interface PaneViewPayload {
   rows: number;
   cursor: CursorPos | null;
   lines: string[]; // redacted current window / changed tail, oldest→newest
+  spans?: StyleSpan[][]; // §2.3.1 styled overlay; present ⇒ spans.length === lines.length. absent = plain.
   capturedAt: string;
   redacted: boolean;
   byteClamped: boolean;
