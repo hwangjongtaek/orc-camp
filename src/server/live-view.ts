@@ -4,8 +4,8 @@
  * This module is the single source of truth (mirror base) for the live pane-view
  * channel that rides on the existing WS `/api/events` connection (SPEC-102 §2.2
  * `WsEnvelope`). The frontend session mirrors these types verbatim; they MUST stay
- * 1:1 with SPEC-103 §2.2–§2.5. If the schema must change, update SPEC-103 first,
- * then this file (docs/specs SSOT rule).
+ * 1:1 with SPEC-103 §2.2–§2.5 (styled overlay: §2.3.1). If the schema must change,
+ * update SPEC-103 first, then this file (docs/specs SSOT rule).
  *
  * Channel invariants (SPEC-103 §2.1, unchanged here — enforced by the runtime in
  * `pane-view-runtime.ts`, not by these types):
@@ -51,6 +51,41 @@ export interface CursorPos {
   y: number;
 }
 
+// ── styled overlay (Phase 1.5, SPEC-103 §2.3.1, D-042 / R-PRIV-008) ──────────────
+// Wire form of the SPEC-006 §2.8 ANSI/styled redaction algorithm
+// (tokenize → strip ALL ESC/C0/C1 → plain-redact → style re-map). Instead of
+// shipping `capture-pane -e` raw escape bytes, we ship redacted plain `lines` plus
+// a structured SGR overlay — so redaction-before-egress (T-14/PF-05) is verifiable
+// AT THE FRAME BOUNDARY: a secret can only appear literally in `lines` (which passed
+// `sanitizeCapture`), never hidden inside an escape (there are none on the wire).
+//
+// charset/length bound SSOT is SPEC-006 §2.8 (mechanism owner); restated here as the
+// wire contract (all three specs use identical values).
+
+/** Max length of a `StyleSpan.sgr` parameter string (SPEC-006 §2.8). */
+export const SGR_MAX = 32;
+/** `sgr` MUST match — SGR numeric params only, no ESC/letters (SPEC-103 §2.3.1 rule 3). */
+export const SGR_RE = /^[0-9;:]{1,32}$/;
+/** Optional per-line run cap (DoS/buffer guard); overflow → drop spans → plain fallback. */
+export const MAX_SPANS_PER_LINE = 256;
+
+/**
+ * One styled run over an already-redacted `lines[i]` string (SPEC-103 §2.3.1).
+ *  - `start`/`end`: half-open [start, end) UTF-16 code-unit offsets into `lines[i]`
+ *    (JS `String.prototype.slice` semantics); 0 <= start < end <= lines[i].length.
+ *  - `sgr`: SGR numeric parameters ONLY, MUST match `SGR_RE` (e.g. "1;31", "38;5;204").
+ *    The client renders `ESC[<sgr>m … ESC[0m`; no ESC/OSC/DCS/raw-escape byte or
+ *    arbitrary character is ever carried here.
+ * Spans are applied AFTER redaction and MUST NOT cross/split a `[REDACTED:<class>]`
+ * token (atomic). Within each `spans[i]`, runs are sorted by `start` and
+ * non-overlapping (`spans[i][k].end <= spans[i][k+1].start`).
+ */
+export interface StyleSpan {
+  start: number;
+  end: number;
+  sgr: string;
+}
+
 /** Stream end reasons (SPEC-103 §2.3) — the LAST frame of an attach. */
 export type PaneViewEndReason =
   | 'detached'
@@ -66,7 +101,10 @@ export interface PaneViewSeedPayload {
   cols: number; // pane native width  (#{pane_width})
   rows: number; // pane native height (#{pane_height})
   cursor: CursorPos | null; // null when the query failed
-  lines: string[]; // redacted scrollback seed, oldest→newest
+  lines: string[]; // redacted scrollback seed, oldest→newest (Phase 1 shape — never changes)
+  spans?: StyleSpan[][]; // Phase 1.5 styled overlay (optional); spans[i] ↔ lines[i].
+  //   invariant: present ⇒ spans.length === lines.length ([] = unstyled line).
+  //   absent (undefined) = plain (Phase 1 behavior). See §2.3.1.
   capturedAt: string; // ISO 8601 server time
   redacted: boolean; // >=1 pattern masked (SanitizedCapture.redacted)
   byteClamped: boolean; // byte cap (B) tail-clamp occurred
@@ -80,6 +118,7 @@ export interface PaneViewPayload {
   rows: number;
   cursor: CursorPos | null;
   lines: string[]; // redacted current window or changed tail, oldest→newest
+  spans?: StyleSpan[][]; // Phase 1.5 styled overlay (optional); spans.length === lines.length. absent = plain. §2.3.1
   capturedAt: string;
   redacted: boolean;
   byteClamped: boolean; // this tick may also byte-clamp (2026-07-02 review)
