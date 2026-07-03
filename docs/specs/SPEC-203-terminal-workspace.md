@@ -443,7 +443,7 @@ SPEC-203-AC-17 (R-UI-012, orchestration nudge; [[SPEC-400-control-actions]] §2.
 ```
 
 ```text
-SPEC-203-AC-18 (R-UI-013, broadcast UI; [[SPEC-402-orchestration]] 정합; [[08-Decisions|D-050]]/[[08-Decisions|D-051]] proposed) — 대상 다중 선택·단일 confirm·결과 집계
+SPEC-203-AC-18 (R-UI-013, broadcast UI; [[SPEC-402-orchestration]] 정합; [[08-Decisions|D-050]]/[[08-Decisions|D-051]] accepted) — 대상 다중 선택·단일 confirm·결과 집계
   Given terminal 모드에서 camp 안 여러 orc 를 broadcast 대상으로 다중 선택(waiting만/active/수동)할 때
   When broadcast 를 실행하면
   Then (i) 선택은 client-side 필터이고 server 에는 targets:[{orcId, expected}] 로만 보내지며,
@@ -468,7 +468,7 @@ SPEC-203-AC-18 (R-UI-013, broadcast UI; [[SPEC-402-orchestration]] 정합; [[08-
 | R-UI-005 | terminal-mode 표준 상태 구분(loading/empty/exposure-off/disconnected/stale) + waiting 강조([[SPEC-201-dashboard-screens]] §2.6/§2.7 재사용) | SPEC-203-AC-11, AC-12 |
 | R-UI-007 | raw tmuxTarget+paneId·cwd·mode 상시 노출, 표시 전용 vs 권위 키(orcId) | SPEC-203-AC-03, AC-13 |
 | R-UI-008 (부수) | terminal 모드가 map 모드(공간 status 표현, [[SPEC-301-camp-map-movement]])를 대체 않고 병존·동일 status source | SPEC-203-AC-01 |
-| R-UI-013 (proposed, [[08-Decisions|D-050]]/[[08-Decisions|D-051]]) | broadcast UI — 대상 다중 선택(client-side)·단일 ConfirmModal(전 대상 나열)·per-orc 결과 집계·waiting toast "broadcast to all waiting" 연결·접근성(reduced-motion/키보드/focus-trap). server 계약 [[SPEC-402-orchestration]] | SPEC-203-AC-18 |
+| R-UI-013 (accepted 2026-07-03, [[08-Decisions|D-050]]/[[08-Decisions|D-051]]) | broadcast UI — 대상 다중 선택(client-side)·단일 ConfirmModal(전 대상 나열)·per-orc 결과 집계·waiting toast "broadcast to all waiting" 연결·접근성(reduced-motion/키보드/focus-trap). server 계약 [[SPEC-402-orchestration]] | SPEC-203-AC-18 |
 
 > 부수 충족(1차 소유는 타 spec): **R-CTRL-009**(관전/조종 2단계 — server 의미 1차 [[SPEC-401-interactive-input]]; 본 spec은 focus/트랩/`C-c` 라우팅/카운트다운 표시, AC-06/AC-07/AC-08), **R-ORC-005**(status/estimated 사실-단정 금지 — 데이터 1차 [[SPEC-005-data-contract]]; 본 spec은 rail 렌더, AC-12), **비기능 접근성**(색-비의존/키보드/reduced-motion/screen reader/toast aria-live·focusable action — 규칙 1차 [[SPEC-202-design-accessibility]]; 본 spec은 terminal-mode 적용, AC-06/AC-09/AC-12/AC-14/AC-16/AC-17). 전체 추적 매트릭스 통합은 [[SPEC-900-traceability-rollup]].
 >

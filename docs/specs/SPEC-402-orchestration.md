@@ -1,7 +1,7 @@
 ---
 spec: SPEC-402
 title: Orchestration — command broadcast(대상 선택·단일 confirm·순차 실행·batch audit)
-status: draft
+status: approved
 updated: 2026-07-03
 requirements: [R-CTRL-010, R-CTRL-005, R-CTRL-007, R-CTRL-008]
 decisions: [D-050, D-051, D-043, D-041]
@@ -22,7 +22,7 @@ broadcast는 **새 write 경로를 만들지 않는다**. 각 대상 orc에 대�
 
 > **소유 경계**: 본 spec은 **broadcast API 표면·대상 재검증·순차 실행 오케스트레이션·부분 실패 정책·결과 집계·batch audit producer 매핑**을 소유한다. **per-orc write egress(`controlExec` send-keys·`/input` gate pipeline·`expected` 재검증 메커니즘)**는 [[SPEC-400-control-actions]], **`control.broadcast` `ActivityEvent` 모델·taxonomy·code**는 [[SPEC-600-observability]], **broadcast UI(대상 다중 선택·ConfirmModal·결과 표시·waiting toast 연결)**는 [[SPEC-203-terminal-workspace]], **키보드 passthrough·arm/disarm**은 [[SPEC-401-interactive-input]]가 소유한다. 본 spec은 이들을 참조·재사용만 한다.
 
-> **불변식(제안 — [[08-Decisions|D-050]]/[[08-Decisions|D-051]] 승인 대기)**: ① broadcast는 **composed-input(form) 경로만** 쓴다 — arm/passthrough 실시간 전파([[SPEC-401-interactive-input]], 연결당 1 pane [[08-Decisions|D-041]])를 쓰지 않는다([[08-Decisions|D-050]], §2.2). ② 각 대상 egress는 [[SPEC-400-control-actions]] §2.5 **gate pipeline 전체**(schema→controllability→**fresh `expected` 재검증**→execute→audit)를 그대로 통과한다 — broadcast가 어떤 게이트도 약화하지 않는다(R-CTRL-005/008, §2.4). ③ 실행은 **per-orc 순차**이며 [[SPEC-400-control-actions]] §2.10 **per-pane single-writer 직렬화**를 보존한다(§2.5). ④ N≥2 broadcast는 **모든 대상을 나열한 단일 confirm**을 거친다([[08-Decisions|D-051]], §2.3). ⑤ batch audit은 **집계 스칼라 + per-orc {orcId, ok, errorCode}만** 담고 **command 원문 텍스트를 어떤 필드에도 저장하지 않는다**([[08-Decisions|D-028]] non-storage 확장, §2.7). ⑥ MVP는 **단일 camp 범위**다(blast radius bound, [[08-Decisions|D-051]], §2.8).
+> **불변식(확정 — [[08-Decisions|D-050]]/[[08-Decisions|D-051]] Accepted 2026-07-03)**: ① broadcast는 **composed-input(form) 경로만** 쓴다 — arm/passthrough 실시간 전파([[SPEC-401-interactive-input]], 연결당 1 pane [[08-Decisions|D-041]])를 쓰지 않는다([[08-Decisions|D-050]], §2.2). ② 각 대상 egress는 [[SPEC-400-control-actions]] §2.5 **gate pipeline 전체**(schema→controllability→**fresh `expected` 재검증**→execute→audit)를 그대로 통과한다 — broadcast가 어떤 게이트도 약화하지 않는다(R-CTRL-005/008, §2.4). ③ 실행은 **per-orc 순차**이며 [[SPEC-400-control-actions]] §2.10 **per-pane single-writer 직렬화**를 보존한다(§2.5). ④ N≥2 broadcast는 **모든 대상을 나열한 단일 confirm**을 거친다([[08-Decisions|D-051]], §2.3). ⑤ batch audit은 **집계 스칼라 + per-orc {orcId, ok, errorCode}만** 담고 **command 원문 텍스트를 어떤 필드에도 저장하지 않는다**([[08-Decisions|D-028]] non-storage 확장, §2.7). ⑥ MVP는 **단일 camp 범위**다(blast radius bound, [[08-Decisions|D-051]], §2.8).
 
 ## 1. Scope
 
@@ -296,7 +296,7 @@ SPEC-402-AC-10 (R-CTRL-010 / [[08-Decisions|D-044]])  [exposure 독립 — form-
 
 ### Conflicts / Upstream (조정 필요)
 
-- **C1 — 상태 Proposed(미승인)**: 근거 결정 [[08-Decisions|D-050]]/[[08-Decisions|D-051]]는 **Proposed(2026-07-03)**이며 제품 오너 승인 전이다. 도메인 리뷰(security-privacy: broadcast 오폭·audit 비저장 / product-ui: broadcast UX·confirm 모달 정합) + spec-reviewer 게이트 후 승인받아야 `approved` 승격 가능하다.
+- **C1 — 상태 Accepted (RESOLVED 2026-07-03)**: 근거 결정 [[08-Decisions|D-050]]/[[08-Decisions|D-051]]는 도메인 리뷰(security-privacy·product-ui) + spec-reviewer P0-gap 게이트(P0 0) 통과 후 **2026-07-03 제품 오너가 Accepted 승인**했다. 본 spec은 `approved`이며 구현 착수 가능하다. (이하 원 리뷰 대상 기록.) 도메인 리뷰(security-privacy: broadcast 오폭·audit 비저장 / product-ui: broadcast UX·confirm 모달 정합) + spec-reviewer 게이트 후 승인받아야 `approved` 승격 가능하다.
 - **C2 — `control.broadcast` taxonomy 등록**: §2.7 batch audit은 [[SPEC-600-observability]] `ActivityType`/`code` 집합에 `control.broadcast` code와 `detail.perOrc[]`·broadcast 집계 필드 등록을 요구한다. 등록·code 토큰·detail 스키마는 [[SPEC-600-observability]] 소유이며 본 spec은 producer 매핑만 제안한다. **SPEC-600 정합 확인 필요.**
 - **C3 — 신규 WS 프레임 불필요 확인**: broadcast는 동기 REST 결과 + 기존 `activity` frame으로 성립하므로 [[SPEC-102-realtime-sync]]에 신규 프레임을 추가하지 않는다(§2.7, AC-06). SPEC-102 개정에 "broadcast = unchanged"를 명시했다.
 
