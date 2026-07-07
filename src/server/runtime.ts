@@ -241,9 +241,15 @@ export class SnapshotRuntime {
 
   // --- SPEC-104 control-mode bridge (opt-in low-latency trigger; DEFAULT OFF) ---
 
-  /** True iff the bridge is opt-in AND a spawner is wired (§2.7 coexist default). */
+  /**
+   * True iff a spawner is wired AND the bridge is opted in — either via the live
+   * settings key (`liveViewBridge`, D-052) or the deps test-override flag (§2.7
+   * coexist default). Settings are live-read at each attach so a mid-attach toggle
+   * takes effect from the next attach (never terminates an in-flight attach).
+   */
   liveBridgeEnabled(): boolean {
-    return this.opts.deps.liveViewBridge === true && this.opts.deps.spawnBridge !== undefined;
+    if (this.opts.deps.spawnBridge === undefined) return false;
+    return this.opts.settings.effective().liveViewBridge === true || this.opts.deps.liveViewBridge === true;
   }
   bridgeSpawn(): SpawnBridgeFn | null {
     return this.opts.deps.spawnBridge ?? null;

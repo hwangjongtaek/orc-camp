@@ -19,6 +19,7 @@ export interface OrcCampConfig {
   preview: { exposureEnabled: boolean; lineCount: number }; // lineCount [1, PREVIEW_LINES]
   redactionEnabled: boolean; // floor-locked true
   browserAutoOpen: boolean;
+  liveViewBridge: boolean; // SPEC-104 §2.7 control-mode bridge opt-in; DEFAULT false (D-052)
 }
 
 export const DEFAULT_CONFIG: OrcCampConfig = {
@@ -27,6 +28,7 @@ export const DEFAULT_CONFIG: OrcCampConfig = {
   preview: { exposureEnabled: true, lineCount: PREVIEW_LINES },
   redactionEnabled: true,
   browserAutoOpen: true,
+  liveViewBridge: false,
 };
 
 export interface FieldError {
@@ -78,10 +80,12 @@ export function repairConfig(raw: unknown): OrcCampConfig {
     },
     redactionEnabled: true, // floor-lock (always true regardless of file)
     browserAutoOpen: typeof o.browserAutoOpen === 'boolean' ? o.browserAutoOpen : DEFAULT_CONFIG.browserAutoOpen,
+    // SPEC-104 §2.7 / D-052 — absent in legacy files → default false (backward-compat; not corruption).
+    liveViewBridge: typeof o.liveViewBridge === 'boolean' ? o.liveViewBridge : DEFAULT_CONFIG.liveViewBridge,
   };
 }
 
-const KNOWN_KEYS = new Set(['scanInterval', 'preview', 'redactionEnabled', 'browserAutoOpen']);
+const KNOWN_KEYS = new Set(['scanInterval', 'preview', 'redactionEnabled', 'browserAutoOpen', 'liveViewBridge']);
 const KNOWN_PREVIEW_KEYS = new Set(['exposureEnabled', 'lineCount']);
 
 /** Strict PATCH validation (all-or-nothing). */
@@ -118,6 +122,10 @@ export function validatePatch(
   if ('browserAutoOpen' in p) {
     if (typeof p.browserAutoOpen !== 'boolean') errors.push({ field: 'browserAutoOpen', code: 'type_mismatch', message: 'browserAutoOpen must be a boolean' });
     else next.browserAutoOpen = p.browserAutoOpen;
+  }
+  if ('liveViewBridge' in p) {
+    if (typeof p.liveViewBridge !== 'boolean') errors.push({ field: 'liveViewBridge', code: 'type_mismatch', message: 'liveViewBridge must be a boolean' });
+    else next.liveViewBridge = p.liveViewBridge;
   }
   if ('preview' in p) {
     const pv = p.preview;
@@ -178,7 +186,7 @@ export class SettingsStore implements SettingsProvider {
 
   static inMemory(server?: ServerSettings): SettingsStore {
     const config: OrcCampConfig = server
-      ? { ...DEFAULT_CONFIG, scanInterval: server.scanIntervalS, preview: { ...server.preview } }
+      ? { ...DEFAULT_CONFIG, scanInterval: server.scanIntervalS, preview: { ...server.preview }, liveViewBridge: server.liveViewBridge ?? DEFAULT_CONFIG.liveViewBridge }
       : DEFAULT_CONFIG;
     return new SettingsStore(repairConfig(config), null);
   }
@@ -188,7 +196,7 @@ export class SettingsStore implements SettingsProvider {
   }
 
   effective(): ServerSettings {
-    return { scanIntervalS: this.config.scanInterval, preview: { exposureEnabled: this.config.preview.exposureEnabled, lineCount: this.config.preview.lineCount } };
+    return { scanIntervalS: this.config.scanInterval, preview: { exposureEnabled: this.config.preview.exposureEnabled, lineCount: this.config.preview.lineCount }, liveViewBridge: this.config.liveViewBridge };
   }
 
   response(): SettingsResponse {

@@ -72,4 +72,7 @@ export interface ServerSettings {
     exposureEnabled: boolean; // default false (privacy)
     lineCount: number; // <= PREVIEW_LINES
   };
+  // SPEC-104 §2.7 control-mode bridge opt-in (D-052). Optional here so in-memory test
+  // literals stay valid; SettingsStore.effective() always populates it (default false).
+  liveViewBridge?: boolean;
 }

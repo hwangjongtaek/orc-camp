@@ -105,3 +105,44 @@ describe('SPEC-600 doctor diagnostics (AC-10/11)', () => {
     expect(out).not.toContain('proj');
   });
 });
+
+describe('SPEC-104 §2.9 / D-053 doctor bridge diagnostics (static capability + config)', () => {
+  const okTmux = (v: string): TmuxExecFn => {
+    const ok = (stdout: string): SpawnResult => ({ stdout, stderr: '', exitCode: 0, timedOut: false, spawnError: null, durationMs: 1 });
+    return async (sub) => (sub === null ? ok(v) : ok('$0\n'));
+  };
+  async function runDoctor(env: NodeJS.ProcessEnv, tmuxExec: TmuxExecFn): Promise<{ code: number; r: any }> {
+    let out = '';
+    const code = await doctorCommand(['--json'], { io: { stdout: (s) => (out += s), stderr: () => {} }, tmuxExec, env });
+    return { code, r: JSON.parse(out.trim()) };
+  }
+
+  it('supported tmux (>=3.2) + config enabled → enabled/controlModeSupported true, socketArgs [], no detail', async () => {
+    const cfgDir = tempDir();
+    const stateDir = tempDir();
+    writeFileSync(join(cfgDir, 'config.json'), JSON.stringify({ configVersion: 1, scanInterval: 3, preview: { exposureEnabled: false, lineCount: 12 }, redactionEnabled: true, browserAutoOpen: true, liveViewBridge: true }));
+    const { code, r } = await runDoctor({ ...process.env, ORC_CAMP_CONFIG_DIR: cfgDir, ORC_CAMP_STATE_DIR: stateDir }, okTmux('tmux 3.6b\n'));
+    expect(code).toBe(0);
+    expect(r.diagnostics.bridge).toMatchObject({ enabled: true, tmuxVersion: '3.6b', controlModeSupported: true, socketArgs: [] });
+    expect(r.diagnostics.bridge.detail).toBeUndefined();
+  });
+
+  it('config default (no key) → enabled false; old tmux (<3.2) → controlModeSupported false + detail, exit unaffected', async () => {
+    const cfgDir = tempDir();
+    const stateDir = tempDir();
+    const { code, r } = await runDoctor({ ...process.env, ORC_CAMP_CONFIG_DIR: cfgDir, ORC_CAMP_STATE_DIR: stateDir }, okTmux('tmux 2.9a\n'));
+    expect(code).toBe(0); // bridge block never contributes to exit
+    expect(r.diagnostics.bridge.enabled).toBe(false); // lazy default, no config file
+    expect(r.diagnostics.bridge.controlModeSupported).toBe(false);
+    expect(r.diagnostics.bridge.detail).toMatch(/3\.2/);
+  });
+
+  it('unparseable tmux version → fail-safe controlModeSupported false + detail (exit unaffected)', async () => {
+    const cfgDir = tempDir();
+    const stateDir = tempDir();
+    const { code, r } = await runDoctor({ ...process.env, ORC_CAMP_CONFIG_DIR: cfgDir, ORC_CAMP_STATE_DIR: stateDir }, okTmux('tmux wobble\n'));
+    expect(code).toBe(0);
+    expect(r.diagnostics.bridge.controlModeSupported).toBe(false);
+    expect(r.diagnostics.bridge.detail).toBeTruthy();
+  });
+});

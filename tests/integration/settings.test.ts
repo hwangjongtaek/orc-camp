@@ -103,7 +103,42 @@ describe('SPEC-500 token gating + non-persistence (AC-06/07/10)', () => {
     expect(text).not.toContain(h.token);
     expect(text).not.toContain('ghp_EEEEEEEEEEEEEEEEEEEE2222');
     expect(text).not.toContain('proj'); // no cwd
-    expect(Object.keys(JSON.parse(text)).sort()).toEqual(['browserAutoOpen', 'configVersion', 'preview', 'redactionEnabled', 'scanInterval']);
+    expect(Object.keys(JSON.parse(text)).sort()).toEqual(['browserAutoOpen', 'configVersion', 'liveViewBridge', 'preview', 'redactionEnabled', 'scanInterval']);
+  });
+});
+
+describe('SPEC-500 liveViewBridge (SPEC-104 §2.7 / D-052)', () => {
+  it('PATCH liveViewBridge true/false round-trips and persists; default is false', async () => {
+    const dir = tempDir();
+    const { h, base } = await start(dir);
+    // default off
+    expect((await J(await fetch(`${base}/api/settings`, { headers: auth(h) }))).liveViewBridge).toBe(false);
+
+    const on = await fetch(`${base}/api/settings`, { method: 'PATCH', headers: auth(h, { 'Content-Type': 'application/json' }), body: JSON.stringify({ liveViewBridge: true }) });
+    expect(on.status).toBe(200);
+    expect((await J(on)).liveViewBridge).toBe(true);
+    expect(JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8')).liveViewBridge).toBe(true);
+    expect((await J(await fetch(`${base}/api/settings`, { headers: auth(h) }))).liveViewBridge).toBe(true);
+
+    const off = await fetch(`${base}/api/settings`, { method: 'PATCH', headers: auth(h, { 'Content-Type': 'application/json' }), body: JSON.stringify({ liveViewBridge: false }) });
+    expect(off.status).toBe(200);
+    expect((await J(off)).liveViewBridge).toBe(false);
+  });
+
+  it('non-boolean liveViewBridge → 422 type_mismatch, no change', async () => {
+    const { h, base } = await start(tempDir());
+    const r = await fetch(`${base}/api/settings`, { method: 'PATCH', headers: auth(h, { 'Content-Type': 'application/json' }), body: JSON.stringify({ liveViewBridge: 'yes' }) });
+    expect(r.status).toBe(422);
+    const e = await J(r);
+    expect(e.error.fieldErrors.some((f: any) => f.field === 'liveViewBridge' && f.code === 'type_mismatch')).toBe(true);
+    expect((await J(await fetch(`${base}/api/settings`, { headers: auth(h) }))).liveViewBridge).toBe(false); // unchanged
+  });
+
+  it('legacy config.json without the key loads as false (backward-compat)', async () => {
+    const dir = tempDir();
+    writeFileSync(join(dir, 'config.json'), JSON.stringify({ configVersion: 1, scanInterval: 3, preview: { exposureEnabled: true, lineCount: 12 }, redactionEnabled: true, browserAutoOpen: true }));
+    const { h, base } = await start(dir);
+    expect((await J(await fetch(`${base}/api/settings`, { headers: auth(h) }))).liveViewBridge).toBe(false);
   });
 });
 

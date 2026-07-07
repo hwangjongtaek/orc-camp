@@ -49,8 +49,11 @@ export interface ScanRuntimeDeps {
   liveViewStyled?: boolean;
   sanitizeStyled?: (rawE: string) => StyledCapture;
   // SPEC-104 Phase 2 control-mode bridge (opt-in low-latency trigger; DEFAULT OFF).
-  // `liveViewBridge` is the gate flag; `spawnBridge` the resident tmux -C spawner;
-  // `bridgeSocketArgs` must equal tmuxExec's -L/-S (P1-F, default [] = default socket).
+  // The opt-in gate now lives in settings (`liveViewBridge` config key, D-052/§2.7),
+  // live-read by SnapshotRuntime.liveBridgeEnabled(); this `liveViewBridge` deps flag
+  // is a TEST-ONLY override that ORs with the settings key. `spawnBridge` is the
+  // resident tmux -C spawner; `bridgeSocketArgs` must equal tmuxExec's -L/-S (P1-F,
+  // default [] = default socket).
   liveViewBridge?: boolean;
   spawnBridge?: SpawnBridgeFn;
   bridgeSocketArgs?: string[];
@@ -76,8 +79,9 @@ export function createDefaultDeps(spawn: ProcessSpawn = safeSpawn): ScanRuntimeD
     // (span charset/structure violation → null → plain fail-safe). Enabled by default.
     liveViewStyled: true,
     sanitizeStyled: sanitizeStyledCapture,
-    // SPEC-104 bridge spawner is wired but the gate flag stays OFF (opt-in, D-049);
-    // the settings/CLI gate to flip liveViewBridge is forward (SPEC-104 §6 Q2).
+    // SPEC-104 bridge spawner is wired; the opt-in gate is the `liveViewBridge`
+    // settings key (DEFAULT false, D-052/§2.7 — resolves §6 Q2). No deps override
+    // here, so out of the box the bridge stays off until settings flip it.
     spawnBridge: makeBridgeSpawn(),
     redact,
     detectOrc: defaultDetectOrc,

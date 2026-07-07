@@ -44,6 +44,16 @@ describe('validatePatch (SPEC-500 §2.4, strict)', () => {
     const version = validatePatch(DEFAULT_CONFIG, { configVersion: 2 });
     expect(version.ok).toBe(false);
   });
+
+  it('liveViewBridge: accepts boolean, rejects non-boolean (SPEC-104 §2.7 / D-052)', () => {
+    const on = validatePatch(DEFAULT_CONFIG, { liveViewBridge: true });
+    expect(on.ok).toBe(true);
+    if (on.ok) expect(on.value.liveViewBridge).toBe(true);
+
+    const bad = validatePatch(DEFAULT_CONFIG, { liveViewBridge: 'yes' });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.fieldErrors[0]).toMatchObject({ field: 'liveViewBridge', code: 'type_mismatch' });
+  });
 });
 
 describe('repairConfig (SPEC-500 §3.2, robust read, AC-09/13)', () => {
@@ -58,5 +68,15 @@ describe('repairConfig (SPEC-500 §3.2, robust read, AC-09/13)', () => {
   it('non-object → all defaults', () => {
     expect(repairConfig(null)).toEqual(DEFAULT_CONFIG);
     expect(repairConfig('garbage')).toEqual(DEFAULT_CONFIG);
+  });
+
+  it('liveViewBridge: absent key → false, present boolean preserved (D-052 backward-compat)', () => {
+    expect(DEFAULT_CONFIG.liveViewBridge).toBe(false);
+    // legacy file without the key
+    expect(repairConfig({ configVersion: 1, scanInterval: 3 }).liveViewBridge).toBe(false);
+    // present value preserved
+    expect(repairConfig({ liveViewBridge: true }).liveViewBridge).toBe(true);
+    // non-boolean → default false
+    expect(repairConfig({ liveViewBridge: 'x' }).liveViewBridge).toBe(false);
   });
 });
