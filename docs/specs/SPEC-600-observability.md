@@ -318,10 +318,18 @@ interface DoctorDiagnostics {
     lastErrorAt: string | null;      // 최근 error의 ts (메시지 미포함)
     topCodes: { code: string; count: number }[]; // 안정 code 집계 (자유 텍스트 아님)
   };
+  bridge: {                          // [[SPEC-104-control-mode-bridge]] §2.9/§6 Q3 — control-mode 브리지 정적 진단 ([[08-Decisions|D-053]])
+    enabled: boolean;                // 설정값 liveViewBridge ([[SPEC-500-settings-persistence]] §2.2, 기본 false)
+    tmuxVersion: string | null;      // 'tmux -V' (없으면 null — environment.tmuxVersion과 동일 출처)
+    controlModeSupported: boolean;   // 파싱 성공 && ignore-size 지원 버전(≥3.2). 파싱 실패 → false
+    socketArgs: string[];            // 브리지가 실을 -L/-S specifier (tmuxExec 공유, §2.2 P1-F). 기본 [] = 기본 socket
+    detail?: string;                 // controlModeSupported=false 사유(예: 'tmux -V 파싱 실패', 'version < 3.2')
+  };
 }
 ```
 
 - **recentErrors 규칙(확정)**: debug log 최근 윈도를 읽어 **code별 집계·count·최근 ts만** 보고하고 **message 본문·capture 콘텐츠는 출력하지 않는다**. 이로써 "어떤 종류의 오류가 얼마나 났는가"를 콘텐츠 없이 전달한다(관측성 비기능).
+- **bridge 규칙(확정, [[08-Decisions|D-053]])**: `bridge` block은 **정적 capability + 설정값만** 담는다(정보 전용, **exit code 무영향** — 5개 runChecks가 exit을 소유, [[SPEC-100-server-lifecycle]] §3.5). `controlModeSupported`는 `tmux -V` 파싱 성공 && `ignore-size`(`-f ignore-size`) 지원 버전(≥3.2) 기준이며 **파싱 실패 시 false + `detail`**로 fail-safe한다(런타임 검사 아님, read-only `tmux -V`만 추가 실행). **현재 트리거 소스·최근 fallback 이력은 담지 않는다** — 시간에 따라 변하는 런타임 관측치이므로 activity `control.bridge_fallback` audit이 소유하고 doctor에 중복하지 않는다([[SPEC-104-control-mode-bridge]] §2.9). 브리지는 opt-in 지연 최적화라 미지원(`controlModeSupported=false`)이 doctor fail이 아니다([[08-Decisions|D-049]]).
 - **R-CLI-005 정합**: `log.path` check 자체의 존재·pass/warn/fail·exit 기여는 [[SPEC-100-server-lifecycle]] 소유다. 본 spec은 그 **detail·diagnostics 내용**만 심화한다.
 
 ### 2.10 problem report 번들 — terminal 원문 없는 신고 (관측성 비기능)

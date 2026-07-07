@@ -446,3 +446,29 @@
 - **기각 대안(문서화)**: **stop-on-first**(첫 실패에서 중단) — 독립 대상 집합에는 조작자 의도와 덜 부합. 대안으로만 기록하고 향후 옵션화는 forward([[SPEC-402-orchestration]] §6 Q3).
 - **영향**: R-CTRL-010·R-UI-013 신설. [[SPEC-402-orchestration]] confirm/순차/집계/audit 소유, [[SPEC-600-observability]] `control.broadcast` taxonomy·code·detail 확장, [[SPEC-203-terminal-workspace]] broadcast UI(다중 선택·ConfirmModal·결과 집계·waiting toast 연결), [[SPEC-102-realtime-sync]] 신규 프레임 불필요(REST + 기존 activity stream).
 - **근거 spec**: [[SPEC-402-orchestration]], [[SPEC-600-observability]], [[SPEC-203-terminal-workspace]].
+
+---
+
+> D-052/D-053은 [[SPEC-104-control-mode-bridge]] §6 open question **Q2(브리지 opt-in 게이트 위치)** / **Q3(`doctor` 브리지 진단)**를 해소하기 위한 결정이다. D-047~D-049(HYBRID redaction·read-only allowlist=∅·coexist default polling)가 브리지의 **동작·불변식**을 고정했다면, 본 두 결정은 그 브리지를 **언제 켜고(설정) 어떻게 진단하는가(doctor)**를 고정한다. 근거 spec은 개정 [[SPEC-104-control-mode-bridge]]·[[SPEC-500-settings-persistence]]·[[SPEC-100-server-lifecycle]]·[[SPEC-600-observability]]. **상태는 둘 다 Accepted** — 구현 위임 브리프가 승인 근거다.
+
+## D-052: 브리지 opt-in 게이트는 설정 키 `liveViewBridge`(top-level, 기본 false)로 판정한다
+
+- **상태**: Accepted
+- **결정일**: 2026-07-07 (승인 2026-07-07)
+- **맥락**: [[SPEC-104-control-mode-bridge]] §6 Q2 — 브리지 활성화가 (a) 설정([[SPEC-500-settings-persistence]]), (b) per-attach 요청, (c) capability 자동 감지 중 무엇으로 켜지는지, 기본 off를 어디서 판정하는지가 forward로 남아 있었다([[08-Decisions|D-049]] default=polling). 현재 구현은 `deps.liveViewBridge` 플래그(테스트 전용 오버라이드)로만 게이트되고 사용자 표면이 없다.
+- **결정**: 브리지 opt-in 게이트는 **설정 키**로 판정한다. [[SPEC-500-settings-persistence]] §2.2 config schema에 **`liveViewBridge: boolean`(top-level, 기본 `false`)**를 추가한다. 유효 게이트 = `deps.spawnBridge` 존재 **AND** (`settings.liveViewBridge === true` **OR** `deps.liveViewBridge === true`). deps 플래그는 **테스트 전용 오버라이드**로 존치한다. 설정은 **attach 시점마다 live-read**하며(브리지 spawn 판정 직전 store 현재 값을 읽음), attach 중 토글은 **다음 attach부터** 적용된다 — 기존 attach를 강제 종료하지 않는다([[SPEC-500-settings-persistence]] §2.7 live-reload 정신 계승). **capability 자동 감지로 켜지 않는다**([[08-Decisions|D-049]] default=polling 유지): 미지원 tmux에서는 브리지 사망→무음 폴백이 안전망이므로, 자동 감지 opt-in은 불필요한 위험 표면을 늘린다.
+- **근거**: (a) 설정 키는 사용자가 명시적으로 opt-in하는 유일한 표면이고 `scanInterval`/`preview`와 동일한 검증·영속·live-read 파이프라인을 재사용한다. (b) per-attach 요청은 클라이언트가 매 attach마다 플래그를 실어야 해 계약이 복잡해지고 오·남용 표면이 는다. (c) capability 자동 감지는 D-049의 "기본 폴링" 정신에 반한다 — 브리지는 **정확성이 아니라 지연**에만 관여하므로 기본은 검증된 폴링이어야 한다.
+- **기각 대안**: (i) per-attach 요청 게이트 — 계약 복잡·forward. (ii) capability 자동 opt-in — D-049 위반. (iii) deps 플래그만 유지 — 사용자 표면 없음(현행 한계).
+- **영향**: R-API-007. [[SPEC-500-settings-persistence]] §2.2 `liveViewBridge` 키 신설(strict all-or-nothing 검증), [[SPEC-104-control-mode-bridge]] §2.7/§6 Q2 RESOLVED(게이트=설정), 서버 `SnapshotRuntime.liveBridgeEnabled()`가 settings live-read. 와이어 계약·프레임·브리지 불변식(allowlist=∅) 무변경.
+- **근거 spec**: [[SPEC-104-control-mode-bridge]], [[SPEC-500-settings-persistence]].
+
+## D-053: `doctor`는 브리지를 정적 capability + 설정값만 진단한다(정보 전용, exit code 무영향)
+
+- **상태**: Accepted
+- **결정일**: 2026-07-07 (승인 2026-07-07)
+- **맥락**: [[SPEC-104-control-mode-bridge]] §6 Q3 — control-mode 지원 여부·현재 트리거 소스·최근 fallback 이력을 `doctor`([[SPEC-100-server-lifecycle]])/observability 진단 항목으로 노출할지가 forward였다. 현재 `DoctorDiagnostics`는 `liveView.{controlModeBridge, tmuxControlModeAvailable}` 최소 블록만 담는다.
+- **결정**: `doctor`는 브리지를 **정적 capability + 설정값만** 진단한다. [[SPEC-600-observability]] §2.9 `DoctorDiagnostics`에 `bridge` 블록을 추가한다(정보 전용, **exit code 무영향**): `{ enabled(설정값 liveViewBridge), tmuxVersion, controlModeSupported, socketArgs }`. `controlModeSupported`는 `tmux -V` 버전 파싱 성공 && `-f ignore-size` 지원 버전(≥3.2) 기준이며, **파싱 실패 시 false + detail**로 fail-safe한다. **런타임 fallback 이력은 doctor 범위 밖** — 이미 `control.bridge_fallback` audit 이벤트([[SPEC-600-observability]] activity stream)로 조회 가능하므로 중복 노출하지 않는다.
+- **근거**: doctor는 **환경 정적 진단**이 소임이다(SPEC-100 §3.5의 5개 runChecks가 exit을 소유). 런타임 상태(현재 트리거 소스·fallback 이력)는 시간에 따라 변하는 관측치이므로 activity stream/audit의 소관이고, doctor에 중복하면 SSOT가 흐려진다. 정적 capability(`tmux -V` + `ignore-size` 지원)와 설정값(`enabled`)만이 "이 환경에서 브리지를 켤 수 있는가"를 재시작 없이 답한다.
+- **기각 대안**: (i) 현재 트리거 소스·fallback 이력을 doctor에 노출 — 런타임 관측치라 activity/audit과 중복·SSOT 흐림. (ii) doctor exit code에 브리지 미지원을 반영 — 브리지는 opt-in 지연 최적화라 미지원이 fail이 아니다(D-049).
+- **영향**: R-API-007. [[SPEC-600-observability]] §2.9 `DoctorDiagnostics.bridge` 블록 신설(정보 전용 계약 유지), [[SPEC-100-server-lifecycle]] doctor 표면에 `bridge` 진단 서술, `buildDiagnostics()`가 `tmux -V`만 추가 실행(read-only). exit semantics(5 runChecks) 무변경.
+- **근거 spec**: [[SPEC-104-control-mode-bridge]], [[SPEC-600-observability]], [[SPEC-100-server-lifecycle]].

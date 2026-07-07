@@ -4,7 +4,7 @@ title: Settings·local config·persistence
 status: approved
 updated: 2026-06-27
 requirements: [R-SET-001, R-SET-002, R-SET-003, R-PRIV-006, R-P1-001, R-P1-002, R-P1-006]
-decisions: [D-003, D-008, D-016, D-017, D-021]
+decisions: [D-003, D-008, D-016, D-017, D-021, D-052]
 tags:
   - specs
   - settings
@@ -86,6 +86,7 @@ interface OrcCampConfig {
   };
   redactionEnabled: boolean;    // R-SET-001. floor-locked=true (§3.5, [[SPEC-006-privacy-redaction]] 충돌)
   browserAutoOpen: boolean;     // R-SET-001. 소비: [[SPEC-100-server-lifecycle]] §2.4 launch 7단계
+  liveViewBridge: boolean;      // R-API-007. control-mode 브리지 opt-in 게이트. 기본 false. 소비: [[SPEC-104-control-mode-bridge]] §2.7 ([[08-Decisions|D-052]])
 }
 ```
 
@@ -99,6 +100,7 @@ interface OrcCampConfig {
 | `preview.lineCount` | number(int) | `12` (= PREVIEW_LINES) | `1 ≤ x ≤ PREVIEW_LINES`(=12 현행 가설) | default=가설 | 상한은 [[SPEC-006-privacy-redaction]] `PREVIEW_LINES`에 종속(그 값이 바뀌면 경계도 따름) |
 | `redactionEnabled` | boolean | `true` | `=== true`(floor-lock, §3.5) | 확정 floor | `false`는 §3.5대로 거부/무효 |
 | `browserAutoOpen` | boolean | `true` | boolean | 확정 | launch에서만 효력(§2.7) |
+| `liveViewBridge` | boolean | `false` | boolean | 확정(기본 off, [[08-Decisions|D-052]]) | control-mode 브리지 opt-in. 소비: [[SPEC-104-control-mode-bridge]] §2.7. 다음 attach부터 효력(§2.7) |
 
 ```jsonc
 // config.json 예시 (전체 기본값)
@@ -107,12 +109,14 @@ interface OrcCampConfig {
   "scanInterval": 3,
   "preview": { "exposureEnabled": true, "lineCount": 12 },
   "redactionEnabled": true,
-  "browserAutoOpen": true
+  "browserAutoOpen": true,
+  "liveViewBridge": false
 }
 ```
 
 - **`preview.lineCount` 상한 종속(확정)**: 상한은 `PREVIEW_LINES`([[SPEC-006-privacy-redaction]] §3.4, 현행 가설 12)다. backend가 내려주는 redacted tail이 최대 `PREVIEW_LINES`줄이므로 그 이상은 표시할 데이터가 없다([[SPEC-201-dashboard-screens]] §2.5, U3). live tail(전체 tail 노출)은 P1 R-P1-012 소관이며 MVP 상한은 12.
 - **`scanInterval` 경계 정합(확정)**: `[1,5]`초는 [[SPEC-001-scan-cli]] §3.1·[[SPEC-101-snapshot-api]] §2.1·[[08-Decisions|D-014]]과 동일 경계다. default 3s는 PoC 보정 가설.
+- **`liveViewBridge` 하위호환(확정, [[08-Decisions|D-052]])**: 기존 config.json에 `liveViewBridge` 키가 **없으면 기본값 `false`**로 read한다(§3.2 robust read — 미지의 신규 키 부재는 default 보충, 손상 아님). 브리지가 기본 off이므로 구버전 파일은 재저장 없이 안전하게 폴링으로 동작한다([[08-Decisions|D-049]]).
 
 ### 2.3 in-memory SettingsStore (런타임 권위)
 
@@ -153,6 +157,7 @@ interface SettingsResponse {
   preview: { exposureEnabled: boolean; lineCount: number };
   redactionEnabled: boolean;
   browserAutoOpen: boolean;
+  liveViewBridge: boolean;      // control-mode 브리지 opt-in (기본 false, [[08-Decisions|D-052]])
   bounds: {                     // read-only 메타 (FE 클라이언트 검증 보조). patch 불가
     scanInterval: { min: 1; max: 5 };
     previewLineCount: { min: 1; max: number };  // max = 현행 PREVIEW_LINES(=12)
@@ -172,6 +177,7 @@ interface SettingsPatch {
   preview?: { exposureEnabled?: boolean; lineCount?: number };
   redactionEnabled?: boolean;
   browserAutoOpen?: boolean;
+  liveViewBridge?: boolean;     // boolean 검증(비-boolean → 422 type_mismatch)
 }
 
 // 검증 실패 응답(422). [[SPEC-101-snapshot-api]] §2.4 ApiError envelope 확장.
@@ -208,6 +214,7 @@ interface SettingsValidationError {
 | `preview.lineCount` | **다음 preview 렌더**부터 | [[SPEC-201-dashboard-screens]] §2.5 | 표시 줄 수만 변경, backend tail(≤PREVIEW_LINES) 초과 합성 없음 |
 | `redactionEnabled` | **효과 없음**(floor-lock) | — | secret redaction은 항상 활성(§3.5) |
 | `browserAutoOpen` | **다음 launch에만** | [[SPEC-100-server-lifecycle]] §2.4 | 실행 중 server에는 효과 없음. launch 7단계에서만 소비 |
+| `liveViewBridge` | **다음 live view attach부터** | [[SPEC-104-control-mode-bridge]] §2.7 | 브리지 spawn 판정 직전 store 현재 값을 live-read. 진행 중 attach는 강제 종료하지 않음(토글 off→다음 attach는 폴링, on→다음 attach는 브리지 시도). [[08-Decisions|D-052]] |
 
 - **확정**: `scanInterval` 변경은 **즉시(다음 cycle) 반영**이며 server 재시작이 필요 없다 → [[SPEC-101-snapshot-api]] Q7을 "다음 cycle 반영"으로 닫는다.
 - **확정**: `browserAutoOpen`은 launch-only이므로 실행 중 PATCH는 저장만 되고 현재 process 동작을 바꾸지 않는다(AC-05).

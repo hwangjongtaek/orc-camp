@@ -4,7 +4,7 @@ title: Control-mode bridge — 저지연 live view 트리거(read-only sub-계�
 status: approved
 updated: 2026-07-03
 requirements: [R-API-007, R-PRIV-008, R-UI-012]
-decisions: [D-047, D-048, D-049, D-041, D-042]
+decisions: [D-047, D-048, D-049, D-052, D-053, D-041, D-042]
 tags:
   - specs
   - realtime
@@ -141,7 +141,8 @@ const BRIDGE_COMMAND_ALLOWLIST: ReadonlySet<string> = new Set(); // ∅ — 비�
 
 ### 2.7 coexist default — 기본 폴링, 브리지 opt-in ([[08-Decisions|D-049]])
 
-- **기본값 = 폴링(확정)**: Phase 2 브리지는 Phase 1 폴링을 **대체하지 않고 공존**한다. 기본 트리거 소스는 [[SPEC-103-pane-live-stream]] interval 폴링이며, 브리지는 **opt-in 저지연 최적화**다(설정·capability 게이트는 §6 Q2/[[SPEC-500-settings-persistence]] forward).
+- **기본값 = 폴링(확정)**: Phase 2 브리지는 Phase 1 폴링을 **대체하지 않고 공존**한다. 기본 트리거 소스는 [[SPEC-103-pane-live-stream]] interval 폴링이며, 브리지는 **opt-in 저지연 최적화**다.
+- **opt-in 게이트 = 설정 키(확정, [[08-Decisions|D-052]], §6 Q2 RESOLVED)**: 브리지 활성화는 [[SPEC-500-settings-persistence]] §2.2 config 키 **`liveViewBridge: boolean`(top-level, 기본 `false`)**로 판정한다. 유효 게이트 = `deps.spawnBridge` 존재 **AND** (`settings.liveViewBridge === true` **OR** `deps.liveViewBridge === true`) — deps 플래그는 **테스트 전용 오버라이드**로 존치한다. 설정은 **attach 시점마다 live-read**하며 attach 중 토글은 **다음 attach부터** 적용된다(진행 중 attach를 강제 종료하지 않음, [[SPEC-500-settings-persistence]] §2.7 정신). **capability 자동 감지로 켜지 않는다**([[08-Decisions|D-049]] default=polling 유지 — 미지원 tmux에서는 브리지 사망→무음 폴백이 안전망).
 - **degrade는 항상 안전(확정)**: 브리지가 꺼져 있거나(opt-out) 실패하면(§2.5) live view는 폴링으로 완전 동작한다 — 브리지는 **정확성이 아니라 지연에만** 관여한다. 어떤 브리지 장애도 데이터 손실·에러 표면·재-attach를 만들지 않는다(§2.6).
 - **capability 미충족 시(확정, P1-C 포함)**: 아래 중 하나면 브리지를 시도조차 하지 않거나 즉시 폴링으로 degrade한다(fallback과 동일한 client-무변경) — (i) tmux가 control-mode(`-C`)를 미지원, (ii) **`ignore-size` client flag 미지원**(size-neutral attach 불가 → window resize 위험이라 브리지 금지, §2.2 P1-C), (iii) spawn 불가, (iv) socket specifier 불일치. 이 판정은 브리지 arm 전에 수행한다.
 
@@ -158,7 +159,7 @@ const BRIDGE_COMMAND_ALLOWLIST: ReadonlySet<string> = new Set(); // ∅ — 비�
 - **원문 비저장(확정, 불변식 ②)**: 브리지 audit은 상태 전이·사유(machine code)·pane 구조 식별자(paneId)만 담는다. `%output` payload·capture 콘텐츠·token은 **어떤 필드에도 직렬화하지 않는다**([[SPEC-006-privacy-redaction]] §2.5, [[SPEC-600-observability]] §2.7, [[08-Decisions|D-028]] non-storage).
 - **parse-error 진단 = structural facts only(확정, P1-H)**: malformed notification·프로토콜 파싱 오류를 진단으로 남길 때 **구조적 사실(verb·length·byte offset)만** 기록하고 **`%output` payload byte는 절대 담지 않는다**. `%output` payload는 **`redact()`·어떤 logger·debug sink에도 전달되지 않는다**.
 - **raw control-mode stdout 스트림 비-로깅(확정, P2)**: 브리지가 읽는 raw control-mode stdout 스트림은 **어떤 log/debug sink에도 기록하지 않는다**(payload가 그 스트림에 섞여 있으므로). 디버깅이 필요하면 structural fact(verb·offset·length)만 남긴다.
-- **`doctor` 진단(§6 Q3 forward)**: 브리지 가용성(control-mode 지원 여부·`ignore-size` 지원·현재 트리거 소스·최근 fallback 사유)을 `doctor` 진단 항목으로 노출할지는 [[SPEC-100-server-lifecycle]]/[[SPEC-700-packaging-release]] 정합으로 §6 Q3에서 판정한다.
+- **`doctor` 진단(확정, [[08-Decisions|D-053]], §6 Q3 RESOLVED)**: `doctor`([[SPEC-100-server-lifecycle]])는 브리지를 **정적 capability + 설정값만** 진단한다 — [[SPEC-600-observability]] §2.9 `DoctorDiagnostics.bridge` 블록 `{ enabled(설정값), tmuxVersion, controlModeSupported, socketArgs }`(정보 전용, **exit code 무영향**). `controlModeSupported`는 `tmux -V` 파싱 성공 && `ignore-size` 지원 버전(≥3.2) 기준이며 파싱 실패 시 false + detail로 fail-safe한다. **런타임 fallback 이력은 doctor 범위 밖** — 이미 `control.bridge_fallback` audit 이벤트로 조회 가능하므로 중복 노출하지 않는다.
 
 ## 3. Behavior rules
 
@@ -303,8 +304,8 @@ SPEC-104-AC-11 (R-API-007 / P1-G)  [단일 capture scheduler · atomic source ha
 ### Open Questions (PoC·설계 판정 대상)
 
 - **Q1 — 브리지 리소스·지연·부하 임계(측정)**: 브리지 프로세스 수(1 고정 / tmux 서버당 / attach당)·memory 상한, `BRIDGE_MIN_CAPTURE_INTERVAL_MS`, backoff 상한/시도 횟수, <100ms 지연 실측, event-triggered capture가 tmux 서버에 주는 부하는 [[SPEC-007-test-validation]] 하니스로 측정해 확정한다(§2.2/§2.8/§3.9). **1차 실측(2026-07-03, 실 tmux 3.6b, 120×40 pane)**: pane 출력→`%output` **dirty-signal 트리거 지연 p≈10.6ms**(send-keys→onDirty), 반복 출력 재트리거 5/5. capture(SPEC-103 실측 p50≈10–17ms) + WS send을 더해도 **end-to-end <100ms 목표에 여유**. **read-only 실증**: 브리지 attach가 window 크기(120×40)를 바꾸지 않음(`ignore-size`), dispose는 명령 발행 0의 clean teardown. 다중 pane·부하 상한·backoff 값은 [[SPEC-007-test-validation]] 정식 하니스로 후속 확정. **PoC 튜닝.**
-- **Q2 — 브리지 opt-in 게이트 위치**: 브리지 활성화가 설정([[SPEC-500-settings-persistence]])·per-attach 요청·capability 자동 감지 중 무엇으로 켜지는지, 기본 off를 어디서 판정하는지 정합화가 필요하다([[08-Decisions|D-049]] default=polling). **검토 필요.**
-- **Q3 — `doctor` 브리지 진단**: control-mode 지원 여부·현재 트리거 소스·최근 fallback 이력을 `doctor`([[SPEC-100-server-lifecycle]])/observability 진단 항목으로 노출할지. **검토 필요.**
+- **Q2 — 브리지 opt-in 게이트 위치 (RESOLVED 2026-07-07, [[08-Decisions|D-052]])**: 게이트는 **설정 키 `liveViewBridge`(top-level, 기본 `false`, [[SPEC-500-settings-persistence]] §2.2)**로 판정한다. 유효 게이트 = `deps.spawnBridge` 존재 AND (`settings.liveViewBridge` OR `deps.liveViewBridge`). 설정은 attach마다 live-read(§2.7), attach 중 토글은 다음 attach부터 적용. per-attach 요청·capability 자동 감지는 기각(D-049 default=polling 유지).
+- **Q3 — `doctor` 브리지 진단 (RESOLVED 2026-07-07, [[08-Decisions|D-053]])**: `doctor`는 **정적 capability + 설정값만** 진단한다 — [[SPEC-600-observability]] §2.9 `DoctorDiagnostics.bridge` `{ enabled, tmuxVersion, controlModeSupported, socketArgs }`(정보 전용, exit code 무영향, §2.9). 현재 트리거 소스·fallback 이력은 doctor 범위 밖(activity `control.bridge_fallback` audit이 소유).
 - **Q4 — control-mode notification semantics·`ignore-size` 지원 실측(tmux 버전 편차, 2026-07-03 리뷰 반영)**: `%output`(octal-escaped text)·`%window-pane-changed`(active-pane focus)·`%layout-change`(window-scoped)·`%pane-mode-changed`의 발화 조건, `ignore-size` client flag 지원 범위, flow-control(`%pause`/`%continue`, 3.2+) 동작, `%pause` staleness 임계는 tmux 버전에 따라 다르다(3.x). tmux-systems 리뷰가 tmux 3.6b에서 (a) stdin-open attach가 명령 없이 `%output`을 스트리밍, (b) `refresh-client -C`가 실제 resize, (c) stdin EOF=즉시 detach를 실증했다. 잔여 버전 매트릭스는 [[SPEC-007-test-validation]] 하니스로 검증하고 미지원(특히 `ignore-size` 부재)은 §2.7 capability degrade(폴링)로 안전 처리한다. **tmux-systems 검증 계속.**
 - **Q5 — format subscription(`refresh-client -B`)은 <100ms 대체 아님(P2)**: read-only format subscription 메커니즘은 `refresh-client -B name:what:format`이며 `-C`(size)가 아니다. 단 `-B`는 **redraw cadence로 발화**해 `%output` 수준의 <100ms 트리거를 대체하지 못하고, 도입하려면 flag-level 검증 + 새 결정이 필요하다(현재 allowlist=∅). MVP는 `-B`도 쓰지 않는다. **검토 필요.**
 - **Q6 — attach의 비-콘텐츠 side effect(P2)**: control-mode attach는 client-attach hook·`#{session_attached}`·`destroy-unattached on` 세션 생존 등 관측 가능한 side effect를 만든다(§2.2). read-only/redaction 위협은 아니나 사용자 환경에 보이므로 문서화·최소화 방침을 확정할지 판정한다. **검토 필요.**
