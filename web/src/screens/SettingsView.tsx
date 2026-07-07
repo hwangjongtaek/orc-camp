@@ -43,7 +43,7 @@ export function SettingsView(): JSX.Element {
     );
   }
 
-  const { scanInterval, preview, bounds } = settings;
+  const { scanInterval, preview, bounds, liveViewBridge } = settings;
 
   return (
     <div>
@@ -97,6 +97,24 @@ export function SettingsView(): JSX.Element {
             disabled={saving || !preview.exposureEnabled}
             onChange={(e) => patch({ preview: { lineCount: Number(e.target.value) } })}
           />
+        </div>
+
+        <div className="oc-form__row">
+          <label>
+            <input
+              type="checkbox"
+              checked={liveViewBridge}
+              disabled={saving}
+              onChange={(e) => patch({ liveViewBridge: e.target.checked })}
+            />{' '}
+            Low-latency bridge (live view)
+          </label>
+          <span className="oc-muted" style={{ fontSize: '12px' }}>
+            Read-only observation only — a resident <code>tmux -C</code> attach used purely as a
+            dirty-signal (issues zero commands); terminal frames still come from the same redacted
+            capture path. If it fails or the tmux version is unsupported, live view automatically
+            falls back to polling. Applies from the next live-view attach.
+          </span>
         </div>
 
         <p className="oc-muted" style={{ fontSize: '12px' }}>

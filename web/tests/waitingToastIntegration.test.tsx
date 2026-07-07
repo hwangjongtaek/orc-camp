@@ -23,6 +23,7 @@ function settings(): SettingsResponse {
     preview: { exposureEnabled: true, lineCount: 12 },
     redactionEnabled: true,
     browserAutoOpen: false,
+    liveViewBridge: false,
     bounds: { scanInterval: { min: 1000, max: 10000 }, previewLineCount: { min: 1, max: 12 } },
   };
 }

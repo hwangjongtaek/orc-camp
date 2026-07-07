@@ -59,6 +59,7 @@ export interface SettingsResponse {
   preview: { exposureEnabled: boolean; lineCount: number };
   redactionEnabled: boolean;
   browserAutoOpen: boolean;
+  liveViewBridge: boolean; // SPEC-104 §2.7 control-mode bridge opt-in (default false, D-052)
   bounds: {
     scanInterval: { min: number; max: number };
     previewLineCount: { min: number; max: number };
