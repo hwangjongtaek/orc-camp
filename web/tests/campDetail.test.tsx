@@ -2,10 +2,10 @@
  * SPEC-201 §2.3/§2.4 — CampDetailView tabbed dock.
  *
  * The right-hand inspector column and the standalone activity rail are merged into ONE bottom
- * dock whose constituents are switchable tabs (Details / Preview / Activity). The map spans the
- * full row above the dock at every viewport width (no right column, no mobile bottom-sheet). The
- * full inspector content (raw tmuxTarget + control dock) is reachable in Details; the terminal
- * preview is reachable in Preview.
+ * dock whose constituents are switchable tabs (Details / Activity). The map spans the full row
+ * above the dock at every viewport width (no right column, no mobile bottom-sheet). Details is
+ * read-only orc metadata (raw tmuxTarget); the old Preview tab (pane tail + control dock) was
+ * removed — live observation AND control now live in terminal mode (SPEC-203).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, within, fireEvent } from '@testing-library/react';
@@ -67,41 +67,30 @@ const tab = (container: HTMLElement, name: string): HTMLElement =>
   within(container).getByRole('tab', { name: new RegExp(name, 'i') });
 
 describe('SPEC-201 §2.3 CampDetailView tabbed dock', () => {
-  it('renders a single dock with Details / Preview / Activity tabs (no right column, no sheet)', () => {
+  it('renders a single dock with Details / Activity tabs (no Preview, no right column, no sheet)', () => {
     const campId = seed([orc()]);
     const container = renderDetail(campId, '?orc=pane:%1');
 
     const dock = container.querySelector('[data-testid="camp-dock"]') as HTMLElement;
     expect(dock).not.toBeNull();
     expect(within(dock).getByRole('tab', { name: /details/i })).toBeTruthy();
-    expect(within(dock).getByRole('tab', { name: /preview/i })).toBeTruthy();
     expect(within(dock).getByRole('tab', { name: /activity/i })).toBeTruthy();
+    // the Preview tab was removed (observation + control moved to terminal mode, SPEC-203)
+    expect(within(dock).queryByRole('tab', { name: /preview/i })).toBeNull();
     // the old mobile bottom-sheet dialog is gone
     expect(container.querySelector('[data-testid="inspector-sheet"]')).toBeNull();
   });
 
-  it('Details tab (default) shows the orc inspector (raw tmuxTarget); NO control dock here', () => {
+  it('Details tab (default) shows the orc inspector (raw tmuxTarget); no preview or control dock', () => {
     const campId = seed([orc()]);
     const container = renderDetail(campId, '?orc=pane:%1');
 
     const inspector = container.querySelector('.oc-inspector') as HTMLElement;
     expect(inspector).not.toBeNull();
     expect(within(inspector).getAllByText('work:1.2').length).toBeGreaterThan(0);
-    // the control dock moved to the Preview tab → not in Details
-    expect(within(inspector).queryByRole('button', { name: 'Send' })).toBeNull();
-  });
-
-  it('Preview tab exposes the terminal preview AND the control dock (both moved out of Details)', () => {
-    const campId = seed([orc()]);
-    const container = renderDetail(campId, '?orc=pane:%1');
-
-    // neither preview nor control dock in Details
+    // the map-mode preview + control dock are gone entirely (moved to terminal mode)
     expect(within(container).queryByText('Terminal preview')).toBeNull();
     expect(within(container).queryByRole('button', { name: 'Send' })).toBeNull();
-    fireEvent.click(tab(container, 'preview'));
-    // both reachable in the Preview tabpanel
-    expect(within(container).getByText('Terminal preview')).toBeTruthy();
-    expect(within(container).getByRole('button', { name: 'Send' })).toBeTruthy();
   });
 
   it('Activity tab shows the recent-activity feed', () => {

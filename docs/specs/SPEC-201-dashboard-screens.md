@@ -1,9 +1,9 @@
 ---
 spec: SPEC-201
-title: Dashboard 화면 (camp list/detail/inspector/preview)·상태
+title: Dashboard 화면 (camp list/detail/inspector)·상태
 status: approved
-updated: 2026-07-02
-requirements: [R-UI-001, R-UI-002, R-UI-003, R-UI-004, R-UI-005, R-UI-007, R-PRIV-006, R-UI-012]
+updated: 2026-07-08
+requirements: [R-UI-001, R-UI-002, R-UI-003, R-UI-004, R-UI-005, R-UI-007, R-UI-012]
 decisions: [D-002, D-005, D-017, D-021, D-044, D-045, D-046]
 tags:
   - specs
@@ -13,33 +13,36 @@ tags:
   - epic-3
 ---
 
-# SPEC-201 — Dashboard 화면 (camp list/detail/inspector/preview)·상태
+# SPEC-201 — Dashboard 화면 (camp list/detail/inspector)·상태
 
-Orc Camp dashboard의 **화면 표면(screen surface)**과 **그 화면이 표시하는 콘텐츠·상태**의 단일 진실 공급원(SSOT)이다. [[SPEC-200-frontend-architecture]]가 라우팅·store·데이터 흐름이라는 *앱 골격*을 소유한다면, 본 spec은 그 골격 위에 올라가는 **camp list / camp detail / orc inspector / terminal preview** 4개 화면 슬라이스의 **레이아웃·콘텐츠 매핑·상태 렌더링·preview 노출 동작**을 고정한다. 표시할 필드의 값은 [[SPEC-005-data-contract]] `ScanResult`를, 변경 신호는 [[SPEC-102-realtime-sync]]를 그대로 소비한다.
+Orc Camp dashboard의 **화면 표면(screen surface)**과 **그 화면이 표시하는 콘텐츠·상태**의 단일 진실 공급원(SSOT)이다. [[SPEC-200-frontend-architecture]]가 라우팅·store·데이터 흐름이라는 *앱 골격*을 소유한다면, 본 spec은 그 골격 위에 올라가는 **camp list / camp detail / orc inspector** 3개 화면 슬라이스의 **레이아웃·콘텐츠 매핑·상태 렌더링**을 고정한다. 표시할 필드의 값은 [[SPEC-005-data-contract]] `ScanResult`를, 변경 신호는 [[SPEC-102-realtime-sync]]를 그대로 소비한다. **map 모드는 read-only**이며, live pane **관전**과 **조종(command 전송)**은 [[SPEC-203-terminal-workspace]] terminal 모드가 소유한다(2026-07-08 개정 — 구 dock Preview 탭 제거).
 
 > **소유 경계**:
-> - **소유(본 spec)**: 화면 인벤토리·각 화면의 콘텐츠 매핑(어떤 SPEC-005 필드를 어디에 그리는가)·7종 dashboard 상태의 **구분 렌더링**·terminal preview 렌더링 컴포넌트와 **노출/line-count 동작(R-PRIV-006 UI·behavior)**·orc 배치/선택(placement/selection)·raw tmux target 상시 노출(R-UI-007).
-> - **참조(타 spec 소유)**: 앱 라우팅·store·server/client state 분리·데이터 흐름 → [[SPEC-200-frontend-architecture]]. design token·키보드 내비·contrast·motion → [[SPEC-202-design-accessibility]]. sprite 애니메이션·상태머신·asset fallback → [[SPEC-300-asset-rendering]](본 spec은 sprite를 **어디에 놓고 어떻게 선택**하는지만 소유, 그 sprite가 **무엇을 그리는지**는 SPEC-300). control action flow(modal·target 재검증·optimistic update) → [[SPEC-400-control-actions]](본 spec은 Preview 탭의 control **진입점 배치**만 소유, §2.5). snapshot/REST·WS 계약 → [[SPEC-101-snapshot-api]] / [[SPEC-102-realtime-sync]]. preview/redaction 규칙·`preview.text` 내용 제약 → [[SPEC-006-privacy-redaction]]. settings **저장 값**(preview line count·exposure) → [[SPEC-500-settings-persistence]](본 spec은 그 값을 읽고 쓰는 **UI·동작**만 소유). activity log payload → [[SPEC-600-observability]].
+> - **소유(본 spec)**: 화면 인벤토리·각 화면의 콘텐츠 매핑(어떤 SPEC-005 필드를 어디에 그리는가)·7종 dashboard 상태의 **구분 렌더링**·orc 배치/선택(placement/selection)·raw tmux target 상시 노출(R-UI-007). **map 모드 dock은 read-only**(Details 메타 + Activity 피드) 두 탭만 소유하고, live pane **관전(terminal preview)·조종(control/command 전송)**은 소유하지 않는다 → [[SPEC-203-terminal-workspace]](2026-07-08 개정으로 dock Preview 탭·`PanePreview`/`TerminalPreview`/`CommandDock` 제거).
+> - **참조(타 spec 소유)**: 앱 라우팅·store·server/client state 분리·데이터 흐름 → [[SPEC-200-frontend-architecture]]. design token·키보드 내비·contrast·motion → [[SPEC-202-design-accessibility]]. sprite 애니메이션·상태머신·asset fallback → [[SPEC-300-asset-rendering]](본 spec은 sprite를 **어디에 놓고 어떻게 선택**하는지만 소유, 그 sprite가 **무엇을 그리는지**는 SPEC-300). live pane 관전·조종 표면(xterm viewport·ComposedInput·Observe/Control arm) 전체 → [[SPEC-203-terminal-workspace]](본 spec은 map↔terminal 진입 제스처를 **소유하지 않으며**, 배치만 참조 — §2.3a-6). control action flow(modal·target 재검증·optimistic update) → [[SPEC-400-control-actions]]. snapshot/REST·WS 계약 → [[SPEC-101-snapshot-api]] / [[SPEC-102-realtime-sync]]. preview/redaction 규칙·`preview.text` 내용 제약 → [[SPEC-006-privacy-redaction]]. terminal preview 노출 게이트·live view exposure(R-PRIV-006)는 [[SPEC-203-terminal-workspace]] §2.8 viewport가 소비, **저장 값**(preview line count·exposure) → [[SPEC-500-settings-persistence]]. activity log payload → [[SPEC-600-observability]].
 
 > **불변식(확정)**:
 > - **① 표시 전용 vs 권위 식별자**: 화면에 그리는 `tmuxTarget`/`tmuxSessionName`은 표시 전용이고, 선택·키·재조립의 권위는 `orcId`(`pane:`+paneId)/`campId`(`session:`+sessionId)다([[08-Decisions|D-017]]). raw tmux target은 **항상** 노출한다(R-UI-007).
 > - **② 사실 단정 금지**: `status`는 항상 `statusConfidence`와 함께, `currentWorkSummary`는 `summaryIsEstimated`/`summarySource`와 함께 렌더한다(R-ORC-005, [[SPEC-005-data-contract]] §3.6).
-> - **③ frontend는 redaction을 하지 않는다**: terminal preview에 그리는 텍스트는 backend가 이미 redaction한 `preview.text`(redacted tail)뿐이다([[SPEC-006-privacy-redaction]], [[08-Decisions|D-016]]). frontend는 원문을 받지도, 재구성하지도, 추가 마스킹하지도 않는다.
+> - **③ frontend는 redaction을 하지 않는다(일반 원칙)**: live pane 텍스트를 그리는 표면은 backend가 이미 redaction한 텍스트만 렌더하고, frontend는 원문을 받지도·재구성하지도·추가 마스킹하지도 않는다([[SPEC-006-privacy-redaction]], [[08-Decisions|D-016]]). 2026-07-08 개정 이후 map 모드에는 pane 텍스트 표면이 없으므로 이 불변식은 이제 [[SPEC-203-terminal-workspace]] terminal 모드 viewport에 적용된다(과거의 map-mode preview는 제거).
 > - **④ 상태는 색만으로 전달하지 않는다**: 모든 status·dashboard 상태는 icon/label/pose를 함께 쓴다([[DESIGN]] Usage Rules, 비기능 접근성).
 
 > **2026-07-02 개정(draft)**: [[18-Terminal-Workspace]] 설계안([[08-Decisions|D-045]]/[[08-Decisions|D-046]]/[[08-Decisions|D-044]], R-UI-012)에 따라 **dock Preview 탭(§2.5)의 read-only preview peek ↔ 신규 terminal 모드(xterm workspace)의 이관·공존**을 §2.5a로 추가하고, §2.3a에 terminal 모드 **진입 affordance**를 명시했다(신규 AC-17/AC-18). terminal 모드 화면·레이아웃·스위칭·관전/조종은 [[SPEC-203-terminal-workspace]]가 소유하고, live pane view 채널은 [[SPEC-103-pane-live-stream]], 키보드 passthrough 보안 의미는 [[SPEC-401-interactive-input]]가 소유한다. 본 spec은 **in-map dock 화면과 그 dock↔terminal 이관 접점**만 소유한다. 기존 dock 동작·불변식(zero layout shift·상태 구분 렌더·estimated/confidence·raw target 상시·노출 게이트)은 **그대로 보존**한다. 상류 결정(D-044/045/046, R-UI-012)이 **2026-07-02 Accepted 승인**되어 본 spec은 `approved`다.
+
+> **2026-07-08 개정(approved)**: map 모드 dock의 **Preview 탭(§2.3a 탭 표·§2.4·§2.5·§2.5a)**과 그 구성요소 `PanePreview`/`TerminalPreview`/`CommandDock`(및 web client `api.getOrcPreview`/`OrcPreviewResponse` 호출)이 **코드에서 제거**됐다. live pane **관전**과 **조종(command 전송)**은 이제 전적으로 [[SPEC-203-terminal-workspace]] terminal 모드(xterm viewport + ComposedInput의 Observe/Control arm)가 소유한다 — map 모드의 read-only redacted preview peek과 그 inline `CommandDock`은 삭제됐고, **map 모드 dock은 순수 read-only**(Details 메타 + Activity 피드 두 탭)다. 관전·조종을 하려면 사용자는 terminal 모드로 진입한다. map↔terminal 진입 제스처(camp header `LayoutModeSwitcher`, 맵 orc 더블클릭/Enter)는 [[SPEC-203-terminal-workspace]] §2.1 소유로 **불변**이며, 오직 구 Preview 탭 **안에** 있던 "Open terminal"/"Expand" affordance만 함께 제거됐다. 이에 따라 §2.5/§2.5a는 **superseded/removed**로 표기하고(불변식 ③ read-only/redaction 일반 원칙은 이제 SPEC-203 viewport에 적용), 화면 인벤토리는 **4→3 슬라이스**(Camp List / Camp Detail / Orc Inspector)로 축소했다. R-PRIV-006(노출 여부·line count)은 SPEC-201이 더 이상 preview 컴포넌트를 렌더하지 않으므로 본 spec의 `requirements`에서 제거했고, 노출 값은 여전히 존재하되([[SPEC-500-settings-persistence]] 소유) 이를 소비하는 viewport exposure gate는 [[SPEC-203-terminal-workspace]] §2.8이 소유한다(§5 참조). 서버 endpoint `GET /api/orcs/:orcId/preview` 자체의 존재는 본 개정 범위 밖이다 — web client가 더 이상 호출하지 않을 뿐 서버/백엔드 계약은 그대로다.
 
 ## 1. Scope
 
 ### In scope
 
-- **화면 인벤토리(4 슬라이스)**: Camp List(`/`, R-UI-001/002), Camp Detail(`/camps/:campId`, R-UI-003), Orc Inspector(detail 내 panel, R-UI-004), Terminal Preview(inspector 내 컴포넌트 + 노출/line-count 동작, R-PRIV-006).
+- **화면 인벤토리(3 슬라이스)**: Camp List(`/`, R-UI-001/002), Camp Detail(`/camps/:campId`, R-UI-003), Orc Inspector(detail 내 dock Details 탭, R-UI-004). (구 4번째 슬라이스 **Terminal Preview**는 2026-07-08 제거 — live pane 관전은 [[SPEC-203-terminal-workspace]] terminal 모드로 이관.)
 - **콘텐츠 매핑**: 각 화면 요소가 소비하는 [[SPEC-005-data-contract]] 필드의 정확한 매핑과 표시 의무(R-UI-002/003/004, R-UI-007).
 - **7종 dashboard 상태의 구분 렌더링**(R-UI-005): `loading` / `tmux-not-installed`(empty-tmux) / `no-session` / `no-agent-detected` / `tmux-error` / `disconnected` / `stale-snapshot`. SPEC-005 빈상태 인코딩 + [[SPEC-102-realtime-sync]] disconnected/stale 신호로의 매핑.
 - **상태 레이어링 규칙**: 전체화면 교체 상태 vs overlay(banner/badge) 상태 vs 범위 한정(per-camp/per-orc) 상태의 우선순위·공존 규칙.
 - **orc 배치/선택**: camp scene 내 window/pane → lane/slot 배치, 선택 상태, 비-orc pane 처리(placement/selection만; sprite는 [[SPEC-300-asset-rendering]]).
-- **Terminal Preview 컴포넌트 계약**: preview 메타(`{lines,truncated,redacted,text?}`) 렌더, 노출 on/off 토글, line-count 컨트롤, redacted/truncated 표시, `preview=null`(capture 실패) vs 빈 preview(`lines=0`) 구분, 텍스트 선택/복사.
 - **per-component 표준 상태**: loading / empty / error / no-data 분기.
+
+> **제거(2026-07-08)**: 구 in-scope 항목 "Terminal Preview 컴포넌트 계약"(preview 메타 렌더·노출 토글·line-count·redacted/truncated·`preview=null` vs `lines=0`·텍스트 선택/복사)은 map 모드에서 **삭제**됐다. 해당 관전 기능은 [[SPEC-203-terminal-workspace]] terminal 모드 viewport가 소유한다.
 
 ### Out of scope (다른 spec으로)
 
@@ -53,6 +56,8 @@ Orc Camp dashboard의 **화면 표면(screen surface)**과 **그 화면이 표�
 | WS event envelope·reconnect·gap→resync·disconnected/stale **신호 산출** | realtime sync | [[SPEC-102-realtime-sync]] |
 | preview redaction 패턴·line/byte cap **값**·`preview.text` 내용 불변식 | privacy 계약 | [[SPEC-006-privacy-redaction]] |
 | preview line count·exposure **저장 값**·settings API | settings 영속화 | [[SPEC-500-settings-persistence]] |
+| live pane 관전 viewport(xterm·스크롤백·커서)·terminal 모드 화면/스위칭·조종(ComposedInput·arm) | terminal workspace | [[SPEC-203-terminal-workspace]] |
+| live pane view 채널(`view.attach`/`pane_view*`)·viewport exposure gate(R-PRIV-006 소비) | live stream | [[SPEC-103-pane-live-stream]] / [[SPEC-203-terminal-workspace]] §2.8 |
 | activity log 항목 payload·event history | observability | [[SPEC-600-observability]] |
 
 ## 2. Contract
@@ -65,8 +70,7 @@ Orc Camp dashboard의 **화면 표면(screen surface)**과 **그 화면이 표�
 | --- | --- | --- | --- | --- |
 | 1 | Camp List | `/` | `CampListView` · `CampCard` · `StatusSummaryBar` | R-UI-001, R-UI-002 |
 | 2 | Camp Detail | `/camps/:campId` | `CampDetailView` · `CampScene` · (`OrcSprite` → SPEC-300) | R-UI-003 |
-| 3 | Orc Inspector | `/camps/:campId`(dock Details 탭; `?orc=<orcId>`) | `OrcInspector`(read-only 메타) · control 진입점은 Preview 탭(→ SPEC-400) | R-UI-004 |
-| 4 | Terminal Preview | inspector 내부 컴포넌트 | `TerminalPreview` + 노출/line 컨트롤 | R-PRIV-006 |
+| 3 | Orc Inspector | `/camps/:campId`(dock Details 탭; `?orc=<orcId>`) | `OrcInspector`(read-only 메타; control·terminal preview 진입점 없음 — map 모드 read-only) | R-UI-004 |
 
 - deep link: `/camps/:campId?orc=<orcId>`로 camp + 선택 orc를 복원한다. `campId`/`orcId`는 권위 식별자(`session:`+sessionId / `pane:`+paneId, [[08-Decisions|D-017]])다. 해당 entity가 현재 snapshot에 없으면 §3.7 not-found 처리. (deep link 라우팅 메커니즘 자체는 [[SPEC-200-frontend-architecture]].)
 
@@ -117,21 +121,22 @@ map 아래 단일 dock(`CampDock`)이 구 우측 inspector 컬럼과 별도 acti
 | 탭 id | label | 렌더 컴포넌트 | 콘텐츠 | 다루는 R-* |
 | --- | --- | --- | --- | --- |
 | `details` | Details (기본 활성) | `OrcInspector` | 선택 orc **read-only 메타데이터 + provenance**(control 진입점 없음) | R-UI-004 |
-| `preview` | Preview | `PanePreview`(`web/src/components/preview/PanePreview.tsx`) | exposure-gated **redacted terminal tail**(§2.5) **+ control dock**(`CommandDock`: send/key/interrupt) — terminal preview·control 진입점 모두 Details에서 **이 탭으로 이동** | R-PRIV-006, R-UI-004(control 진입점) |
 | `activity` | Activity | 최근 활동 피드 | recent activity(badge = 건수) | R-OBS-001 forward(피드 표시) |
+
+> **제거(2026-07-08)**: 구 `preview` 탭(`PanePreview` = exposure-gated redacted terminal tail + inline `CommandDock`)은 삭제됐다. dock은 이제 `details`/`activity` **두 탭만** 가지며 map 모드는 read-only다. 구현: `web/src/components/inspector/CampDock.tsx`는 `details`(OrcInspector)·`activity` 두 탭만 렌더한다. live 관전+조종은 [[SPEC-203-terminal-workspace]] terminal 모드로 이관됐다.
 
 **탭 dock 계약(확정·구현):**
 
 1. **WAI-ARIA tabs**: `role="tablist"`/`role="tab"`/`role="tabpanel"`, `aria-selected`/`aria-controls`/`aria-labelledby`. **roving tabindex**(활성 탭 `tabindex=0`, 나머지 `-1` → tablist 전체가 단일 tab stop). `ArrowLeft/Right`·`ArrowUp/Down`·`Home`/`End`로 focus 이동하며 **자동 활성화**(focus = 활성). 키보드/focus 값 규약은 [[SPEC-202-design-accessibility]] 소유.
-2. **활성 패널만 mount(lazy)**: 비활성 탭의 `render()`는 실행되지 않는다. 따라서 Preview 탭이 열릴 때만 `PanePreview`가 mount되고 exposure-gated 텍스트 fetch가 트리거된다(노출면 최소화 — §2.5, [[08-Decisions|D-021]] 정합).
+2. **활성 패널만 mount(lazy)**: 비활성 탭의 `render()`는 실행되지 않는다(활성 탭만 mount — 접근성·비용 최소화). map 모드 두 탭(`details`/`activity`)은 모두 read-only 경량 표면이며 pane 텍스트 fetch를 트리거하지 않는다(2026-07-08 개정으로 exposure-gated preview fetch는 map 모드에서 제거 — live view는 [[SPEC-203-terminal-workspace]] 소유).
 3. **모든 폭에서 dock 사용**: 데스크톱/모바일 구분 없이 동일 dock을 쓴다(우측 컬럼·mobile bottom-sheet 제거, §3.8).
-4. **불변식 보존(확정)**: 접근성(WAI-ARIA tabs·키보드)·CLS(zero layout shift, 탭 전환이 맵 layout/scroll을 밀지 않음) 불변식을 유지한다. raw `tmuxTarget`+`paneId`(R-UI-007)·status+confidence(R-ORC-005)는 Details 탭에서, terminal preview(R-PRIV-006) **+ control 진입점**([[SPEC-400-control-actions]])은 Preview 탭에서 도달 가능하다(control dock이 Details→Preview로 이동, §2.5).
+4. **불변식 보존(확정)**: 접근성(WAI-ARIA tabs·키보드)·CLS(zero layout shift, 탭 전환이 맵 layout/scroll을 밀지 않음) 불변식을 유지한다. raw `tmuxTarget`+`paneId`(R-UI-007)·status+confidence(R-ORC-005)는 Details 탭에서 도달 가능하다. **map 모드 dock은 read-only**이므로 terminal preview·control 진입점을 포함하지 않는다 — live 관전(R-PRIV-006 viewport)과 조종([[SPEC-400-control-actions]] flow)은 [[SPEC-203-terminal-workspace]] terminal 모드가 소유한다(2026-07-08 개정).
 5. **selection 연동**: orc 선택(`?orc=<orcId>`)이 없으면 dock은 그대로 존재하되 Details 탭이 empty hint("select an orc")를 렌더한다. selection 권위 키는 `orcId`(§2.3, [[08-Decisions|D-017]]).
-6. **terminal 모드 진입 affordance(개정·확정, R-UI-012, [[08-Decisions|D-045]])**: dock의 preview peek은 **전체 terminal workspace로 승격(promote)**하는 진입점을 제공한다 — camp header의 `LayoutModeSwitcher`(map/terminal)와 Preview 탭 내 "Open terminal"/"Expand" affordance, 그리고 맵에서 orc **더블클릭/Enter**가 모두 `layoutMode='terminal'`로 전환한다(진입 제스처·모드 상태는 [[SPEC-203-terminal-workspace]] §2.1 소유). 진입 시 selection(`?orc=`)·`campId`가 보존되고, terminal 모드 미진입 상태에서는 dock preview peek이 **계속 유효**하다(공존, §2.5a). map/terminal 어느 쪽이든 선택 SSOT는 동일 `?orc=`다(불변식 ①, [[08-Decisions|D-035]]).
+6. **terminal 모드 진입 affordance(개정·확정, R-UI-012, [[08-Decisions|D-045]])**: map 모드에서 사용자는 전체 terminal workspace로 진입한다 — camp header의 `LayoutModeSwitcher`(map/terminal)와 맵에서 orc **더블클릭/Enter**가 `layoutMode='terminal'`로 전환한다(진입 제스처·모드 상태는 [[SPEC-203-terminal-workspace]] §2.1 소유). 진입 시 selection(`?orc=`)·`campId`가 보존된다. **(2026-07-08 개정)** 구 Preview 탭 내부의 "Open terminal"/"Expand" affordance는 Preview 탭과 함께 제거됐고, `LayoutModeSwitcher` + 더블클릭/Enter 제스처만 남는다. map/terminal 어느 쪽이든 선택 SSOT는 동일 `?orc=`다(불변식 ①, [[08-Decisions|D-035]]).
 
 ### 2.4 Orc Inspector 콘텐츠 매핑 (R-UI-004)
 
-`OrcInspector`는 선택된 orc(`orcId`)의 `Orc` 객체를 소비하며 **dock의 Details 탭**(§2.3a)에 렌더된다. R-UI-004가 요구하는 영역 중 **read-only metadata, status confidence, current work summary, provenance**를 포함하고, **terminal preview AND control 진입점은 별도 Preview 탭**(`PanePreview` → §2.5)으로 분리됐다(Details는 read-only 표시 전용).
+`OrcInspector`는 선택된 orc(`orcId`)의 `Orc` 객체를 소비하며 **dock의 Details 탭**(§2.3a)에 렌더된다. R-UI-004가 요구하는 영역 중 **read-only metadata, status confidence, current work summary, provenance**를 포함한다. **map 모드는 read-only이며 control 진입점도 terminal preview도 없다**(2026-07-08 개정으로 구 Preview 탭·`PanePreview` 제거) — live 관전·조종은 [[SPEC-203-terminal-workspace]] terminal 모드에서 도달한다.
 
 | inspector 영역 | SPEC-005 `Orc` 필드 | 표시 의무 |
 | --- | --- | --- |
@@ -144,88 +149,23 @@ map 아래 단일 dock(`CampDock`)이 구 우측 inspector 컬럼과 별도 acti
 | current work summary | `currentWorkSummary` + `summarySource` + `summaryIsEstimated` | `summaryIsEstimated=true`면 **estimated 마커**(추정값 강조), `summarySource` 표시. null이면 "no summary"(`summarySource=unknown`) |
 | last activity | `lastActivityAt` | — |
 | (보강) provenance | `agentSignals`/`statusSignals`(ruleId만) | 선택적 "why" 디스클로저(redaction-safe, [[SPEC-005-data-contract]] §3.5) |
-| terminal preview | `preview` | **Details가 아니라 Preview 탭**(`PanePreview` → §2.5). Details는 read-only 메타만 |
-| control 진입점 | — | **Details가 아니라 Preview 탭**(`CommandDock` in `PanePreview`, send/key/interrupt). **flow는 [[SPEC-400-control-actions]]** |
 
 - **estimated 마커 규칙**: `summaryIsEstimated=true`(자동 추정) → "estimated"/`~` 류 시각 마커를 summary 옆에 둔다. `user_label`로만 `false`일 수 있다([[SPEC-005-data-contract]] §3.6-3). summary가 추정임을 사용자가 사실로 오해하지 않게 한다([[02-Requirements]] Observation 수용 기준, [[03-UX-UI]] Open Question).
-- **control 진입점은 Preview 탭으로 이동(확정·구현)**: control 액션의 **버튼/진입점**(`CommandDock`)은 `OrcInspector`(Details)가 아니라 `PanePreview`(Preview 탭)가 렌더한다(§2.5). modal·target 재검증·optimistic update·결과 반영은 [[SPEC-400-control-actions]] 소유다. 진입점은 control이 불가한 조건([[SPEC-400-control-actions]] §2.11 disabled predicate: token 부재·orc `terminated`/`stale`·`disconnected` 등)에서 disabled + 사유로 표시한다. Details 탭은 control 버튼을 렌더하지 않는다(read-only).
+- **control 진입점은 map 모드에 없다(2026-07-08 개정·구현)**: 구 `CommandDock`(send/key/interrupt) 진입점은 map 모드(dock)에서 **완전히 제거**됐다 — `OrcInspector`(Details)도, 삭제된 Preview 탭도 control 버튼을 렌더하지 않는다. 조종(command 전송)은 [[SPEC-203-terminal-workspace]] terminal 모드의 ComposedInput(Control arm)에서만 가능하며, control action flow(modal·target 재검증·optimistic update·§2.11 disabled predicate)는 [[SPEC-400-control-actions]] 소유다. `preview` 필드(terminal tail)도 map 모드에서 렌더하지 않는다 — live 관전은 terminal 모드 viewport([[SPEC-203-terminal-workspace]])가 소유한다.
 - terminated/stale orc: 즉시 제거하지 않고([[SPEC-005-data-contract]] §3.2-6, R-ORC-006) 마지막 정상 metadata를 유지하며 종료/stale 라벨과 refresh 안내를 표시한다([[04-Frontend]] 오류 처리).
 
-### 2.5 Terminal Preview 컴포넌트 계약 (R-PRIV-006 — 본 슬라이스 소유)
+### 2.5 Terminal Preview 컴포넌트 계약 — **REMOVED(2026-07-08, superseded by [[SPEC-203-terminal-workspace]])**
 
-[[08-Decisions|D-021]]에 따라 scan-MVP는 preview를 metadata-only로 두고 R-PRIV-006(노출 여부·line count 조정)을 **preview 텍스트를 실제 렌더하는 이 슬라이스**로 미뤘다. 따라서 preview **렌더링·노출 동작은 본 spec이 소유**한다. 저장되는 setting 값은 [[SPEC-500-settings-persistence]](R-SET-001 preview line count·exposure) 소유다.
+> **제거 사유**: map 모드 dock의 read-only redacted preview peek(`PanePreview`/`TerminalPreview`)과 그 inline `CommandDock`이 코드에서 **삭제**됐다(`web/src/components/preview/` 디렉터리·`web/src/components/control/CommandDock.tsx` 제거, web client `api.getOrcPreview` 호출 제거). live pane **관전**의 유일한 surface는 이제 [[SPEC-203-terminal-workspace]] terminal 모드 viewport(xterm)이고, **조종(command 전송)**은 그 ComposedInput(Control arm)이다. 따라서 본 절이 규정하던 컴포넌트 계약(`TerminalPreviewProps`·렌더 규칙 1~7·exposure 토글·line-count 컨트롤·`preview=null` vs `lines=0` 구분·텍스트 selection/copy)은 map 모드에서 **더 이상 존재하지 않는다**.
 
-> **컴포넌트 배치(구현·확정)**: dock의 **Preview 탭** 컴포넌트 `PanePreview`(`web/src/components/preview/PanePreview.tsx`)가 **terminal preview AND control dock**을 함께 소유한다. `PanePreview`는 활성 탭에서만 mount(§2.3a-2)되어 ① exposure-gated lazy fetch(`api.getOrcPreview(orcId)`, 노출면 최소화)를 수행하고, 메타(`{lines,truncated,redacted}`)는 snapshot의 `orc.preview`에서, 텍스트는 exposure on일 때만 endpoint(U1 — `GET /api/orcs/:orcId/preview`, [[08-Decisions|D-026]])에서 가져와 내부 `TerminalPreview`(아래 props 계약)에 전달하고, ② 그 아래에 control 진입점 `CommandDock`(`web/src/components/control/CommandDock.tsx`)을 렌더한다 — `CommandDock`은 [[SPEC-400-control-actions]] §2.11 disabled predicate(`disabled`/`disabledReason`)로 enable/disable을 결정하며 flow는 SPEC-400 소유다. control dock은 구현상 `OrcInspector`(Details)에서 `PanePreview`(Preview)로 **이동**됐다.
+- **read-only/redaction 불변식(구 렌더 규칙 7 = 불변식 ③)은 일반 원칙으로 존속**한다: live pane 텍스트를 그리는 표면은 backend가 이미 redaction한 텍스트만 렌더하고 frontend는 원문을 받지도·재구성하지도·추가 마스킹하지도 않는다([[SPEC-006-privacy-redaction]], R-PRIV-002). 이 원칙은 이제 map-mode preview가 아니라 [[SPEC-203-terminal-workspace]] viewport에 적용된다.
+- **노출 게이트(R-PRIV-006)**: exposure on/off·line-count의 **저장 값**은 여전히 [[SPEC-500-settings-persistence]]가 소유하되, 이를 **소비해 raw 텍스트를 게이트**하는 주체는 map 모드가 아니라 [[SPEC-203-terminal-workspace]] §2.8 viewport exposure gate다(§5 Traceability 참조).
+- **서버 endpoint 불변**: `GET /api/orcs/:orcId/preview` 서버 endpoint 자체의 존재는 본 개정 범위 밖이다 — web client가 더 이상 호출하지 않을 뿐이며, 그 endpoint의 계약을 규정하는 상류 spec 진술은 그대로 유효하다(본 spec은 이를 삭제하지 않는다).
+- **Q6(대화형 터미널) 경로**: 구 §2.5 TODO의 "대화형 터미널로의 개선"은 [[SPEC-203-terminal-workspace]](read-only 고충실 view [[SPEC-103-pane-live-stream]] + arm 기반 passthrough [[SPEC-401-interactive-input]])로 **완전히 이관**됐다(§6 Q6).
 
-> **TODO(향후 작업, Open Question Q6)**: 현재 Preview는 **read-only redacted tail**이다. 추후 ssh 접속 / tmux control-mode / PTY 브리지로 **대화형 터미널**(키 입력·scrollback·resize)을 제공해 "SSH로 직접 접속해 조종하는 경험"으로 개선할 계획이다(코드 `PanePreview` TODO 주석에 기록). 이는 read-only/redaction 불변식(불변식 ③, R-PRIV-002)을 재검토해야 하는 별도 작업이며 본 MVP slice 범위 밖이다(§6 Q6, P1+).
+### 2.5a Dock preview peek ↔ terminal 모드 공존 — **REMOVED(2026-07-08, no longer applicable)**
 
-**입력 데이터(읽기 전용)**: `Orc.preview: Preview | null`([[SPEC-005-data-contract]] §2.7).
-
-```ts
-// SPEC-005 §2.7 재인용(소유 아님): shape는 SPEC-005, 내용 제약은 SPEC-006
-interface Preview {
-  lines: number;        // redacted tail 줄 수(노출/잠재 노출 가능 줄 수), ≥0
-  truncated: boolean;   // lines > PREVIEW_LINES 또는 byteClamped
-  redacted: boolean;    // redaction 매칭이 1개 이상 있었는가
-  text?: string[];      // 있으면 redacted tail(≤ PREVIEW_LINES). backend가 이미 redaction함
-}
-```
-
-**컴포넌트 props(본 spec 소유 — 구현 decomposition):**
-
-`PanePreview`(fetch owner)가 메타/텍스트/로딩을 분리해 presentational `TerminalPreview`에 주입한다(메타는 snapshot `orc.preview`, 텍스트는 exposure-on lazy fetch):
-
-```ts
-type PreviewMeta = Pick<Preview, 'lines' | 'truncated' | 'redacted'>; // snapshot orc.preview 메타
-interface TerminalPreviewProps {
-  meta: PreviewMeta | null;       // preview 메타(없음=capture 실패). orc.preview에서
-  text: string[] | null;          // exposure on 시 lazy-fetch한 redacted tail, 아니면 null
-  loading: boolean;               // 텍스트 fetch 진행 중
-  exposureEnabled: boolean;       // 노출 on/off (settings 미러, SPEC-500 저장)
-  lineCount: number;              // 표시 희망 줄 수 (settings 미러, SPEC-500 저장)
-  disabled: boolean;              // settings 미로드 등으로 컨트롤 비활성
-  onToggleExposure(next: boolean): void;   // → PATCH /api/settings (SPEC-500)
-  onChangeLineCount(next: number): void;   // → PATCH /api/settings (SPEC-500, [1, PREVIEW_LINES] clamp)
-}
-```
-
-**렌더 규칙(확정):** (아래 규칙의 `preview === null`/`preview.text`/`preview.{redacted,truncated,lines}`는 구현 split props의 `meta === null`/`text`/`meta.{redacted,truncated,lines}`에 대응한다.)
-
-1. **`preview === null`(capture 실패)** → "preview unavailable" 상태로 렌더한다. 이는 §3.7 "capture 실패" 상태이며 **빈 preview(`lines=0`)와 구분**한다(capture 실패 vs 출력 없음).
-2. **`exposureEnabled === false`** → 텍스트를 렌더하지 않는다. "Preview hidden" placeholder + show 토글만 표시하고, `preview.text`를 **요청·표시하지 않는다**(노출면 최소화). `redacted`/`truncated` 같은 메타 배지도 텍스트 없이 표시 가능하다.
-3. **`exposureEnabled === true`** → `preview.text`를 표시한다. 표시 줄 수는 `min(lineCount, preview.text.length)`이며, 가용 tail(`preview.text`, ≤ `PREVIEW_LINES`)을 초과하는 줄을 합성하지 않는다(frontend가 데이터를 만들어내지 않는다).
-4. **redaction 표시**: `preview.redacted === true`면 "redacted" 배지를 표시한다(민감정보 노출 가능성을 계속 인지시킴 — [[03-UX-UI]] UX 원칙). 텍스트의 `[REDACTED:*]` 토큰은 backend 산출 그대로 렌더한다(frontend 추가 마스킹 없음).
-5. **truncated 표시**: `preview.truncated === true`면 "truncated" 표시(전체가 아님을 알림). `preview.lines`로 tail 줄 수를 노출한다.
-6. **텍스트 표면**: monospace, **text selection·copy 가능**([[03-UX-UI]] 접근성). 자동 저장/외부 전송 없음([[DESIGN]] Anti-patterns, R-PRIV-004).
-7. **frontend redaction 금지(불변식 ③)**: 표시 텍스트는 `preview.text`(backend redacted tail)뿐이다. 원문을 받지도 재구성하지도 추가 마스킹하지도 않는다([[SPEC-006-privacy-redaction]], R-PRIV-002).
-
-**노출/line-count 컨트롤(R-PRIV-006 동작 — 본 spec 소유):**
-
-- **exposure 토글**: 사용자가 preview 텍스트 노출을 on/off 한다. 변경은 `onToggleExposure` → settings 저장([[SPEC-500-settings-persistence]]). off면 규칙 2.
-- **line-count 컨트롤**: 사용자가 표시 줄 수를 조정한다. 변경은 `onChangeLineCount` → settings 저장. **유효 범위는 `[1, PREVIEW_LINES]`**(backend가 내려주는 redacted tail이 최대 `PREVIEW_LINES`=12이므로, 그 이상은 표시할 데이터가 없다 — §6 Q1). line count를 늘려도 backend tail보다 많은 줄을 만들지 않는다.
-- **기본값(가설, 검토 필요)**: exposure 기본 on / lineCount 기본 = `PREVIEW_LINES`(12). 단 **이 default 노출 범위는 UX와 보안 사이에서 PoC로 검증할 가설**이다([[03-UX-UI]] Open Question). 보수적 대안(default off)도 후보이며 default 값 자체는 [[SPEC-500-settings-persistence]]가 확정한다(§6 Q2).
-- per-orc 노출 상태는 client state(terminal preview line count는 이미 [[04-Frontend]] Client State에 명시)이며 settings 저장 값을 미러링한다.
-
-> **데이터 출처 의존(검토 필요)**: `preview.text`가 inspector에 도달하는 경로는 본 spec이 결정하지 않는다 — exposure on인 **선택된 orc에 한해** 텍스트를 가져오는 lazy fetch(노출면 최소화)를 권장하나, snapshot/camp-detail에 settings-gated로 포함할지 별도 per-orc endpoint를 둘지는 [[SPEC-101-snapshot-api]]/[[SPEC-500-settings-persistence]]와 조율한다(§6 Q1).
-
-### 2.5a Dock preview peek ↔ terminal 모드 이관·공존 (개정, R-UI-012·R-PRIV-006, [[08-Decisions|D-044]]/[[08-Decisions|D-045]]/[[08-Decisions|D-046]])
-
-[[18-Terminal-Workspace]] 설계안은 현 dock Preview 탭(§2.5, read-only redacted tail)을 대체하지 않고, 그와 **공존하는 전체 terminal workspace(map/terminal 모드)**를 추가한다. 본 절은 dock preview peek과 terminal 모드의 **이관(promotion)·공존·공유 게이트** 접점만 소유한다(terminal 모드 화면·xterm·스위칭·관전/조종은 [[SPEC-203-terminal-workspace]] 소유).
-
-**두 표면의 역할 분담(확정):**
-
-| 표면 | 소유 spec | 성격 | 데이터 경로 |
-| --- | --- | --- | --- |
-| **dock Preview peek**(§2.5 `PanePreview`/`TerminalPreview`) | 본 spec (SPEC-201) | 맵 아래 dock의 **경량 메타+짧은 redacted tail** peek(현행). 낮은 비용, 활성 탭에서만 lazy fetch | `orc.preview` 메타 + exposure-on lazy `GET /api/orcs/:orcId/preview`([[08-Decisions|D-026]]/D-021) |
-| **terminal 모드**(xterm workspace) | [[SPEC-203-terminal-workspace]] | pane 준-실시간 화면(스크롤백/커서, near-real-time), orc rail·스위칭·관전/조종 | live pane view 채널 `view.attach`/`pane_view*`([[SPEC-103-pane-live-stream]]), passthrough([[SPEC-401-interactive-input]]) |
-
-**공존 계약(확정):**
-
-1. **dock preview 보존(불변)**: terminal 모드에 진입하지 않는 한 dock Preview 탭의 peek 동작(§2.5 렌더 규칙·노출 토글·line-count·표준 상태)은 **그대로 유효**하다. 본 개정은 §2.5 계약을 **삭제·약화하지 않는다**(추가만).
-2. **승격(promotion) 경로(확정)**: 사용자는 dock preview peek에서 (a) camp header `LayoutModeSwitcher`의 terminal 토글, (b) Preview 탭 내 "Open terminal"/"Expand" affordance, (c) 맵 orc 더블클릭/Enter로 terminal 모드로 승격한다(§2.3a-6). 승격 시 selection(`?orc=`)이 보존되며 진입 제스처·모드 상태는 [[SPEC-203-terminal-workspace]] §2.1이 소유한다.
-3. **공유 exposure gate(확정, [[08-Decisions|D-044]])**: dock preview peek과 terminal 모드 attach는 **동일한 글로벌 exposure 설정**(R-PRIV-006, [[08-Decisions|D-026]] `GET /api/orcs/:orcId/preview` gate, [[SPEC-500-settings-persistence]])을 상속한다 — MVP는 글로벌 단위를 유지하고 per-pane 승격은 forward다([[08-Decisions|D-044]]). exposure off면 dock peek은 §2.5 규칙 2("Preview hidden")로, terminal 모드는 [[SPEC-203-terminal-workspace]] §2.8 gated 상태(`pane_view_end reason=exposure_off`)로 각각 raw 텍스트를 표시·요청하지 않는다(양쪽 노출면 최소화 일관). **(2026-07-02 리뷰 반영)** exposure는 캐시보다 우선하며, terminal 모드의 LRU last-screen 캐시는 exposure off 전이 시 즉시 purge되어 노출 게이트가 캐시로 우회되지 않는다([[SPEC-203-terminal-workspace]] §2.5).
-4. **read-only·redaction 불변식 공유(확정)**: 두 표면 모두 backend가 이미 redaction한 텍스트만 렌더하고 frontend는 원문을 받지도·재구성하지도 않는다(불변식 ③). terminal 모드는 write(키 입력)를 추가하나 이는 별도 arm/disarm 보안 경로([[SPEC-401-interactive-input]])이며 dock peek의 read-only 성격을 바꾸지 않는다.
-5. **Q6 TODO 해소 경로(개정)**: §2.5 TODO(Q6)의 "대화형 터미널로의 개선"은 이제 read-only 고충실 view([[SPEC-103-pane-live-stream]]/[[SPEC-203-terminal-workspace]]) + arm 기반 passthrough([[SPEC-401-interactive-input]])로 구체화됐다 — read-only/redaction 불변식(불변식 ③, R-PRIV-002)은 view 채널이 redaction-before-transport로, write는 기존 `controlExec` single-writer 재사용으로 보존한다(§6 Q6 갱신).
+> **제거 사유**: 본 절은 dock Preview peek과 terminal 모드의 **공존·이관(promotion)·공유 exposure gate**를 규정했으나, 2026-07-08 개정으로 dock Preview peek 자체가 삭제됐다. 이제 "두 표면"이 아니라 **terminal 모드 단일 표면**만 live pane view를 소유하므로, peek↔terminal 이관·공존 계약은 성립하지 않는다. 공유 exposure gate·read-only/redaction 불변식 공유·arm 기반 passthrough는 이제 온전히 [[SPEC-203-terminal-workspace]](§2.8 exposure gate·§2.5 캐시 purge) + [[SPEC-401-interactive-input]]가 소유한다. map↔terminal **진입 제스처**(camp header `LayoutModeSwitcher`, 맵 orc 더블클릭/Enter)는 §2.3a-6이 참조하고 [[SPEC-203-terminal-workspace]] §2.1이 소유한다(불변).
 
 ### 2.6 Dashboard 상태 모델 (R-UI-005)
 
@@ -295,14 +235,9 @@ camp/orc metaphor와 **무관하게** raw tmux 식별이 항상 확인 가능해
 3. Orc Inspector: `tmuxTarget` + `paneId`를 상시 노출(권위는 `paneId`).
 4. `tmuxTarget`/`tmuxSessionName`은 표시 전용이며 reindex/rename으로 변해도 선택·동작은 권위 식별자(`paneId`/`sessionId`)로 유지된다([[08-Decisions|D-017]]).
 
-### 3.5 terminal preview 노출 동작 (확정, R-PRIV-006)
+### 3.5 terminal preview 노출 동작 — **이관(2026-07-08) → [[SPEC-203-terminal-workspace]]**
 
-§2.5 컴포넌트 계약을 따른다. 핵심 동작 불변식:
-
-1. exposure off → `preview.text` 미요청·미표시(노출면 최소화).
-2. exposure on → backend redacted tail(`preview.text`)만, `min(lineCount, text.length)` 줄 표시. frontend는 redaction/원문 재구성을 하지 않는다.
-3. line-count 변경은 표시 줄 수만 바꾸며 backend tail(≤`PREVIEW_LINES`)을 초과하는 데이터를 합성하지 않는다. 설정 변경은 [[SPEC-500-settings-persistence]]에 저장된다.
-4. `redacted`/`truncated`/`lines` 메타를 항상 사용자에게 노출해 "전체가 아님·민감정보 가려짐"을 인지시킨다.
+> map 모드에는 더 이상 preview 텍스트 표면이 없다(§2.5 REMOVED). 구 §3.5 동작 불변식(exposure off → 텍스트 미요청·미표시, exposure on → backend redacted tail만 표시, line-count 상한, redacted/truncated/lines 메타 상시 노출)은 이제 [[SPEC-203-terminal-workspace]] §2.8 viewport exposure gate가 소유한다. 노출 값(exposure on/off·line count)의 저장은 [[SPEC-500-settings-persistence]]가 소유한다. 일반 원칙(불변식 ③ frontend 비-redaction)은 존속하며 SPEC-203 viewport에 적용된다.
 
 ### 3.6 layout 안정성·성능 (확정 + 가설)
 
@@ -320,15 +255,14 @@ camp/orc metaphor와 **무관하게** raw tmux 식별이 항상 확인 가능해
 | `CampListView` | skeleton card | §2.6 no-session/no-agent 위임 | tmux-error banner(레이어 C) | — |
 | `CampScene` | scene skeleton | "No agents detected"(camp orcCount=0) | per-orc error slot | 비-orc pane은 빈 slot |
 | `OrcInspector` | metadata skeleton | 선택 orc 없음 시 empty hint | orc-scoped error | `terminated`/`stale`: 마지막 metadata + 라벨 |
-| `TerminalPreview` | preview skeleton | `lines=0`: "no output" | `preview=null`: "preview unavailable"(capture 실패) | exposure off: "Preview hidden" |
 
 - **deep link not-found**: `campId`/`orcId`가 현재 snapshot에 없으면(종료/미존재) inspector/detail은 "not found / 종료됨" 상태로 렌더하고 camp list로 복귀 경로를 제공한다(앱 라우팅은 [[SPEC-200-frontend-architecture]]).
-- **`preview=null` ≠ `lines=0`(확정)**: capture 실패(`null`)와 출력 없음(`lines=0`)을 서로 다른 메시지로 렌더한다([[SPEC-005-data-contract]] §2.7, capture 실패는 `diagnostics.tmuxErrors`에 동반).
+- **`TerminalPreview` 표준 상태 행 제거(2026-07-08)**: 구 `TerminalPreview`(preview skeleton / `lines=0` "no output" / `preview=null` "preview unavailable" / exposure off "Preview hidden")와 "`preview=null` ≠ `lines=0`" 구분 규칙은 map 모드에서 제거됐다. 해당 상태 처리는 이제 [[SPEC-203-terminal-workspace]] viewport(§2.8 등)가 소유한다.
 
 ### 3.8 반응형 동작 (확정·구현 — 단일 컬럼 통합)
 
 1. **모든 폭에서 단일 컬럼**: camp detail은 **map(full-width) → CampDock(full-width 탭, 하단)** 단일 컬럼이다(§2.3/§2.3a). 우측 inspector 컬럼·별도 activity rail은 제거됐다.
-2. **bottom-sheet 제거(supersede)**: 구 모델의 mobile slide-up bottom-sheet는 **제거**됐고 동일 dock 탭(§2.3a)으로 대체됐다. raw `tmuxTarget`+`paneId`·status+confidence·terminal preview(노출 게이트)·control 진입점은 dock 탭(Details/Preview)에서 모든 폭에서 도달 가능하다(R-UI-007/R-PRIV-006/[[SPEC-400-control-actions]] 보존).
+2. **bottom-sheet 제거(supersede)**: 구 모델의 mobile slide-up bottom-sheet는 **제거**됐고 동일 dock 탭(§2.3a)으로 대체됐다. raw `tmuxTarget`+`paneId`·status+confidence는 dock의 Details 탭에서 모든 폭에서 도달 가능하다(R-UI-007 보존). **(2026-07-08)** terminal preview·control 진입점은 map 모드 dock에서 제거됐고 [[SPEC-203-terminal-workspace]] terminal 모드에서 도달한다(R-PRIV-006 viewport·[[SPEC-400-control-actions]] flow).
    > **NOTE (superseded — #45 bottom-sheet)**: 이전 NOTE(≤880px slide-up bottom-sheet `role="dialog"` + focus-trap)는 단일 dock 통합으로 **superseded**됐다. `BottomSheet`/`useMediaQuery` 컴포넌트는 코드에 잔존하나 `CampDetailView`에서 미사용이다(§2.3). 맵 drag-to-pan은 pointer/touch에서 계속 동작한다([[SPEC-301-camp-map-movement]] §2.7 #42).
 3. **세로 우선 스크롤**: 단일 컬럼이므로 좁은 폭에서도 map → dock 순으로 세로 스크롤되며 별도 modal 전환이 없다. tokens-only·reduced-motion-safe([[SPEC-202-design-accessibility]]). dock 탭 전환은 zero layout shift(§2.3a-4).
 
@@ -370,7 +304,8 @@ SPEC-201-AC-04 (R-UI-004, R-ORC-005)
   When inspector 콘텐츠를 검사하면
   Then agentType(+agentTypeConfidence), tmuxTarget(+paneId), cwd, command,
        status(+statusConfidence), currentWorkSummary(+summarySource), lastActivityAt 를 read-only 로 표시하고
-       (terminal preview AND control 진입점은 dock 의 Preview 탭으로 분리 — §2.3a/§2.5/AC-15/AC-16),
+       (map 모드는 read-only — terminal preview 도 control 진입점도 없다; live 관전·조종은
+        [[SPEC-203-terminal-workspace]] terminal 모드에서 도달, §2.4/AC-15),
        status 는 항상 statusConfidence 와 함께,
        summaryIsEstimated=true 인 summary 는 estimated 마커와 함께 렌더된다.
 ```
@@ -413,31 +348,11 @@ SPEC-201-AC-08 (R-UI-007)
        선택·동작은 권위 식별자(paneId/sessionId)로 유지된다.
 ```
 
-```text
-SPEC-201-AC-09 (R-PRIV-006)
-  Given OrcInspector 의 TerminalPreview 에서
-  When 사용자가 exposure 토글과 line-count 컨트롤을 조작하면
-  Then exposure off 면 preview.text 가 표시되지 않고("Preview hidden"),
-       exposure on 이면 min(lineCount, preview.text.length) 줄이 표시되며,
-       변경 값은 settings 저장 경로(PATCH /api/settings, [[SPEC-500-settings-persistence]])로 전달된다.
-```
+> **SPEC-201-AC-09 — REMOVED(2026-07-08)**: TerminalPreview exposure 토글·line-count 컨트롤 AC. map 모드 preview 제거로 무효. 노출 게이트 검증은 [[SPEC-203-terminal-workspace]](viewport exposure gate) 소유로 이관.
 
-```text
-SPEC-201-AC-10 (R-PRIV-006, R-PRIV-002 정합)
-  Given backend 가 redaction 한 preview.text(redacted tail, [REDACTED:*] 포함)에 대해
-  When TerminalPreview 가 텍스트를 표시하면
-  Then 표시 텍스트는 preview.text 그대로이며 frontend 가 추가 redaction/원문 재구성을 하지 않고,
-       preview.redacted=true 면 "redacted" 배지를, preview.truncated=true 면 "truncated"+lines 를 표시하며,
-       텍스트는 selection·copy 가능하다.
-```
+> **SPEC-201-AC-10 — REMOVED(2026-07-08)**: TerminalPreview redacted 텍스트 표시(추가 redaction 금지·redacted/truncated 배지·selection/copy) AC. map 모드 preview 제거로 무효. frontend 비-redaction 검증은 [[SPEC-203-terminal-workspace]] viewport(불변식 ③) 소유로 이관.
 
-```text
-SPEC-201-AC-11 (R-UI-004, [[SPEC-005-data-contract]] §2.7 정합)
-  Given 한 orc 의 preview=null(capture 실패), 다른 orc 의 preview.lines=0(출력 없음)일 때
-  When TerminalPreview 를 각각 렌더하면
-  Then preview=null 은 "preview unavailable"(capture 실패),
-       preview.lines=0 은 "no output" 으로 서로 다르게 렌더되어 두 상태가 구분된다.
-```
+> **SPEC-201-AC-11 — REMOVED(2026-07-08)**: `preview=null`(capture 실패) vs `preview.lines=0`(출력 없음) 구분 렌더 AC. map 모드 preview 제거로 무효. 해당 상태 구분은 [[SPEC-203-terminal-workspace]] viewport 소유로 이관.
 
 ```text
 SPEC-201-AC-12 (R-UI-005, R-TMUX-004 정합)
@@ -450,14 +365,13 @@ SPEC-201-AC-12 (R-UI-005, R-TMUX-004 정합)
 ```
 
 ```text
-SPEC-201-AC-13 (R-UI-004, [[SPEC-400-control-actions]] 경계)
-  Given orc 선택 후 dock 의 Preview 탭(PanePreview)이 열린 상태에서
-  When control 진입점(CommandDock)을 검사하면
-  Then send/key/interrupt 진입 버튼이 Preview 탭에 존재하되(Details 탭에는 control 버튼이 없음),
-       선택 orc 가 terminated/stale 이거나 disconnected 이거나 token 부재면([[SPEC-400-control-actions]] §2.11 disabled predicate)
-       disabled + 사유로 표시되고,
-       실제 action flow(modal·target 재검증·결과 반영)는 본 화면이 아니라
-       [[SPEC-400-control-actions]] 로 위임된다.
+SPEC-201-AC-13 (R-UI-004, [[SPEC-400-control-actions]]/[[SPEC-203-terminal-workspace]] 경계) — map 모드는 read-only
+  Given orc 를 선택해 map 모드 dock(Details/Activity)이 열린 상태에서
+  When dock 전체를 검사하면
+  Then map 모드 어느 탭에도 control 진입점(send/key/interrupt 버튼)이나 terminal preview 가 존재하지 않고
+       (구 Preview 탭·CommandDock·PanePreview 부재),
+       조종은 오직 [[SPEC-203-terminal-workspace]] terminal 모드 ComposedInput(Control arm)에서만 가능하며,
+       실제 action flow(modal·target 재검증·결과 반영)는 [[SPEC-400-control-actions]] 로 위임된다.
 ```
 
 ```text
@@ -470,44 +384,30 @@ SPEC-201-AC-14 (R-UI-003, 비기능 성능)
 ```
 
 ```text
-SPEC-201-AC-15 (R-UI-004, R-UI-007, [[SPEC-400-control-actions]] 경계) — 단일 탭 dock·control 위치
+SPEC-201-AC-15 (R-UI-004, R-UI-007, [[SPEC-203-terminal-workspace]] 경계) — 단일 dock·read-only 두 탭
   Given camp detail 을 임의의 뷰포트 폭에서 렌더할 때
   When 화면 구조를 검사하면
   Then map 이 행 전체 폭을 차지하고 그 아래 단일 CampDock 이 존재하며(우측 inspector 컬럼·mobile bottom-sheet 부재),
-       dock 은 Details / Preview / Activity 3개 탭(role=tab, WAI-ARIA tabs, roving tabindex)을 가지고,
-       기본 활성 Details 탭은 OrcInspector(raw tmuxTarget+paneId·status+confidence)를 read-only 로 렌더하되 control 버튼(Send)이 없으며,
-       control 진입점(Send/Key/Interrupt)은 Preview 탭(PanePreview)에서 도달 가능하고,
+       dock 은 Details / Activity 2개 탭(role=tab, WAI-ARIA tabs, roving tabindex)만 가지고(구 Preview 탭 부재),
+       기본 활성 Details 탭은 OrcInspector(raw tmuxTarget+paneId·status+confidence)를 read-only 로 렌더하되
+       control 버튼(Send)도 terminal preview 도 없으며(map 모드 read-only),
        선택 orc 가 없으면 Details 가 empty hint("select an orc")를 렌더하되 dock 은 유지된다.
 ```
 
-```text
-SPEC-201-AC-16 (R-PRIV-006, R-UI-004, [[08-Decisions|D-021]] 정합) — Preview 탭 lazy·노출 게이트·control 동거
-  Given terminal preview 와 control dock 이 Details 가 아닌 별도 Preview 탭에 있는 dock 에서
-  When (i) Details 탭이 활성인 동안과 (ii) Preview 탭을 연 뒤를 비교하면
-  Then (i) 에서는 "Terminal preview" 가 렌더되지 않고 control 버튼(Send)도 없으며 preview.text fetch 가 일어나지 않고(활성 패널만 mount),
-       (ii) Preview 탭을 열면 PanePreview 가 mount 되어 §2.5 TerminalPreview 와 control dock(Send/Key/Interrupt)이 함께 노출되고,
-       exposure on 일 때만 텍스트를 lazy fetch(getOrcPreview)하며(노출면 최소화),
-       탭 전환이 맵 layout/scroll 을 밀지 않는다(zero layout shift).
-```
+> **SPEC-201-AC-16 — REMOVED(2026-07-08)**: 구 Preview 탭 lazy mount·exposure-gated `getOrcPreview` fetch·control dock 동거 AC. Preview 탭·PanePreview·CommandDock·`getOrcPreview` 제거로 무효. lazy view attach·exposure gate 검증은 [[SPEC-203-terminal-workspace]]로 이관.
 
 ```text
-SPEC-201-AC-17 (R-UI-012, [[08-Decisions|D-045]], [[SPEC-203-terminal-workspace]] 경계) — dock↔terminal 이관·공존
-  Given orc 선택 후 dock Preview 탭(peek)이 열린 상태에서
-  When (i) LayoutModeSwitcher 의 terminal 토글 / Preview 탭 "Open terminal" affordance / 맵 orc 더블클릭·Enter 로 terminal 모드로 승격하고
+SPEC-201-AC-17 (R-UI-012, [[08-Decisions|D-045]], [[SPEC-203-terminal-workspace]] 경계) — map→terminal 진입 제스처(선택 보존)
+  Given orc 를 선택한 map 모드(read-only dock: Details/Activity)에서
+  When (i) camp header LayoutModeSwitcher 의 terminal 토글 또는 맵 orc 더블클릭·Enter 로 terminal 모드로 진입하고
        (ii) 다시 map 모드로 돌아오면
-  Then (i) layoutMode='terminal' 로 전환되며 selection(?orc=)·campId 가 보존되고(terminal 화면은 [[SPEC-203-terminal-workspace]] 소유),
-       (ii) map 모드로 돌아오면 dock Preview peek(§2.5)이 그대로 유효하게 렌더되어
-       두 표면이 공존하며(dock peek 동작 삭제·약화 없음), 어느 모드든 선택 SSOT 는 동일 ?orc= 다.
+  Then (i) layoutMode='terminal' 로 전환되며 selection(?orc=)·campId 가 보존되고(terminal 화면·관전·조종은 [[SPEC-203-terminal-workspace]] 소유),
+       (ii) map 모드로 돌아오면 dock 이 read-only 두 탭(Details/Activity)으로 그대로 렌더되며(구 Preview peek 부재),
+       어느 모드든 선택 SSOT 는 동일 ?orc= 다.
+       (참고: 구 Preview 탭 내부 "Open terminal"/"Expand" affordance 는 Preview 탭과 함께 제거됐다.)
 ```
 
-```text
-SPEC-201-AC-18 (R-PRIV-006, [[08-Decisions|D-044]], [[SPEC-103-pane-live-stream]]/[[SPEC-203-terminal-workspace]] 정합) — 공유 exposure gate
-  Given 글로벌 preview exposure 가 off 인 상태에서
-  When dock Preview peek 과 terminal 모드를 각각 확인하면
-  Then dock peek 은 §2.5 규칙 2("Preview hidden", preview.text 미요청)로,
-       terminal 모드는 [[SPEC-203-terminal-workspace]] §2.8 gated 상태(pane_view attach 거부/ reason=exposure_off)로
-       각각 raw 텍스트를 표시·요청하지 않으며, 두 표면이 동일 글로벌 exposure 설정을 상속한다(per-pane 승격은 forward, [[08-Decisions|D-044]]).
-```
+> **SPEC-201-AC-18 — REMOVED(2026-07-08)**: dock Preview peek ↔ terminal 모드 **공유 exposure gate** AC. dock peek 제거로 "두 표면 공유" 전제가 무효. 글로벌 exposure off 시 raw 텍스트 미표시·미요청 검증은 이제 단일 표면(terminal 모드) 대상으로 [[SPEC-203-terminal-workspace]] §2.8이 소유한다.
 
 ## 5. Traceability
 
@@ -516,28 +416,28 @@ SPEC-201-AC-18 (R-PRIV-006, [[08-Decisions|D-044]], [[SPEC-103-pane-live-stream]
 | R-UI-001 | camp list 첫 화면 + StatusSummaryBar(최상위 statusSummary) | SPEC-201-AC-01, AC-02 |
 | R-UI-002 | CampCard 콘텐츠 매핑(session명·win/pane·orc·active/waiting/error/stale·lastActivity) | SPEC-201-AC-01, AC-02 |
 | R-UI-003 | CampScene window=lane / pane=slot 배치, 비-orc pane 처리, layout 안정성 | SPEC-201-AC-03, AC-14 |
-| R-UI-004 | OrcInspector Details 탭(read-only metadata·confidence·summary+estimated·provenance) + **terminal preview AND control 진입점은 Preview 탭**(`PanePreview`+`CommandDock`)으로 분리(§2.3a/§2.5), 단일 탭 dock 통합 | SPEC-201-AC-04, AC-11, AC-13, AC-15, AC-16 |
+| R-UI-004 | OrcInspector Details 탭(read-only metadata·confidence·summary+estimated·provenance), read-only dock 두 탭(Details/Activity) 통합. **map 모드는 read-only** — terminal preview·control 진입점은 제거(2026-07-08), live 관전·조종은 [[SPEC-203-terminal-workspace]] 소유 | SPEC-201-AC-04, AC-13, AC-15 |
 | R-UI-005 | 7종 상태 구분 렌더 + 레이어링(전체화면/overlay/범위), no-agent≠no-session, disconnected≠stale, tmux-error scoping | SPEC-201-AC-05, AC-06, AC-07, AC-12 |
 | R-UI-007 | raw tmux target 상시 노출(card/detail/inspector Details 탭), 표시 전용 vs 권위 식별자 | SPEC-201-AC-08, AC-15 |
-| R-PRIV-006 | TerminalPreview 노출 토글 + line-count 컨트롤(UI·behavior), backend redacted text only, 별도 Preview 탭 lazy mount(노출면 최소화), dock peek↔terminal 공유 exposure gate | SPEC-201-AC-09, AC-10, AC-16, AC-18 |
-| R-UI-012 (부수; 1차 [[SPEC-203-terminal-workspace]]) | dock preview peek ↔ terminal 모드 이관·공존(§2.5a)·진입 affordance(§2.3a-6)·공유 exposure gate. terminal 화면/스위칭/관전조종은 [[SPEC-203-terminal-workspace]] 소유 | SPEC-201-AC-17, AC-18 |
+| ~~R-PRIV-006~~ (2026-07-08 이관 → [[SPEC-203-terminal-workspace]]) | SPEC-201은 더 이상 preview 컴포넌트를 렌더하지 않으므로 R-PRIV-006을 **소유·충족하지 않는다**(frontmatter `requirements`에서 제거). 노출 on/off·line count의 **저장 값**은 [[SPEC-500-settings-persistence]]가, 이를 소비하는 **viewport exposure gate**는 [[SPEC-203-terminal-workspace]] §2.8이 소유. 구 AC-09/AC-10/AC-16/AC-18은 REMOVED | — (SPEC-203 소유) |
+| R-UI-012 (부수; 1차 [[SPEC-203-terminal-workspace]]) | map→terminal **진입 제스처**(LayoutModeSwitcher·맵 orc 더블클릭/Enter, 배치만 참조)·선택 SSOT(`?orc=`) 보존. terminal 화면/스위칭/관전조종·공유 exposure gate는 [[SPEC-203-terminal-workspace]] 소유(구 dock peek 이관·공존 §2.5a는 REMOVED) | SPEC-201-AC-17 |
 
-> 부수 충족(1차 소유는 타 spec): **R-ORC-005**(estimated/confidence 사실-단정 금지 표시 — 데이터 1차 [[SPEC-005-data-contract]]; 본 spec은 렌더, AC-04), **R-PRIV-002**(backend redaction 후 전달 — 1차 [[SPEC-006-privacy-redaction]]; 본 spec은 frontend 비-redaction 표시, AC-10), **R-API-002/R-UI-005 신호**(disconnected/stale — 신호 산출 1차 [[SPEC-102-realtime-sync]]; 본 spec은 화면 렌더, AC-07), **R-TMUX-004**(target 실패 격리 — 1차 [[SPEC-002-tmux-discovery]]; 본 spec은 국소 error 렌더, AC-12), **R-TMUX-006**(빈 상태 구분 — 1차 [[SPEC-005-data-contract]]; 본 spec은 화면 구분, AC-05/AC-06). 전체 추적 매트릭스 통합은 [[SPEC-900-traceability-rollup]].
+> 부수 충족(1차 소유는 타 spec): **R-ORC-005**(estimated/confidence 사실-단정 금지 표시 — 데이터 1차 [[SPEC-005-data-contract]]; 본 spec은 렌더, AC-04), **R-PRIV-002**(backend redaction 후 전달 — 1차 [[SPEC-006-privacy-redaction]]; 2026-07-08 map 모드 preview 제거로 본 spec은 더 이상 pane 텍스트를 렌더하지 않음 → frontend 비-redaction 표시 검증은 [[SPEC-203-terminal-workspace]] viewport로 이관, 구 AC-10 REMOVED), **R-API-002/R-UI-005 신호**(disconnected/stale — 신호 산출 1차 [[SPEC-102-realtime-sync]]; 본 spec은 화면 렌더, AC-07), **R-TMUX-004**(target 실패 격리 — 1차 [[SPEC-002-tmux-discovery]]; 본 spec은 국소 error 렌더, AC-12), **R-TMUX-006**(빈 상태 구분 — 1차 [[SPEC-005-data-contract]]; 본 spec은 화면 구분, AC-05/AC-06). 전체 추적 매트릭스 통합은 [[SPEC-900-traceability-rollup]].
 
 ## 6. Open Questions / Conflicts
 
 ### Conflicts / Upstream (조정 필요)
 
-- **U1 — `preview.text` 전달 경로 미정(상류 의존, 검토 필요)**: 본 spec은 preview **렌더링·노출 동작**을 소유하나 `preview.text`가 inspector에 **어떻게 도달하는지**는 [[SPEC-101-snapshot-api]]가 미정이다. scan-MVP/snapshot은 preview metadata-only가 기본([[SPEC-005-data-contract]] §2.7, [[08-Decisions|D-021]])이다. 권장: exposure on인 **선택 orc만** 텍스트를 가져오는 lazy fetch(예: `GET /api/orcs/:orcId/preview`, 노출면 최소화) — snapshot 전체에 text를 싣는 것은 100-pane에서 노출면·payload 양쪽으로 불리. SPEC-101에 endpoint 추가 또는 camp-detail의 settings-gated 포함 중 택일 필요. **검토 필요.**
-- **U2 — preview default 노출 범위(검토 필요)**: §2.5 기본값(exposure on / lineCount=`PREVIEW_LINES`=12)은 [[03-UX-UI]] Open Question("default 노출 범위가 UX와 보안 사이에서 적절한지")에 걸린 **가설**이다. 보수적 대안은 default off다. default **값**은 [[SPEC-500-settings-persistence]](R-SET-001)가 확정하고 본 spec은 동작만 소유한다.
-- **U3 — line-count 상한 vs backend tail**: line-count 컨트롤 유효 범위를 `[1,PREVIEW_LINES]`(=12)로 두었으나, dashboard가 더 긴 tail(최대 `CAPTURE_LINES`=200)을 노출하길 원하면 [[SPEC-006-privacy-redaction]] `PREVIEW_LINES`와 [[SPEC-101-snapshot-api]] 전달 계약을 함께 올려야 한다(live tail은 P1 R-P1-012). MVP는 12 상한 유지. **검토 필요.**
-- **U4 — DESIGN 청사진 레이아웃 stale(3-pane + bottom-sheet)**: `DESIGN.md`(L207-208)·`docs/design/DESIGN.md`(L58-59)는 여전히 **desktop 3-pane(camp scene·inspector·activity rail) + mobile bottom-sheet** 레이아웃을 기술한다. 본 spec §2.3/§2.3a/§3.8의 **단일 컬럼 + 탭 dock** 구현(우측 컬럼·bottom-sheet 제거)과 충돌한다. **write scope(`docs/specs/`) 밖**이므로 직접 수정하지 않고 기록한다 — orchestrator/user가 DESIGN 청사진의 layout 문단을 "single-column map + 하단 탭 dock(Details/Preview/Activity)"으로 갱신할 것을 제안한다.
+- **U1 — `preview.text` 전달 경로(2026-07-08 해소/이관)**: map 모드 preview 제거로 SPEC-201에는 더 이상 `preview.text` 전달 문제가 없다. live pane view 전달 경로(`view.attach`/`pane_view*`·exposure-gated)는 이제 [[SPEC-203-terminal-workspace]]/[[SPEC-103-pane-live-stream]]이 소유한다. (참고: 서버 endpoint `GET /api/orcs/:orcId/preview`는 존치하되 web client가 더 이상 호출하지 않는다.)
+- **U2 — preview default 노출 범위(이관 → [[SPEC-500-settings-persistence]]/[[SPEC-203-terminal-workspace]])**: default exposure/lineCount 가설은 SPEC-201이 더 이상 렌더 주체가 아니므로 저장 값은 [[SPEC-500-settings-persistence]](R-SET-001)가, 소비(viewport gate)는 [[SPEC-203-terminal-workspace]]가 소유한다.
+- **U3 — line-count 상한 vs backend tail(이관)**: live tail 상한(P1 R-P1-012)·`PREVIEW_LINES` vs `CAPTURE_LINES` 조율은 이제 live view surface([[SPEC-203-terminal-workspace]]/[[SPEC-103-pane-live-stream]]/[[SPEC-006-privacy-redaction]]) 소유다. SPEC-201은 관여하지 않는다.
+- **U4 — DESIGN 청사진 레이아웃 stale(3-pane + bottom-sheet + preview 탭)**: `DESIGN.md`(L207-208)·`docs/design/DESIGN.md`(L58-59)는 여전히 **desktop 3-pane(camp scene·inspector·activity rail) + mobile bottom-sheet** 레이아웃을 기술한다. 본 spec §2.3/§2.3a/§3.8의 **단일 컬럼 + read-only 탭 dock**(우측 컬럼·bottom-sheet 제거) 및 2026-07-08 개정(Preview 탭 제거, dock=Details/Activity 두 탭)과 충돌한다. **write scope(`docs/specs/`) 밖**이므로 직접 수정하지 않고 기록한다 — orchestrator/user가 DESIGN 청사진의 layout 문단을 "single-column map + 하단 read-only 탭 dock(Details/Activity), live 관전·조종은 terminal 모드([[SPEC-203-terminal-workspace]])"로 갱신할 것을 제안한다.
 
 ### Open Questions (검토 필요)
 
-- **Q1 — control 진입점 enable/disable 규칙 소유(부분 해소)**: control dock이 Preview 탭(`PanePreview`→`CommandDock`)으로 이동했고, disabled 조건(terminated/stale/disconnected/token 부재)은 [[SPEC-400-control-actions]] **§2.11 disabled predicate**(`disabled`/`disabledReason`)가 권위로 소유한다(본 spec §2.5/AC-13은 그 predicate를 소비해 가시화). 본 spec은 진입점 **배치(Preview 탭)**, SPEC-400이 실행 가능성·predicate를 소유로 분담 — 경계 확정됨.
+- **Q1 — control 진입점 소유(2026-07-08 해소)**: control 진입점은 map 모드 dock에서 **완전히 제거**됐다(구 Preview 탭·`CommandDock` 삭제). 조종 진입점 배치·arm/disarm·disabled predicate 가시화는 모두 [[SPEC-203-terminal-workspace]](ComposedInput Control arm)·[[SPEC-400-control-actions]](§2.11 predicate·flow)가 소유한다. SPEC-201은 map 모드가 read-only임만 규정한다(§2.4/AC-13) — 경계 확정됨.
 - **Q2 — 비-orc pane 시각화 수준**: 비-orc pane을 빈 camp slot으로 그릴지(§2.3) 완전히 숨길지는 정보 밀도 vs 단순성 trade-off다. [[03-UX-UI]] "window를 실제 공간으로 표현할지 agent 중심 재배치할지" Open Question과 함께 prototype으로 보정. **검토 필요.**
 - **Q3 — mobile 범위(부분 해소)**: 구 3-pane + mobile bottom-sheet 분기는 **단일 컬럼 dock**(§2.3a/§3.8)으로 통합돼 desktop/mobile 레이아웃 분기가 제거됐다(map full-width + dock 탭, 모든 폭 공통). 남은 미확정은 좁은 폭에서의 dock 높이·맵 viewport 비율 튜닝(가설)뿐이다([[03-UX-UI]] Open Question). **검토 필요(튜닝).**
-- **Q6 — Preview 탭의 interactive(고충실 view + passthrough) 전환(2026-07-02 개정: 구체화됨)**: §2.5 TODO의 "대화형 터미널로의 확장"은 이제 [[18-Terminal-Workspace]] 설계안으로 구체화됐다(R-UI-012, [[08-Decisions|D-045]]/[[08-Decisions|D-046]]) — dock preview peek은 그대로 두고(§2.5a 공존), 별도 **terminal 모드**가 read-only 고충실 view([[SPEC-103-pane-live-stream]] `pane_view*`, xterm.js 렌더 [[SPEC-203-terminal-workspace]])와 arm 기반 키보드 passthrough([[SPEC-401-interactive-input]])를 제공한다. read-only/redaction 불변식(불변식 ③, R-PRIV-002)은 view가 redaction-before-transport로, write는 기존 `controlExec` single-writer 재사용으로 보존된다([[SPEC-401-interactive-input]] "새 writer 없음" 불변식). 상류 결정(D-044/045/046)·R-UI-012는 게이트 통과 후 **2026-07-02 Accepted 승인**됐다(본 spec `approved`). 본 spec은 dock↔terminal 이관 접점(§2.5a)만 소유. **구현 착수 가능.**
+- **Q6 — live view + passthrough 전환(2026-07-08 완전 이관)**: 구 §2.5 TODO의 "대화형 터미널로의 확장"은 [[18-Terminal-Workspace]] 설계안(R-UI-012, [[08-Decisions|D-045]]/[[08-Decisions|D-046]])으로 구체화됐고, 2026-07-08 개정으로 dock preview peek이 제거되면서 **terminal 모드가 유일한 live 관전·조종 표면**이 됐다 — read-only 고충실 view([[SPEC-103-pane-live-stream]] `pane_view*`, xterm.js 렌더 [[SPEC-203-terminal-workspace]])와 arm 기반 키보드 passthrough([[SPEC-401-interactive-input]]). read-only/redaction 불변식(불변식 ③, R-PRIV-002)은 view가 redaction-before-transport로, write는 기존 `controlExec` single-writer 재사용으로 보존된다. SPEC-201은 map 모드 read-only 화면과 map→terminal 진입 제스처 참조(§2.3a-6)만 소유한다 — dock↔terminal 이관·공존(§2.5a)은 REMOVED. **경계 확정됨.**
 - **Q4 — DOM vs canvas scene**: 100-pane scene 렌더를 DOM sprite로 갈지 canvas로 갈지는 [[SPEC-300-asset-rendering]]/[[04-Frontend]] Open Question(접근성·성능 trade-off)이다. 배치/선택은 본 spec, 렌더 매체 결정은 SPEC-300. [[SPEC-007-test-validation]] 측정으로 보정.
 - **Q5 — terminated/stale retention 표시 시간**: orc를 종료 후 얼마나 남길지(retention window)는 [[SPEC-004-status-inference]] §3.7 소유다. inspector/scene의 fade-out·정리 타이밍은 그 값에 맞춰 표시만 한다(본 spec은 표시, retention은 상류).

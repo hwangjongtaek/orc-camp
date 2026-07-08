@@ -17,7 +17,6 @@ import type {
   InputRequest,
   InterruptRequest,
   KeyRequest,
-  OrcPreviewResponse,
   PassthroughArmRequest,
   PassthroughArmResponse,
   PassthroughDisarmRequest,
@@ -110,14 +109,6 @@ export class ApiClient {
 
   getCamp(campId: string): Promise<ApiResult<CampResponse>> {
     return this.request(`/api/camps/${encodeURIComponent(campId)}`, { method: 'GET' }, 'camp');
-  }
-
-  getOrcPreview(orcId: string): Promise<ApiResult<OrcPreviewResponse>> {
-    return this.request(
-      `/api/orcs/${encodeURIComponent(orcId)}/preview`,
-      { method: 'GET' },
-      'orc',
-    );
   }
 
   getSettings(): Promise<ApiResult<SettingsResponse>> {
