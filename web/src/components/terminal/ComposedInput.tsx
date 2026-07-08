@@ -1,6 +1,6 @@
 /**
  * SPEC-203 §2.7 — composed input (the improved CommandDock). A MULTILINE prompt with input HISTORY
- * for the form path (long prompts → POST /input; ⌘/Ctrl+Enter sends), plus the Observe/Control arm
+ * for the form path (long prompts → POST /input; Enter sends, Shift+Enter for a newline), plus the Observe/Control arm
  * toggle (auto-disarm countdown) and the destructive Interrupt button. Short interactive keys
  * (y/n, arrows, Enter) are the viewport's passthrough job (SPEC-401), not this form. Everything is
  * disabled with a reason when the entry predicate fails (token/terminated/stale/disconnected,
@@ -69,8 +69,15 @@ export function ComposedInput({
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
-    // ⌘/Ctrl+Enter sends (plain Enter inserts a newline — multiline prompt).
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    // Enter sends; Shift+Enter inserts a newline (multiline prompt). ⌘/Ctrl+Enter also sends.
+    // IME guard: while composing (e.g. Hangul), Enter only commits the composition — never submit,
+    // or the prompt is sent mid-word (isComposing / keyCode 229 both flag an in-flight composition).
+    if (
+      e.key === 'Enter' &&
+      !e.shiftKey &&
+      !e.nativeEvent.isComposing &&
+      e.nativeEvent.keyCode !== 229
+    ) {
       e.preventDefault();
       void onSend();
       return;
@@ -172,7 +179,7 @@ export function ComposedInput({
         className="oc-composed__text"
         value={text}
         rows={2}
-        placeholder="Type a prompt… (⌘/Ctrl+Enter to send)"
+        placeholder="Type a prompt… (Enter to send · Shift+Enter for newline)"
         disabled={blocked}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKeyDown}

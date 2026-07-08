@@ -172,3 +172,31 @@ describe('exposure gate (AC-10/AC-14)', () => {
     expect((screen.getByTestId('arm-btn') as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+// SPEC-203 §2.7 — composed input submit binding: Enter sends, Shift+Enter newlines, IME-safe.
+describe('composed input submit binding (§2.7)', () => {
+  const prompt = (): HTMLTextAreaElement =>
+    screen.getByPlaceholderText(/Type a prompt/) as HTMLTextAreaElement;
+
+  it('Enter sends the prompt via /input', async () => {
+    const { api } = renderWs('pane:%1');
+    fireEvent.change(prompt(), { target: { value: 'hello agent' } });
+    fireEvent.keyDown(prompt(), { key: 'Enter' });
+    await waitFor(() => expect(api.sendInput).toHaveBeenCalled());
+    expect(api.sendInput).toHaveBeenCalledWith('pane:%1', expect.objectContaining({ text: 'hello agent' }));
+  });
+
+  it('Shift+Enter does NOT send (inserts a newline instead)', () => {
+    const { api } = renderWs('pane:%1');
+    fireEvent.change(prompt(), { target: { value: 'line one' } });
+    fireEvent.keyDown(prompt(), { key: 'Enter', shiftKey: true });
+    expect(api.sendInput).not.toHaveBeenCalled();
+  });
+
+  it('Enter while IME-composing does NOT send (Hangul commit)', () => {
+    const { api } = renderWs('pane:%1');
+    fireEvent.change(prompt(), { target: { value: '안녕' } });
+    fireEvent.keyDown(prompt(), { key: 'Enter', isComposing: true, keyCode: 229 });
+    expect(api.sendInput).not.toHaveBeenCalled();
+  });
+});

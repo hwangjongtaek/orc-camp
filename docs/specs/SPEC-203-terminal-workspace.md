@@ -215,6 +215,7 @@ const DISARM_KEY = 'Ctrl+Alt+.';  // 1차. 대안: 짧은 창 내 Escape 2연타
 
 - **TerminalStatusBar(확정)**: viewport 하단에 `tmuxTarget`+`paneId`(R-UI-007 raw 식별 상시), `cwd`(redaction 통과값, [[SPEC-006-privacy-redaction]] §2.3), **mode**(Observe/Control, §2.6 색-비의존), **latency**(마지막 `pane_view` 수신 지연/`viewSeq` 기반 표식)를 표시한다. latency는 near-real-time임을 알리는 표식이며 수치 임계는 가설(§3).
 - **ComposedInput(확정)**: 하단 composed input은 기존 `CommandDock`([[SPEC-201-dashboard-screens]] §2.5, [[SPEC-400-control-actions]])의 개선판으로 **멀티라인 프롬프트 + 입력 이력**을 지원한다. 긴 프롬프트는 폼(멀티라인) 전송([[SPEC-400-control-actions]] `/input`)이, 짧은 상호작용(y/n·방향키·Enter)은 §2.6 passthrough가 담당한다(역할 분담).
+- **submit 키 바인딩(확정)**: composed input textarea에서 **`Enter`는 프롬프트를 전송**(`/input`)하고, **`Shift+Enter`는 줄넘김**(멀티라인 편집)이다(`⌘/Ctrl+Enter`도 전송 유지). IME 조합 중(예: 한글)에 눌린 `Enter`는 조합 확정만 하고 **전송하지 않는다**(`isComposing`/`keyCode 229` 가드) — 조합 중 오전송 방지. 이 바인딩은 composed input **폼 focus**에서만 적용되며 §2.6 viewport passthrough와 무관하다(§2.7 배타).
 - **control 가능성 표시(확정, 경계)**: ComposedInput·arm 토글은 [[SPEC-400-control-actions]] §2.11 disabled predicate(token 부재·orc `terminated`/`stale`·`disconnected`)에서 disabled + 사유로 표시한다. 실제 action flow(modal·재검증·결과)는 [[SPEC-400-control-actions]]/[[SPEC-401-interactive-input]] 소유다.
 - **composed input과 passthrough 배타(확정)**: composed input에 focus가 있으면 그 키 입력은 폼 draft이며 passthrough로 새지 않는다(xterm viewport와 별개 focus 영역). passthrough는 viewport가 focus를 잡은 Control 모드에서만 발생한다(§2.6).
 
