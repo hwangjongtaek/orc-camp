@@ -11,7 +11,7 @@ import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import type { RenderedPane } from '../../realtime/paneView';
-import { styleLines } from '../../terminal/styledLine';
+import { buildFramePayload } from '../../terminal/framePayload';
 
 export interface XtermSurfaceProps {
   rendered: RenderedPane;
@@ -22,6 +22,8 @@ export interface XtermSurfaceProps {
 export default function XtermSurface({ rendered, cols, rows }: XtermSurfaceProps): JSX.Element {
   const hostRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
+  const prevSizeRef = useRef<{ cols: number; rows: number }>({ cols: 0, rows: 0 });
+  const prevPayloadRef = useRef<string | null>(null);
 
   // Init once.
   useEffect(() => {
@@ -57,7 +59,10 @@ export default function XtermSurface({ rendered, cols, rows }: XtermSurfaceProps
     };
   }, []);
 
-  // Re-render buffer on change (capture-based: clear + rewrite the current buffer).
+  // Re-render buffer on change (capture-based full redraw). SPEC-203 §2.4 flicker-free rule: the
+  // clear is folded INTO the write stream (buildFramePayload) so clear + redraw parse as one atomic
+  // write — the old `term.reset()` (sync clear) followed by `term.write()` (async parse) painted a
+  // blank frame in between → per-frame flicker. See framePayload.ts for the payload contract.
   useEffect(() => {
     const term = termRef.current;
     if (!term) return;
@@ -65,22 +70,24 @@ export default function XtermSurface({ rendered, cols, rows }: XtermSurfaceProps
       // SPEC-203 §2.4 — the GRID is the pane's native cols×rows (never the buffer length; a
       // seed-sized grid made the surface hundreds of rows tall and pinned the visible area to the
       // top of the scrollback). Overflow beyond `rows` goes to xterm scrollback; physical fitting
-      // is CSS-owned (fit/scale or scroll), so no FitAddon grid rewrite.
-      if (cols > 0 && rows > 0) term.resize(cols, rows);
+      // is CSS-owned (fit/scale or scroll), so no FitAddon grid rewrite. Resize ONLY when the grid
+      // actually changed (resizing every frame reflowed the buffer needlessly).
+      let resized = false;
+      if (cols > 0 && rows > 0 && (cols !== prevSizeRef.current.cols || rows !== prevSizeRef.current.rows)) {
+        term.resize(cols, rows);
+        prevSizeRef.current = { cols, rows };
+        resized = true;
+      }
+      // Same-frame skip: an identical payload means nothing changed → don't redraw at all (a resize
+      // still forces a redraw so the reflowed grid gets the fresh capture).
+      const payload = buildFramePayload(rendered, rows);
+      if (!resized && payload === prevPayloadRef.current) return;
+      prevPayloadRef.current = payload;
       // Follow-tail policy: keep following only if the user was already at the bottom.
       const buf = term.buffer.active;
       const atBottom = buf.viewportY >= buf.baseY;
-      term.reset(); // deterministic full redraw (capture-based frame; clear() keeps a stale line)
-      // §2.3.1 styled overlay: SGR-wrap validated runs (plain buffer passes through untouched).
-      // Each styled run self-terminates with ESC[0m, so no style bleeds across lines.
-      let data = styleLines(rendered.lines, rendered.spans).join('\r\n');
-      if (rendered.cursorRow != null && rendered.cursorCol != null) {
-        // CUP addresses the VISIBLE screen; convert the buffer-absolute cursor row.
-        const visRow = Math.max(0, rendered.cursorRow - Math.max(0, rendered.lines.length - rows));
-        data += `\x1b[${Math.min(visRow, Math.max(0, rows - 1)) + 1};${rendered.cursorCol + 1}H`;
-      }
       // write() is buffered — scroll once the frame is actually parsed.
-      term.write(data, () => {
+      term.write(payload, () => {
         if (atBottom) term.scrollToBottom();
       });
     } catch {
