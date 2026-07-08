@@ -104,4 +104,26 @@ describe('CampDetail map ↔ terminal (AC-01/AC-03)', () => {
     expect(container.querySelector('[data-testid="terminal-workspace"]')).toBeNull();
     expect(container.querySelector('[data-testid="camp-dock"]')).not.toBeNull();
   });
+
+  // SPEC-203 §2.1 — terminal 모드는 map layout(ui.layoutMode)과 독립·full-width 고정이며,
+  // persisted layoutMode는 terminal 진입으로 바뀌지 않고 map 복귀 시 그대로 복원된다.
+  it('terminal mode forces data-layout="full" independent of layoutMode; map restores it', () => {
+    useStore.getState().setLayoutMode('split');
+    const container = renderDetail(seed(), '?orc=pane:%1');
+    const detail = () => container.querySelector('.oc-detail') as HTMLElement;
+    const sw = () => container.querySelector('[data-testid="workspace-switcher"]') as HTMLElement;
+
+    // map mode reflects the persisted split layout
+    expect(detail().getAttribute('data-layout')).toBe('split');
+
+    // terminal mode is always full, regardless of the persisted split
+    fireEvent.click(within(sw()).getByRole('button', { name: /terminal/i }));
+    expect(detail().getAttribute('data-layout')).toBe('full');
+    // persisted layoutMode is NOT changed by entering terminal mode
+    expect(useStore.getState().ui.layoutMode).toBe('split');
+
+    // returning to map restores the previous split layout
+    fireEvent.click(within(sw()).getByRole('button', { name: /map/i }));
+    expect(detail().getAttribute('data-layout')).toBe('split');
+  });
 });

@@ -112,7 +112,15 @@ export function CampDetailView(): JSX.Element {
         ))}
       </div>
 
-      <div className="oc-detail" data-layout={layoutMode} data-workspace={workspaceMode}>
+      {/* SPEC-203 §2.1 — terminal 모드는 map layout(split/dock grid)과 독립이며 항상 full-width다.
+          persisted layoutMode는 바꾸지 않고(맵 복귀 시 split/dock 복원) 표시 layout만 full로 강제해,
+          global.css의 [data-layout='split'|'dock'] `map dock` grid가 .oc-map/.oc-dock 없는
+          TerminalWorkspace에 적용되지 않게 한다. */}
+      <div
+        className="oc-detail"
+        data-layout={workspaceMode === 'terminal' ? 'full' : layoutMode}
+        data-workspace={workspaceMode}
+      >
         <div className="oc-detail__toolbar">
           <LayoutModeSwitcher />
           {workspaceMode === 'map' && <BackgroundSwitcher />}
