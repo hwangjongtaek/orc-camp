@@ -173,6 +173,37 @@ describe('exposure gate (AC-10/AC-14)', () => {
   });
 });
 
+// SPEC-203 §2.4 — user-resizable terminal viewport (drag / keyboard), persisted to the store.
+describe('terminal viewport resize (§2.4)', () => {
+  it('applies the persisted height as the --oc-term-h CSS var', () => {
+    useStore.getState().setTerminalViewportHeight(700);
+    renderWs('pane:%1');
+    const main = document.querySelector('.oc-terminal__main') as HTMLElement;
+    expect(main.style.getPropertyValue('--oc-term-h')).toBe('700px');
+    expect(screen.getByTestId('terminal-resizer')).toBeTruthy();
+  });
+
+  it('ArrowDown on the handle grows the viewport height (persisted, clamped)', () => {
+    useStore.getState().setTerminalViewportHeight(560);
+    renderWs('pane:%1');
+    const handle = screen.getByTestId('terminal-resizer');
+    fireEvent.keyDown(handle, { key: 'ArrowDown' });
+    expect(useStore.getState().ui.terminalViewportHeight).toBe(584); // +24 step
+  });
+
+  it('ArrowUp shrinks; Home/End jump to the clamp bounds', () => {
+    useStore.getState().setTerminalViewportHeight(560);
+    renderWs('pane:%1');
+    const handle = screen.getByTestId('terminal-resizer');
+    fireEvent.keyDown(handle, { key: 'ArrowUp' });
+    expect(useStore.getState().ui.terminalViewportHeight).toBe(536);
+    fireEvent.keyDown(handle, { key: 'End' });
+    expect(useStore.getState().ui.terminalViewportHeight).toBe(1200);
+    fireEvent.keyDown(handle, { key: 'Home' });
+    expect(useStore.getState().ui.terminalViewportHeight).toBe(320);
+  });
+});
+
 // SPEC-203 §2.7 — composed input submit binding: Enter sends, Shift+Enter newlines, IME-safe.
 describe('composed input submit binding (§2.7)', () => {
   const prompt = (): HTMLTextAreaElement =>

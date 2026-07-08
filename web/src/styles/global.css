@@ -1762,11 +1762,41 @@ img {
 /* --- Terminal Viewport (§2.4/§2.6) — color-independent mode chrome --- */
 .oc-term {
   position: relative;
-  flex: 1 1 auto;
+  /* User-resizable height (§2.4): the viewport takes the persisted --oc-term-h set on
+     .oc-terminal__main; the resize handle below adjusts it. Fixed basis (not flex-grow) so the
+     chosen height is authoritative. */
+  flex: 0 0 auto;
+  height: var(--oc-term-h, 560px);
   min-height: 320px;
   background: var(--oc-color-surface-base);
   border-radius: var(--oc-radius-card);
   overflow: hidden;
+}
+/* Resize handle — a thin grabber between the viewport and the status bar. */
+.oc-term__resize {
+  flex: 0 0 auto;
+  height: 12px;
+  margin: calc(var(--oc-space-1) * -1) 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  touch-action: none; /* pointer drag owns vertical gestures (no scroll hijack) */
+}
+.oc-term__resize-grip {
+  width: 44px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--oc-color-border);
+}
+.oc-term__resize:hover .oc-term__resize-grip,
+.oc-term__resize:focus-visible .oc-term__resize-grip {
+  background: var(--oc-color-accent);
+}
+.oc-term__resize:focus-visible {
+  outline: var(--oc-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--oc-radius-card);
 }
 /* Observe = solid muted 1px; Control = heavy DOUBLE border (grayscale-distinct). */
 .oc-term--observe {

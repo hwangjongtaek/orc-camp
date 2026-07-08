@@ -58,6 +58,27 @@ function readLayoutMode(): LayoutMode {
   return 'full';
 }
 
+// SPEC-203 §2.4 — user-adjustable terminal viewport height (persisted, pure UI preference). The
+// observing viewport was fixed and too short; the user can now drag/keyboard-resize it and the
+// choice survives reloads. Clamped to a sane band so it never collapses or eats the whole page.
+const TERM_HEIGHT_KEY = 'oc.terminalHeight';
+export const TERMINAL_HEIGHT_MIN = 320;
+export const TERMINAL_HEIGHT_MAX = 1200;
+export const TERMINAL_HEIGHT_DEFAULT = 560;
+export function clampTerminalHeight(px: number): number {
+  if (!Number.isFinite(px)) return TERMINAL_HEIGHT_DEFAULT;
+  return Math.max(TERMINAL_HEIGHT_MIN, Math.min(TERMINAL_HEIGHT_MAX, Math.round(px)));
+}
+function readTerminalHeight(): number {
+  try {
+    const v = localStorage.getItem(TERM_HEIGHT_KEY);
+    if (v !== null) return clampTerminalHeight(Number(v));
+  } catch {
+    /* localStorage unavailable → default */
+  }
+  return TERMINAL_HEIGHT_DEFAULT;
+}
+
 export interface ConnectionSlice {
   wsStatus: WsStatus;
   bootstrapPhase: BootstrapPhase;
@@ -84,6 +105,8 @@ export interface UiSlice {
    * mode. Terminal mode consumes the `?orc=` selection SSOT — it never mints a new identifier.
    */
   workspaceMode: WorkspaceMode;
+  /** SPEC-203 §2.4 — terminal viewport height in px (persisted, user-resizable). */
+  terminalViewportHeight: number;
   /**
    * SPEC-301 §3.1-11 — user drag-and-drop placements, by orcId, in logical WORLD coordinates.
    * A dropped orc re-anchors here (overriding its computed cell home) and resumes active/waiting
@@ -153,6 +176,8 @@ export interface StoreState {
   setBackgroundRef: (ref: string | null) => void;
   setLayoutMode: (mode: LayoutMode) => void;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
+  /** SPEC-203 §2.4 — set the terminal viewport height (px); clamped + persisted. */
+  setTerminalViewportHeight: (px: number) => void;
   /** SPEC-301 §3.1-11 — set (or clear, with null) a user drag-drop placement for an orc. */
   setOrcPosition: (orcId: string, pos: { x: number; y: number } | null) => void;
 
@@ -192,6 +217,7 @@ const initialUi: UiSlice = {
   backgroundRef: null,
   layoutMode: readLayoutMode(),
   workspaceMode: 'map',
+  terminalViewportHeight: readTerminalHeight(),
   orcPositions: {},
 };
 
@@ -331,6 +357,15 @@ export const useStore = create<StoreState>()((set, get) => ({
   },
   setWorkspaceMode: (workspaceMode) => {
     set((state) => ({ ui: { ...state.ui, workspaceMode } }));
+  },
+  setTerminalViewportHeight: (px) => {
+    const terminalViewportHeight = clampTerminalHeight(px);
+    try {
+      localStorage.setItem(TERM_HEIGHT_KEY, String(terminalViewportHeight));
+    } catch {
+      /* localStorage unavailable → keep the in-memory preference only */
+    }
+    set((state) => ({ ui: { ...state.ui, terminalViewportHeight } }));
   },
   setOrcPosition: (orcId, pos) => {
     set((state) => {

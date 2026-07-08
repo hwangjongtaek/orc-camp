@@ -4,6 +4,12 @@
 import { describe, it, expect } from 'vitest';
 import { LruCache } from '../src/terminal/lru';
 import { idleStatus } from '../src/terminal/controlMode';
+import {
+  clampTerminalHeight,
+  TERMINAL_HEIGHT_MIN,
+  TERMINAL_HEIGHT_MAX,
+  TERMINAL_HEIGHT_DEFAULT,
+} from '../src/store/store';
 
 describe('LruCache', () => {
   it('evicts the least-recently-used past the cap; get promotes', () => {
@@ -44,5 +50,19 @@ describe('idleStatus (auto-disarm countdown, uses server idleTimeoutMs)', () => 
     const s = idleStatus(base, 1000 + 240_000);
     expect(s.expired).toBe(true);
     expect(s.remainingMs).toBe(0);
+  });
+});
+
+describe('clampTerminalHeight (SPEC-203 §2.4 resizable viewport)', () => {
+  it('keeps in-band values (rounded)', () => {
+    expect(clampTerminalHeight(560.4)).toBe(560);
+    expect(clampTerminalHeight(700)).toBe(700);
+  });
+  it('clamps below the floor and above the ceiling', () => {
+    expect(clampTerminalHeight(10)).toBe(TERMINAL_HEIGHT_MIN);
+    expect(clampTerminalHeight(99_999)).toBe(TERMINAL_HEIGHT_MAX);
+  });
+  it('falls back to the default for non-finite input', () => {
+    expect(clampTerminalHeight(Number.NaN)).toBe(TERMINAL_HEIGHT_DEFAULT);
   });
 });

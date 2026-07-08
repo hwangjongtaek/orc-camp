@@ -11,7 +11,7 @@
  * (Observe = no egress). Keyboard trap exists ONLY in Control mode (viewport); Observe-mode
  * shortcuts run on a document handler that ignores editable targets.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useServices } from '../../app/services';
 import { useStore } from '../../store/store';
 import { useAssets } from '../../assets/AssetContext';
@@ -31,6 +31,7 @@ import { AGENT_LABEL } from '../status/statusMeta';
 import { ConfirmModal } from '../control/ConfirmModal';
 import { OrcRail } from './OrcRail';
 import { TerminalViewport } from './TerminalViewport';
+import { TerminalResizer } from './TerminalResizer';
 import { TerminalStatusBar } from './TerminalStatusBar';
 import { ComposedInput } from './ComposedInput';
 import { QuickSwitcher } from './QuickSwitcher';
@@ -69,6 +70,8 @@ export function TerminalWorkspace({
   const exposureEnabled = useStore((s) => s.settings?.preview.exposureEnabled ?? false);
   const wsStatus = useStore((s) => s.connection.wsStatus);
   const addToast = useStore((s) => s.addToast);
+  const terminalHeight = useStore((s) => s.ui.terminalViewportHeight);
+  const setTerminalHeight = useStore((s) => s.setTerminalViewportHeight);
 
   const connected = wsStatus === 'open';
   const orc = selectedOrcId ? orcsById[selectedOrcId] : undefined;
@@ -301,7 +304,10 @@ export function TerminalWorkspace({
           resultById={bcast.resultById}
         />
       </div>
-      <div className="oc-terminal__main">
+      <div
+        className="oc-terminal__main"
+        style={{ '--oc-term-h': `${terminalHeight}px` } as CSSProperties}
+      >
         <TerminalViewport
           orcId={selectedOrcId}
           screen={live.screen}
@@ -314,6 +320,7 @@ export function TerminalWorkspace({
           attached={live.attachedOrcId !== null}
           onKey={onViewportKey}
         />
+        <TerminalResizer height={terminalHeight} onResize={setTerminalHeight} />
         <TerminalStatusBar
           orc={orc}
           controlMode={control.mode}
