@@ -19,15 +19,16 @@ const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms)
 
 const run = promisify(execFile);
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const CLI = join(ROOT, 'src', 'cli.ts');
+const CLI = join(ROOT, 'src', 'main.ts');
 const SESSION = `orccampE2E_${process.pid}_${Date.now()}`;
 
 function tmux(args: string[]) {
   return run('tmux', args, { timeout: 10_000 });
 }
 function scan(args: string[]) {
-  // Spawn the real CLI exactly as a user would (via tsx — same source as the bin).
-  return run('npx', ['tsx', CLI, ...args], { cwd: ROOT, timeout: 60_000, maxBuffer: 64 * 1024 * 1024 });
+  // Spawn the real CLI exactly as a user would (via tsx — same source as the bin),
+  // dispatched through the single main entry: `tsx src/main.ts scan ...`.
+  return run('npx', ['tsx', CLI, 'scan', ...args], { cwd: ROOT, timeout: 60_000, maxBuffer: 64 * 1024 * 1024 });
 }
 async function tmuxAvailable(): Promise<boolean> {
   try {

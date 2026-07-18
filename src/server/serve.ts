@@ -43,6 +43,7 @@ export interface StartOptions {
   runtimeEpoch?: string;
   devOrigins?: string[];
   heartbeatMs?: number;
+  dashboardDir?: string | null; // static dashboard root override (tests); default = bundle-relative
 }
 
 export interface ServerHandle {
@@ -82,7 +83,7 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
     allowExternal: opts.allowExternal ?? false,
     devOrigins: opts.devOrigins ?? DEV_ORIGINS,
   };
-  const server = createHttpServer({ runtime, security, token, now, settings: store, control, broadcast, passthrough, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}) });
+  const server = createHttpServer({ runtime, security, token, now, settings: store, control, broadcast, passthrough, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}), ...(opts.dashboardDir !== undefined ? { dashboardDir: opts.dashboardDir } : {}) });
 
   const { port, fellBack } = await bindWithFallback(server, host, preferred, opts.explicitPort ?? false);
   security.port = port; // fix CORS/Host to the actual port (single source, §3.4)

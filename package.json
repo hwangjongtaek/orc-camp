@@ -1,7 +1,7 @@
 {
   "name": "orc-camp",
   "version": "0.1.0",
-  "description": "Local-first CLI dashboard that visualizes tmux sessions as camps and AI-agent sessions as orcs. PoC slice: `orc-camp scan` (read-only tmux + agent discovery).",
+  "description": "Local-first CLI dashboard that visualizes tmux sessions as camps and Claude Code / Codex agent sessions as orcs. Read-only discovery, status inference, and a localhost pixel dashboard.",
   "type": "module",
   "license": "MIT",
   "keywords": [
@@ -15,13 +15,13 @@
     "orchestration",
     "developer-tools"
   ],
-  "homepage": "https://github.com/orc-camp/orc-camp#readme",
+  "homepage": "https://github.com/hwangjongtaek/orc-camp#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/orc-camp/orc-camp.git"
+    "url": "git+https://github.com/hwangjongtaek/orc-camp.git"
   },
   "bugs": {
-    "url": "https://github.com/orc-camp/orc-camp/issues"
+    "url": "https://github.com/hwangjongtaek/orc-camp/issues"
   },
   "bin": {
     "orc-camp": "./bin/orc-camp.mjs"
@@ -36,10 +36,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "scan": "tsx src/cli.ts",
+    "scan": "tsx src/main.ts scan",
     "serve": "tsx src/main.ts serve",
     "doctor": "tsx src/main.ts doctor",
-    "build": "rm -rf dist && esbuild src/main.ts --bundle --packages=external --platform=node --format=esm --target=node20 --outfile=dist/main.js",
+    "build": "tsx scripts/build.mts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
@@ -49,11 +49,12 @@
     "measure:latency": "tsx scripts/measure-latency.mts",
     "smoke": "tsx scripts/smoke.mts",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run smoke"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/ws": "^8.18.1",
+    "esbuild": "^0.28.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
