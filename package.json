@@ -24,7 +24,7 @@
     "url": "https://github.com/hwangjongtaek/orc-camp/issues"
   },
   "bin": {
-    "orc-camp": "./bin/orc-camp.mjs"
+    "orc-camp": "bin/orc-camp.mjs"
   },
   "files": [
     "dist",
