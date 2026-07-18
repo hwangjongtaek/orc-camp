@@ -56,6 +56,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // No sourcemaps in the shipped bundle — they would more than double the npm package
+    // size (SPEC-700 §2.3 single installable). Dev debugging uses the Vite dev server.
+    sourcemap: false,
   },
 });

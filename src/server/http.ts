@@ -7,6 +7,10 @@
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
+import { extname, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { SnapshotRuntime } from './runtime';
 import {
   corsHeadersFor,
@@ -36,15 +40,54 @@ export interface HttpConfig {
   token: string;
   now: () => Date;
   heartbeatMs?: number;
+  /**
+   * Dashboard static root. Omit to use the bundle-relative default (dist/dashboard/);
+   * `null` forces the dev placeholder; a path overrides it (used by tests). See
+   * {@link DEFAULT_DASHBOARD_DIR}.
+   */
+  dashboardDir?: string | null;
 }
 
 const PLACEHOLDER_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>Orc Camp</title></head>
 <body style="font-family:system-ui;background:#1a1410;color:#e8dcc8;padding:2rem">
 <h1>🏕️ Orc Camp server</h1>
-<p>The local server is running. The dashboard SPA (Epic 3) is not built yet.</p>
+<p>The local server is running, but no built dashboard was found next to this bundle.</p>
+<p>Run <code>npm run build</code> to bundle the dashboard, or for development start the Vite
+dev server (<code>cd web &amp;&amp; npm run dev</code>).</p>
 <p>API is token-gated. Try <code>GET /api/health</code> (no token) or
 <code>GET /api/snapshot</code> with <code>Authorization: Bearer &lt;token&gt;</code>.</p>
 </body></html>`;
+
+/**
+ * SPEC-700 §2.3 — the built dashboard SPA ships at `dist/dashboard/` next to the bundle
+ * (this module is bundled into `dist/main.js`). When present we serve it as static assets;
+ * in dev (tsx, unbundled) the path is absent and we fall back to the placeholder shell
+ * (the Vite dev server serves the SPA instead). Resolved once at module load.
+ */
+const DEFAULT_DASHBOARD_DIR: string | null = (() => {
+  try {
+    const dir = resolve(fileURLToPath(new URL('./dashboard', import.meta.url)));
+    return existsSync(resolve(dir, 'index.html')) ? dir : null;
+  } catch {
+    return null;
+  }
+})();
+
+const CONTENT_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.map': 'application/json; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+};
 
 interface ServerState {
   lastRefreshMs: number;
@@ -121,14 +164,11 @@ async function handle(req: IncomingMessage, res: ServerResponse, cfg: HttpConfig
   const url = new URL(req.url ?? '/', `http://${hostHeader ?? '127.0.0.1'}`);
   const segments = url.pathname.split('/').filter(Boolean);
 
-  // Non-API: serve the placeholder shell (token not required to view the SPA shell).
+  // Non-API: serve the built dashboard SPA (token not required to view the shell; the
+  // SPA reads its token from the URL and the API stays token-gated below).
   if (segments[0] !== 'api') {
-    if (url.pathname === '/' || url.pathname === '/index.html') {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...corsHeaders });
-      res.end(PLACEHOLDER_HTML);
-      return;
-    }
-    sendError(res, 404, 'not_found', 'not found', newRequestId(), undefined, corsHeaders);
+    const dashboardDir = cfg.dashboardDir !== undefined ? cfg.dashboardDir : DEFAULT_DASHBOARD_DIR;
+    await serveDashboard(method, res, url.pathname, corsHeaders, dashboardDir);
     return;
   }
 
@@ -315,6 +355,87 @@ async function handle(req: IncomingMessage, res: ServerResponse, cfg: HttpConfig
   }
 
   sendError(res, 404, 'not_found', 'not found', requestId, undefined, corsHeaders);
+}
+
+/**
+ * SPEC-700 §2.3 — serve the built dashboard SPA from `dist/dashboard/` (static assets +
+ * client-router fallback). Only GET/HEAD; a traversal-guarded path stays inside the root.
+ * Missing built dashboard (dev) → placeholder shell at '/', 404 elsewhere.
+ */
+async function serveDashboard(
+  method: string,
+  res: ServerResponse,
+  pathname: string,
+  corsHeaders: Record<string, string>,
+  dashboardDir: string | null,
+): Promise<void> {
+  if (method !== 'GET' && method !== 'HEAD') {
+    methodNotAllowed(res, newRequestId(), corsHeaders);
+    return;
+  }
+  if (dashboardDir === null) {
+    if (pathname === '/' || pathname === '/index.html') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...corsHeaders });
+      res.end(method === 'HEAD' ? undefined : PLACEHOLDER_HTML);
+      return;
+    }
+    sendError(res, 404, 'not_found', 'not found', newRequestId(), undefined, corsHeaders);
+    return;
+  }
+
+  const rel = decode(pathname).replace(/^\/+/, '');
+  const candidate = rel === '' ? 'index.html' : rel;
+  const filePath = resolve(dashboardDir, candidate);
+  // Traversal guard: the resolved path must stay inside the dashboard root.
+  if (filePath !== dashboardDir && !filePath.startsWith(dashboardDir + sep)) {
+    sendError(res, 403, 'forbidden', 'forbidden', newRequestId(), undefined, corsHeaders);
+    return;
+  }
+
+  if (await tryServeFile(method, res, filePath, corsHeaders, dashboardDir)) return;
+
+  // SPA fallback: an extensionless route falls through to index.html (client router);
+  // a missing file with an extension is a genuine 404 (missing asset).
+  if (extname(candidate) !== '') {
+    sendError(res, 404, 'not_found', 'not found', newRequestId(), undefined, corsHeaders);
+    return;
+  }
+  if (await tryServeFile(method, res, resolve(dashboardDir, 'index.html'), corsHeaders, dashboardDir)) return;
+  sendError(res, 404, 'not_found', 'not found', newRequestId(), undefined, corsHeaders);
+}
+
+/** Serve one file if it exists; return false (response untouched) if it doesn't. */
+async function tryServeFile(
+  method: string,
+  res: ServerResponse,
+  filePath: string,
+  corsHeaders: Record<string, string>,
+  dashboardDir: string,
+): Promise<boolean> {
+  let size: number;
+  try {
+    const st = await stat(filePath);
+    if (!st.isFile()) return false;
+    size = st.size;
+  } catch {
+    return false;
+  }
+  const ext = extname(filePath).toLowerCase();
+  const type = CONTENT_TYPES[ext] ?? 'application/octet-stream';
+  // Vite emits content-hashed files under assets/ → cache immutably; the HTML shell must
+  // revalidate so a fresh build is picked up.
+  const isHashedAsset = filePath.startsWith(resolve(dashboardDir, 'assets') + sep);
+  const cacheControl = isHashedAsset ? 'public, max-age=31536000, immutable' : 'no-cache';
+  const headers = { 'Content-Type': type, 'Cache-Control': cacheControl, ...corsHeaders };
+  if (method === 'HEAD') {
+    res.writeHead(200, { ...headers, 'Content-Length': String(size) });
+    res.end();
+    return true;
+  }
+  const body = await readFile(filePath);
+  res.writeHead(200, headers);
+  res.end(body);
+  return true;
 }
 
 function readJsonBody(req: IncomingMessage, maxBytes = 64 * 1024): Promise<unknown> {

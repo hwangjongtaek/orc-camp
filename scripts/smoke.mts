@@ -64,7 +64,9 @@ const FORBIDDEN: { re: RegExp; why: string }[] = [
   { re: /(^|\/)\.mcp\.json$/i, why: 'mcp config' },
   { re: /(^|\/)generation\//i, why: 'asset generation metadata' },
 ];
-const REQUIRED = ['dist/main.js', 'bin/orc-camp.mjs'];
+// dist/dashboard/index.html proves the single self-contained installable ships the
+// built SPA next to the bundle (SPEC-700 §2.3 / AC-03), served by the local server.
+const REQUIRED = ['dist/main.js', 'dist/dashboard/index.html', 'bin/orc-camp.mjs'];
 
 const packed = run(NPM, ['pack', '--dry-run', '--json']);
 if (packed.status !== 0) {

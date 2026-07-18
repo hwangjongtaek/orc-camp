@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { run } from './cli';
 import { serveCommand } from './server/serve';
 import { doctorCommand } from './server/doctor';
+import { purgeCommand } from './server/purge';
 
 const TOP_USAGE = `orc-camp — visualize tmux camps and AI-agent orcs (local-first)
 
@@ -14,6 +15,7 @@ Usage:
   orc-camp [serve] [--port <n>] [--host <addr> [--allow-external]] [--no-open] [--json]
   orc-camp scan    [--json] [--watch [interval]]      # read-only discovery (no server)
   orc-camp doctor  [--json] [--report [path]]         # environment health
+  orc-camp purge   [--yes] [--json]                   # remove local config + log data
   orc-camp (--help | --version)
 
 With no subcommand, orc-camp starts the local server and opens the dashboard.`;
@@ -41,8 +43,7 @@ export async function main(argv: string[]): Promise<number> {
     case 'doctor':
       return doctorCommand(argv.slice(1));
     case 'purge':
-      process.stderr.write('purge is not implemented in this build (SPEC-700)\n');
-      return 0;
+      return purgeCommand(argv.slice(1));
     default:
       process.stderr.write(`error: unknown command '${first}'\nRun \`orc-camp --help\` for usage.\n`);
       return 2;

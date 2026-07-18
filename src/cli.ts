@@ -13,7 +13,6 @@
  * the only subprocesses are the read-only tmux allowlist (SPEC-006 §2.6) and `ps`.
  */
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import {
   WATCH_INTERVAL_DEFAULT_S,
   WATCH_INTERVAL_MAX_S,
@@ -279,10 +278,7 @@ function errMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-// Self-invoke when run directly (`tsx src/cli.ts` or `node dist/cli.js`).
-const invokedPath = process.argv[1];
-if (invokedPath !== undefined && fileURLToPath(import.meta.url) === invokedPath) {
-  void run(process.argv.slice(2)).then((code) => {
-    process.exitCode = code;
-  });
-}
+// NOTE: no self-invoke here. `scan` is dispatched through src/main.ts (the single bundle
+// entry) so that the esbuild bundle has exactly one entry point — a self-invoke here would
+// also fire inside dist/main.js (same import.meta.url after bundling) and run a spurious
+// scan on every `serve`/`doctor`. Dev + e2e use `tsx src/main.ts scan`.

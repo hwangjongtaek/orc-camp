@@ -60,17 +60,16 @@ cd orc-camp
 npm install                      # CLI/서버 의존성
 ```
 
-대시보드까지 보려면 SPA도 한 번 빌드한다:
+`npm run build`가 **단일 self-contained 산출물**을 만든다 — CLI·로컬 서버를 `dist/main.js`로 번들하고, 대시보드 SPA를 빌드해 `dist/dashboard/`로 넣는다(웹 의존성은 자동 설치). 서버가 이 정적 자산을 직접 serve하므로 별도 빌드 단계가 필요 없다:
 
 ```bash
-cd web && npm install && npm run build && cd ..
+npm run build                    # dist/main.js + dist/dashboard/ (단일 installable)
 ```
 
 (선택) 시스템 전역 `orc-camp` 명령으로 설치:
 
 ```bash
-npm run build                    # dist/main.js 번들
-npm install -g .                 # → 어디서나 `orc-camp` 사용 가능
+npm install -g .                 # → 어디서나 `orc-camp` 사용 가능 (대시보드 포함)
 ```
 
 ## 실행
@@ -114,6 +113,7 @@ cd web && npm run dev            # 터미널 2: Vite dev 서버 (HMR)
 orc-camp [serve] [--port <n>] [--host <addr> [--allow-external]] [--no-open] [--json]
 orc-camp scan    [--json] [--watch [interval]]
 orc-camp doctor  [--json] [--report [path]]
+orc-camp purge   [--yes] [--json]
 ```
 
 | 명령 | 설명 |
@@ -122,8 +122,11 @@ orc-camp doctor  [--json] [--report [path]]
 | `orc-camp serve` | 서버만 실행. 기본 `127.0.0.1` bind, token URL을 stdout에 출력. 외부 bind는 `--allow-external` 필수 |
 | `orc-camp scan` | 서버 없이 읽기 전용 발견. `--json`(JSON), `--watch [초]`(주기 재-scan) |
 | `orc-camp doctor` | 환경 health 점검. `--json`, `--report [경로]` |
+| `orc-camp purge` | 로컬 config·log 데이터 제거. 기본 dry-run이며 `--yes`로 실제 삭제 (uninstall 전 완전 제거용) |
 
 종료 코드: `0` 결과 산출(부분 오류는 진단으로 보고) · `1` 치명적 실패 · `2` 사용법 오류.
+
+> **uninstall**: `npm uninstall -g orc-camp`은 코드만 지우고 config·log는 의도적으로 보존한다(재설치 시 설정 복원). 완전 제거를 원하면 uninstall **전에** `orc-camp purge --yes`를 실행한다. 잔존물에는 어떤 secret·터미널 원문도 없다(startup token은 메모리 전용, 캡처 원문은 비저장).
 
 ## 동작 방식 · 보안
 
