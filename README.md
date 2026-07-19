@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="asset-packs/orc-camp-default/brand/orc-camp-logo-transparent.png" alt="Orc Camp" width="480">
+  <img src="asset-packs/orc-camp-default/brand/orc-camp-main-poster.png" alt="Orc Camp" width="960">
 </p>
 
 <p align="center">
