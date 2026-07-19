@@ -3,15 +3,15 @@
 </p>
 
 <p align="center">
-  <b>command line 기반 AI agent orchestration 도구</b><br>
-  실행 중인 tmux session을 <b>camp</b>로, 그 안의 AI agent session(Claude Code · Codex)을 <b>orc</b>로 시각화한다.
+  <b>A command-line AI-agent orchestration tool</b><br>
+  Visualizes running <b>tmux sessions</b> as <b>camps</b> and the AI-agent sessions inside them (Claude Code · Codex) as <b>orcs</b>.
 </p>
 
 <p align="center">
-  <a href="#설치">설치</a> ·
-  <a href="#실행">실행</a> ·
-  <a href="#명령어">명령어</a> ·
-  <a href="#라이선스">라이선스</a>
+  <a href="#install">Install</a> ·
+  <a href="#run">Run</a> ·
+  <a href="#commands">Commands</a> ·
+  <a href="#license">License</a>
 </p>
 
 ---
@@ -20,110 +20,120 @@
 
 # Orc Camp
 
-**Orc Camp**는 여러 개의 AI 코딩 에이전트를 한눈에 관찰하기 위한 **local-first CLI 대시보드**다.
-사용자가 이미 실행 중인 **tmux session**을 *camp*로, 각 session 안에서 동작하는 **Claude Code · Codex 등 AI agent terminal session**을 *orc 캐릭터*로 시각화해 — 어떤 에이전트가 일하는 중인지, 무엇을 하고 있는지, 멈춰 있는지 — 픽셀 게임풍 화면에서 한 번에 파악하게 해준다.
+**Orc Camp** is a **local-first CLI dashboard** for observing many AI coding agents at a glance.
+It visualizes the **tmux sessions** you already have running as *camps*, and the **Claude Code · Codex (and other CLI agent) terminal sessions** inside them as *orc characters* — so you can tell, on a single pixel-game screen, which agent is working, what it's doing, and which one is stuck.
 
-모든 동작은 **읽기 전용(read-only)** 이고 **로컬에서만** 실행된다. tmux를 절대 변경하지 않으며, 터미널 원문·경로·secret은 표시 전에 한 곳에서 마스킹되고 디스크에 저장되지 않는다.
+Everything is **read-only** and runs **locally only**. It never modifies tmux, and terminal contents, paths, and secrets are masked in one place before display and are never written to disk.
 
-## 소개
+## Overview
 
-### 핵심 개념
+### Core concepts
 
-| 개념 | 의미 |
+| Concept | Meaning |
 | --- | --- |
-| **Camp** | 하나의 tmux session (프로젝트·작업 묶음·실험 환경) |
-| **Orc** | pane/window 안에서 실행 중인 AI agent session (Claude Code · Codex · 기타 CLI agent) |
-| **Campfire Dashboard** | `orc-camp` 실행 시 열리는 localhost 웹 대시보드 |
-| **Prestige Tier** | 누적 LLM 사용량(또는 세션 수명)이 쌓일수록 orc 외형이 T0→T1→T2→T3로 화려해지는 단계 |
+| **Camp** | A single tmux session (a project, a batch of work, an experiment) |
+| **Orc** | An AI-agent session running inside a pane/window (Claude Code · Codex · other CLI agents) |
+| **Campfire Dashboard** | The localhost web dashboard that opens when you run `orc-camp` |
+| **Prestige Tier** | The more cumulative LLM usage (or session lifetime) an orc racks up, the fancier it looks — T0 → T1 → T2 → T3 |
 
-### 주요 기능
+### Key features
 
-- 🔎 **읽기 전용 발견 + 상태 추론** — tmux session/window/pane를 훑어 AI agent를 핑거프린팅하고, `active`/`waiting`/`idle`/`stale`/`error`/`terminated` 상태를 confidence와 함께 추론한다 (상태를 단정하지 않는다).
-- 🖥️ **로컬 대시보드** — camp 목록과 orc 상태를 픽셀 맵으로 보여주는 localhost SPA. 127.0.0.1 bind + 1회용 startup token으로 보호된다.
-- 🛡️ **privacy-first** — 모든 캡처/명령줄/경로는 소비 전에 redaction을 거치고, 원문은 파일·로그·JSON 어디에도 남지 않는다.
-- 🏆 **캐릭터 prestige tier** — orc가 더 많이 일할수록(누적 token, 측정 불가 시 프로세스 uptime) 외형이 단계적으로 강화된다.
-- 📦 **런타임 의존성 최소** — CLI/서버는 Node 내장 모듈 + `ws`만 사용한다.
+- 🔎 **Read-only discovery + status inference** — sweeps tmux sessions/windows/panes, fingerprints AI agents, and infers `active` / `waiting` / `idle` / `stale` / `error` / `terminated` with a confidence score (it never asserts a status it can't back up).
+- 🖥️ **Local dashboard** — a localhost SPA that shows the camp list and orc statuses as a pixel map. Protected by a `127.0.0.1` bind + a one-time startup token.
+- 🛡️ **Privacy-first** — every capture / command line / path passes through redaction before it's consumed, and the originals never land in a file, log, or JSON output.
+- 🏆 **Character prestige tiers** — the more an orc works (cumulative tokens, or process uptime when that can't be measured), the more its appearance is upgraded, step by step.
+- 📦 **Minimal runtime dependencies** — the CLI/server use only Node built-ins plus `ws`.
 
-## 요구 사항
+## Requirements
 
 - **Node.js ≥ 20** (LTS)
-- **tmux** (macOS · Linux) — 관찰 대상. 미설치 시 `orc-camp`는 오류 없이 "tmux 없음"으로 보고한다.
-- **git** (소스 설치용)
+- **tmux** (macOS · Linux) — the thing being observed. If it isn't installed, `orc-camp` reports "no tmux" without erroring.
+- **git** (only for a from-source install)
 
-## 설치
+## Install
 
-> 아직 npm 레지스트리에 게시 전이다. 현재는 소스에서 설치한다.
+The published packages are the primary install path:
+
+```bash
+npm install -g orc-camp            # core CLI + bundled dashboard
+npm install -g orc-camp-assets     # optional: real pixel-art sprites (see below)
+```
+
+Then run it from anywhere:
+
+```bash
+orc-camp            # start the local server and open the dashboard
+```
+
+The core `orc-camp` package is code-only and lightweight. The pixel-art asset pack ships as a **separate, optional package** — see [Pixel assets](#pixel-assets-sprites).
+
+### From source (development)
 
 ```bash
 git clone https://github.com/hwangjongtaek/orc-camp.git
 cd orc-camp
-npm install                      # CLI/서버 의존성
+npm install                      # CLI/server dependencies
 ```
 
-`npm run build`가 **단일 self-contained 산출물**을 만든다 — CLI·로컬 서버를 `dist/main.js`로 번들하고, 대시보드 SPA를 빌드해 `dist/dashboard/`로 넣는다(웹 의존성은 자동 설치). 서버가 이 정적 자산을 직접 serve하므로 별도 빌드 단계가 필요 없다:
+`npm run build` produces a **single self-contained artifact** — it bundles the CLI + local server into `dist/main.js` and builds the dashboard SPA into `dist/dashboard/` (web dependencies are installed automatically). The server serves those static assets directly, so no separate build step is needed:
 
 ```bash
-npm run build                    # dist/main.js + dist/dashboard/ (단일 installable)
+npm run build                    # dist/main.js + dist/dashboard/ (single installable)
+npm install -g .                 # (optional) make `orc-camp` available everywhere
 ```
 
-(선택) 시스템 전역 `orc-camp` 명령으로 설치:
+## Run
+
+The fastest way during development is the dev scripts — `tsx` runs the TypeScript directly, so no build is required:
 
 ```bash
-npm install -g .                 # → 어디서나 `orc-camp` 사용 가능 (대시보드 포함)
-```
-
-## 실행
-
-가장 빠른 방법은 dev 스크립트다 — `tsx`로 TypeScript를 직접 실행하므로 빌드가 필요 없다.
-
-```bash
-# 1) 읽기 전용 발견 (대시보드 없이 터미널에서 바로 확인)
-npm run scan                     # 사람용 table 출력
+# 1) Read-only discovery (straight in the terminal, no dashboard)
+npm run scan                     # human-readable table
 npm run scan -- --json | jq .    # machine-readable JSON
-npm run scan -- --watch 3        # 3초 주기 재-scan (--json이면 NDJSON)
+npm run scan -- --watch 3        # re-scan every 3s (NDJSON when --json)
 
-# 2) 대시보드 (로컬 서버 + 브라우저 자동 열기)
-npm run serve                    # 127.0.0.1 + token URL을 stdout에 출력
+# 2) Dashboard (local server + auto-open browser)
+npm run serve                    # binds 127.0.0.1 and prints a token URL on stdout
 npm run serve -- --port 4123 --no-open
 
-# 3) 환경 점검
-npm run doctor                   # tmux/Node 등 health 5종 (실패 시 exit 1)
+# 3) Environment check
+npm run doctor                   # 5 health checks (tmux/Node/…); exits 1 on failure
 ```
 
-전역 설치(`npm install -g .`)했다면 `orc-camp [subcommand]`로 동일하게 실행한다:
+If you installed globally, run the same things via `orc-camp [subcommand]`:
 
 ```bash
-orc-camp            # 기본: 서버 시작 + 대시보드 열기
-orc-camp scan       # 읽기 전용 발견
-orc-camp doctor     # 환경 점검
+orc-camp            # default: start the server and open the dashboard
+orc-camp scan       # read-only discovery
+orc-camp doctor     # environment check
 ```
 
-### 픽셀 에셋(스프라이트) 활성화
+### Pixel assets (sprites)
 
-코어 `orc-camp` 패키지는 **코드만** 담는다(가볍게 유지). 픽셀 아트 에셋 팩은 **별도 optional 패키지 `orc-camp-assets`**로 배포되며, 없으면 대시보드는 placeholder(실루엣·그라디언트)로 렌더된다. 실제 스프라이트를 보려면 팩을 함께 설치한다:
+The core `orc-camp` package contains **code only** (to stay small). The pixel-art asset pack is distributed as a **separate, optional package, `orc-camp-assets`**; without it the dashboard renders placeholders (silhouettes + gradients). To see the real sprites, install the pack alongside the core:
 
 ```bash
-npm install -g orc-camp-assets   # 서버가 자동 감지해 /asset-pack/*로 서빙
+npm install -g orc-camp-assets   # the server auto-detects it and serves /asset-pack/*
 ```
 
-로컬에 팩 디렉터리가 있으면(예: 소스 체크아웃) 환경변수로 직접 가리킬 수도 있다:
+If you have a local pack directory instead (e.g. a source checkout), point at it with an env var:
 
 ```bash
 ORC_CAMP_ASSET_PACK=/path/to/asset-packs/orc-camp-default orc-camp
 ```
 
-`orc-camp doctor --json`의 `installHealth.assetPack*` 필드로 현재 팩 감지 상태를 확인할 수 있고, `serve` 시작 로그의 `pixel assets: on/off` 줄로도 표시된다.
+You can confirm the current detection state via the `installHealth.assetPack*` fields of `orc-camp doctor --json`, and via the `pixel assets: on/off` line in the `serve` startup log.
 
-### 대시보드 개발 (Vite)
+### Dashboard development (Vite)
 
-UI를 개발할 때는 API 서버와 Vite dev 서버를 함께 띄운다:
+When working on the UI, run the API server and the Vite dev server together:
 
 ```bash
-npm run serve                    # 터미널 1: 로컬 API 서버
-cd web && npm run dev            # 터미널 2: Vite dev 서버 (HMR)
+npm run serve                    # terminal 1: local API server
+cd web && npm run dev            # terminal 2: Vite dev server (HMR)
 ```
 
-## 명령어
+## Commands
 
 ```
 orc-camp [serve] [--port <n>] [--host <addr> [--allow-external]] [--no-open] [--json]
@@ -132,52 +142,52 @@ orc-camp doctor  [--json] [--report [path]]
 orc-camp purge   [--yes] [--json]
 ```
 
-| 명령 | 설명 |
+| Command | Description |
 | --- | --- |
-| `orc-camp` (인자 없음) | 로컬 서버를 띄우고 대시보드를 브라우저로 연다 (기본) |
-| `orc-camp serve` | 서버만 실행. 기본 `127.0.0.1` bind, token URL을 stdout에 출력. 외부 bind는 `--allow-external` 필수 |
-| `orc-camp scan` | 서버 없이 읽기 전용 발견. `--json`(JSON), `--watch [초]`(주기 재-scan) |
-| `orc-camp doctor` | 환경 health 점검. `--json`, `--report [경로]` |
-| `orc-camp purge` | 로컬 config·log 데이터 제거. 기본 dry-run이며 `--yes`로 실제 삭제 (uninstall 전 완전 제거용) |
+| `orc-camp` (no args) | Start the local server and open the dashboard in a browser (default) |
+| `orc-camp serve` | Run the server only. Binds `127.0.0.1` by default and prints a token URL on stdout. External bind requires `--allow-external` |
+| `orc-camp scan` | Read-only discovery, no server. `--json` (JSON), `--watch [seconds]` (periodic re-scan) |
+| `orc-camp doctor` | Environment health check. `--json`, `--report [path]` |
+| `orc-camp purge` | Remove local config/log data. Dry-run by default; `--yes` actually deletes (for a full removal before uninstall) |
 
-종료 코드: `0` 결과 산출(부분 오류는 진단으로 보고) · `1` 치명적 실패 · `2` 사용법 오류.
+Exit codes: `0` produced a result (partial errors are reported as diagnostics) · `1` fatal failure · `2` usage error.
 
-> **uninstall**: `npm uninstall -g orc-camp`은 코드만 지우고 config·log는 의도적으로 보존한다(재설치 시 설정 복원). 완전 제거를 원하면 uninstall **전에** `orc-camp purge --yes`를 실행한다. 잔존물에는 어떤 secret·터미널 원문도 없다(startup token은 메모리 전용, 캡처 원문은 비저장).
+> **Uninstall**: `npm uninstall -g orc-camp` removes only the code and intentionally keeps config/log (so settings are restored on reinstall). For a complete removal, run `orc-camp purge --yes` **before** uninstalling. The residue never contains any secret or terminal content (the startup token is memory-only, and captured output is never persisted).
 
-## 동작 방식 · 보안
+## How it works · Security
 
-- **read-only 불변식** — tmux 호출은 `list-sessions`/`list-windows`/`list-panes`/`capture-pane`(+`-V`) allowlist로만 이뤄지며 상태 변경 명령은 절대 spawn하지 않는다. 프로세스 조회(`ps`)도 고정 argv·`shell:false`.
-- **privacy chokepoint** — 캡처·명령줄·cwd·pane 제목은 소비 전 단일 `redact()` 경계를 통과한다. 원문은 파일/로그/`--json`에 저장되지 않는다.
-- **local-first** — 서버는 기본 `127.0.0.1`에만 bind하고 1회용 CSPRNG startup token으로 인증한다. 외부 bind는 명시적 `--allow-external` + 경고가 있어야만 가능하며, 자동 텔레메트리/원격 전송은 없다.
+- **Read-only invariant** — tmux is only ever called through the `list-sessions` / `list-windows` / `list-panes` / `capture-pane` (+ `-V`) allowlist, and no state-changing command is ever spawned. Process introspection (`ps`) also uses a fixed argv with `shell:false`.
+- **Privacy chokepoint** — captures, command lines, cwd, and pane titles pass through a single `redact()` boundary before they're consumed. Originals are never stored in a file, log, or `--json` output.
+- **Local-first** — the server binds `127.0.0.1` only by default and authenticates with a one-time CSPRNG startup token. External bind requires an explicit `--allow-external` + warning, and there is no automatic telemetry or remote transmission.
 
-자세한 구현 계약은 `docs/specs/`(구현 SSOT)를 참고한다.
+See `docs/specs/` (the implementation SSOT) for the detailed contracts.
 
-## 캐릭터 prestige tier
+## Character prestige tiers
 
-orc가 누적해서 더 많은 LLM token/cost를 소비할수록(측정이 어려우면 agent 프로세스 **uptime**으로 대체) 캐릭터의 갑옷·장비·`active` 연출이 **T0 base → T1 → T2 → T3**로 단계적으로 강화된다.
+The more cumulative LLM tokens/cost an orc consumes (falling back to the agent process **uptime** when that's hard to measure), the more its armor, gear, and `active` flourish are upgraded — **T0 base → T1 → T2 → T3**.
 
-- 5종 캐릭터(`orc-high-warchief-mascot`·`orc-claude-storm-shaman`·`orc-codex-field-engineer`·`orc-unknown`·`orc-iron-commander`)의 **T1은 현재 `available`**(8방향 rotation + idle/active/roaming 애니메이션), **T2·T3는 `staged`**(다음 단계).
-- 판정 우선순위는 `누적 토큰 → cost → 프로세스 uptime → base`이며, 모호한 경우 절대 추측하지 않는다.
-- 설계 SSOT: `docs/assets/15-Character-State-Model.md` · 런타임 계약: `docs/specs/SPEC-302-mascot-prestige-tiers.md`.
+- Of the 5 characters (`orc-high-warchief-mascot` · `orc-claude-storm-shaman` · `orc-codex-field-engineer` · `orc-unknown` · `orc-iron-commander`), **T1 is currently `available`** (8-direction rotation + idle/active/roaming animations), while **T2 · T3 are `staged`** (next up).
+- The decision priority is `cumulative tokens → cost → process uptime → base`, and it never guesses when things are ambiguous.
+- Design SSOT: `docs/assets/15-Character-State-Model.md` · runtime contract: `docs/specs/SPEC-302-mascot-prestige-tiers.md`.
 
-## 문서
+## Documentation
 
-- **Specs (구현 SSOT)**: [`docs/specs/`](docs/specs/README.md)
-- **Product**: [`docs/product/`](docs/product/) — 요구사항·로드맵·[결정 로그](docs/product/08-Decisions.md)
-- **Design**: [디자인 시스템 계약](DESIGN.md) · [`docs/design/`](docs/design/)
-- **Assets**: [`docs/assets/`](docs/assets/) — PixelLab prompt·레지스트리·캐릭터 상태 모델
+- **Specs (implementation SSOT)**: [`docs/specs/`](docs/specs/README.md)
+- **Product**: [`docs/product/`](docs/product/) — requirements, roadmap, [decision log](docs/product/08-Decisions.md)
+- **Design**: [design-system contract](DESIGN.md) · [`docs/design/`](docs/design/)
+- **Assets**: [`docs/assets/`](docs/assets/) — PixelLab prompts, registry, character state model
 
-## 라이선스
+## License
 
-이 저장소에는 **두 개의 서로 다른 라이선스**가 적용된다.
+This repository is covered by **two different licenses**.
 
-| 대상 | 라이선스 | 파일 |
+| Scope | License | File |
 | --- | --- | --- |
-| **런타임 코드** (`src/`, `web/`, `bin/`, `dist/`) | **MIT** | [`LICENSE`](LICENSE) |
-| **픽셀 아트 에셋 팩** (`asset-packs/` → `orc-camp-assets`) | PixelLab.ai 유료 플랜 약관 (**상업 사용·재배포 허용 · 표기 불필요**) | [`asset-packs/orc-camp-default/LICENSE.md`](asset-packs/orc-camp-default/LICENSE.md) |
+| **Runtime code** (`src/`, `web/`, `bin/`, `dist/`) | **MIT** | [`LICENSE`](LICENSE) |
+| **Pixel-art asset pack** (`asset-packs/` → `orc-camp-assets`) | PixelLab.ai paid-plan terms (**commercial use & redistribution allowed · no attribution required**) | [`asset-packs/orc-camp-default/LICENSE.md`](asset-packs/orc-camp-default/LICENSE.md) |
 
-- MIT 라이선스는 **런타임 코드에만** 적용된다.
-- `asset-packs/`의 픽셀 아트는 PixelLab.ai **유료 플랜**으로 생성됐고 [PixelLab 서비스 약관](https://pixellab.ai/termsofservice)에 따라 **상업 사용·재배포가 허용되며 저작자 표시가 필요 없다**(결정 [D-054](docs/product/08-Decisions.md)). MIT가 아니므로 별도 라이선스로 관리한다.
-- 에셋은 코어 패키지에 번들하지 않고 **별도 optional 패키지 `orc-camp-assets`**로 배포한다(코어는 코드-only 유지, D-009 code⊥asset 분리 불변식 보존). 대시보드는 에셋이 없어도 placeholder로 동일한 레이아웃·인터랙션을 유지한다.
+- The MIT license applies to the **runtime code only**.
+- The pixel art in `asset-packs/` was generated on a **paid PixelLab.ai plan**; under the [PixelLab Terms of Service](https://pixellab.ai/termsofservice), **commercial use and redistribution are allowed and no attribution is required** (decision [D-054](docs/product/08-Decisions.md)). It is not MIT, so it is managed under a separate license.
+- The assets are not bundled into the core package; they ship as a **separate, optional package, `orc-camp-assets`** (the core stays code-only, preserving the D-009 code⊥asset separation invariant). The dashboard keeps the same layout and interactions with placeholders even when the assets are absent.
 
 © 2026 Orc Camp contributors. Licensed under the MIT License.
