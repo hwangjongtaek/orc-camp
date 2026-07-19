@@ -24,6 +24,7 @@ import type { SettingsStore } from './settings';
 import type { ControlService, ControlAction } from './control';
 import type { BroadcastService } from './broadcast';
 import type { PassthroughService, ExpectedTarget } from './passthrough';
+import { resolveAssetPackDir } from './asset-pack';
 import type { ApiError } from './types';
 
 const CAMP_ID_RE = /^session:\$[0-9]+$/;
@@ -46,6 +47,12 @@ export interface HttpConfig {
    * {@link DEFAULT_DASHBOARD_DIR}.
    */
   dashboardDir?: string | null;
+  /**
+   * Optional asset pack root served at `/asset-pack/*`. Omit to use the resolved default
+   * ({@link DEFAULT_ASSET_PACK_DIR}); `null` disables it (dashboard uses placeholders); a
+   * path overrides it (tests / explicit pack).
+   */
+  assetPackDir?: string | null;
 }
 
 const PLACEHOLDER_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>Orc Camp</title></head>
@@ -72,6 +79,13 @@ const DEFAULT_DASHBOARD_DIR: string | null = (() => {
     return null;
   }
 })();
+
+/**
+ * SPEC-300 §3.8 / D-054 — the optional asset pack dir served at `/asset-pack/*`, resolved once
+ * at module load (env `ORC_CAMP_ASSET_PACK` → installed `orc-camp-assets` package → null). A
+ * per-server override is possible via {@link HttpConfig.assetPackDir}; `null` disables it.
+ */
+const DEFAULT_ASSET_PACK_DIR: string | null = resolveAssetPackDir()?.dir ?? null;
 
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -163,6 +177,15 @@ async function handle(req: IncomingMessage, res: ServerResponse, cfg: HttpConfig
 
   const url = new URL(req.url ?? '/', `http://${hostHeader ?? '127.0.0.1'}`);
   const segments = url.pathname.split('/').filter(Boolean);
+
+  // Optional asset pack (SPEC-300 §3.8 / D-054): served un-gated like the SPA shell (the pack
+  // is public pixel art, and the SPA fetches it before any token exchange). Absent → 404 →
+  // dashboard placeholders.
+  if (segments[0] === 'asset-pack') {
+    const packDir = cfg.assetPackDir !== undefined ? cfg.assetPackDir : DEFAULT_ASSET_PACK_DIR;
+    await serveAssetPack(method, res, url.pathname, corsHeaders, packDir);
+    return;
+  }
 
   // Non-API: serve the built dashboard SPA (token not required to view the shell; the
   // SPA reads its token from the URL and the API stays token-gated below).
@@ -392,7 +415,12 @@ async function serveDashboard(
     return;
   }
 
-  if (await tryServeFile(method, res, filePath, corsHeaders, dashboardDir)) return;
+  // Vite emits content-hashed files under assets/ → cache immutably; the HTML shell must
+  // revalidate so a fresh build is picked up.
+  const dashCache = (fp: string): string =>
+    fp.startsWith(resolve(dashboardDir, 'assets') + sep) ? 'public, max-age=31536000, immutable' : 'no-cache';
+
+  if (await sendFile(method, res, filePath, corsHeaders, dashCache(filePath))) return;
 
   // SPA fallback: an extensionless route falls through to index.html (client router);
   // a missing file with an extension is a genuine 404 (missing asset).
@@ -400,17 +428,54 @@ async function serveDashboard(
     sendError(res, 404, 'not_found', 'not found', newRequestId(), undefined, corsHeaders);
     return;
   }
-  if (await tryServeFile(method, res, resolve(dashboardDir, 'index.html'), corsHeaders, dashboardDir)) return;
+  if (await sendFile(method, res, resolve(dashboardDir, 'index.html'), corsHeaders, 'no-cache')) return;
   sendError(res, 404, 'not_found', 'not found', newRequestId(), undefined, corsHeaders);
 }
 
-/** Serve one file if it exists; return false (response untouched) if it doesn't. */
-async function tryServeFile(
+/**
+ * SPEC-300 §3.8 / D-054 — serve the OPTIONAL asset pack at `/asset-pack/*` from the resolved
+ * pack directory (traversal-guarded). No pack (`packDir === null`) → 404, which the dashboard
+ * treats as "no manifest" and degrades to CSS placeholders (never an error). `.json` (manifest)
+ * must revalidate; image files (names are not content-hashed) get a short shared cache.
+ */
+async function serveAssetPack(
+  method: string,
+  res: ServerResponse,
+  pathname: string,
+  corsHeaders: Record<string, string>,
+  packDir: string | null,
+): Promise<void> {
+  if (method !== 'GET' && method !== 'HEAD') {
+    methodNotAllowed(res, newRequestId(), corsHeaders);
+    return;
+  }
+  if (packDir === null) {
+    sendError(res, 404, 'not_found', 'asset pack not installed', newRequestId(), undefined, corsHeaders);
+    return;
+  }
+  const rel = decode(pathname).replace(/^\/asset-pack\/?/, '').replace(/^\/+/, '');
+  if (rel === '') {
+    sendError(res, 404, 'not_found', 'not found', newRequestId(), undefined, corsHeaders);
+    return;
+  }
+  const filePath = resolve(packDir, rel);
+  // Traversal guard: the resolved path must stay inside the pack root.
+  if (filePath !== packDir && !filePath.startsWith(packDir + sep)) {
+    sendError(res, 403, 'forbidden', 'forbidden', newRequestId(), undefined, corsHeaders);
+    return;
+  }
+  const cache = extname(filePath).toLowerCase() === '.json' ? 'no-cache' : 'public, max-age=86400';
+  if (await sendFile(method, res, filePath, corsHeaders, cache)) return;
+  sendError(res, 404, 'not_found', 'not found', newRequestId(), undefined, corsHeaders);
+}
+
+/** Serve one file with the given Cache-Control; return false (response untouched) if absent. */
+async function sendFile(
   method: string,
   res: ServerResponse,
   filePath: string,
   corsHeaders: Record<string, string>,
-  dashboardDir: string,
+  cacheControl: string,
 ): Promise<boolean> {
   let size: number;
   try {
@@ -420,12 +485,7 @@ async function tryServeFile(
   } catch {
     return false;
   }
-  const ext = extname(filePath).toLowerCase();
-  const type = CONTENT_TYPES[ext] ?? 'application/octet-stream';
-  // Vite emits content-hashed files under assets/ → cache immutably; the HTML shell must
-  // revalidate so a fresh build is picked up.
-  const isHashedAsset = filePath.startsWith(resolve(dashboardDir, 'assets') + sep);
-  const cacheControl = isHashedAsset ? 'public, max-age=31536000, immutable' : 'no-cache';
+  const type = CONTENT_TYPES[extname(filePath).toLowerCase()] ?? 'application/octet-stream';
   const headers = { 'Content-Type': type, 'Cache-Control': cacheControl, ...corsHeaders };
   if (method === 'HEAD') {
     res.writeHead(200, { ...headers, 'Content-Length': String(size) });

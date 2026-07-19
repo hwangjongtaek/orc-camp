@@ -472,3 +472,14 @@
 - **기각 대안**: (i) 현재 트리거 소스·fallback 이력을 doctor에 노출 — 런타임 관측치라 activity/audit과 중복·SSOT 흐림. (ii) doctor exit code에 브리지 미지원을 반영 — 브리지는 opt-in 지연 최적화라 미지원이 fail이 아니다(D-049).
 - **영향**: R-API-007. [[SPEC-600-observability]] §2.9 `DoctorDiagnostics.bridge` 블록 신설(정보 전용 계약 유지), [[SPEC-100-server-lifecycle]] doctor 표면에 `bridge` 진단 서술, `buildDiagnostics()`가 `tmux -V`만 추가 실행(read-only). exit semantics(5 runChecks) 무변경.
 - **근거 spec**: [[SPEC-104-control-mode-bridge]], [[SPEC-600-observability]], [[SPEC-100-server-lifecycle]].
+
+## D-054: PixelLab.ai 유료 플랜 라이선스 확정 — 에셋을 별도 optional 패키지로 배포한다
+
+- **상태**: Accepted
+- **결정일**: 2026-07-19
+- **맥락**: [[SPEC-700-packaging-release]] §2.7 / [[08-Decisions#D-009|D-009]]는 asset pack의 `manifest.json#license`가 `commercial_use`/`redistribution`/`attribution_required` = `"unknown"`인 동안 asset을 published artifact에서 제외하고 외부 재배포를 금지했다(license 게이트). 전역 설치본(`npm i -g orc-camp`)에서 프로덕션 서버에 `/asset-pack/` 라우트가 없고 팩도 미번들이라 대시보드가 placeholder로만 렌더되는 것이 그 결과였다.
+- **결정**: PixelLab.ai **유료 플랜**으로 생성한 본 에셋 팩은 **상업적 사용·재배포가 허용되며 저작자 표시(attribution)가 필요 없다**. 이를 SSOT에 명시하고(`asset-packs/orc-camp-default/manifest.json#license` → `commercial_use:"allowed"`·`redistribution:"allowed"`·`attribution_required:false`·`plan:"paid"`; `LICENSE.md` 갱신), license 게이트의 `bundleAssets` 전환 조건(§2.7-4)을 충족한 것으로 본다. 단, 배포 형태는 **코어 패키지 번들이 아니라 별도 optional npm 패키지 `orc-camp-assets`**로 한다(에셋 팩이 ~106MB·PNG 3,918개라 코어에 넣으면 매 설치가 과대해짐). 코어 `orc-camp`는 계속 코드-only(§2.2 allowlist·smoke 게이트 무변경)이며, 서버가 설치된 `orc-camp-assets`(또는 `ORC_CAMP_ASSET_PACK` 경로)를 자동 감지해 `/asset-pack/*`로 서빙한다. 팩 미설치 시 종전대로 placeholder 폴백([[SPEC-300-asset-rendering]] §3.8).
+- **근거**: 라이선스 미확정이 해소되어 재배포 리스크가 사라졌다. 그러나 코어와 대용량 아트를 분리하면 (i) 코어 설치는 250KB로 가볍게 유지되고, (ii) 이미지를 원하는 사용자만 opt-in으로 팩을 받으며, (iii) 코어의 code⊥asset 분리 불변식(D-009 §2.7)과 smoke 게이트를 그대로 보존한다. `generation/`(prompt/seed 등 런타임 불필요)·`brand/`(런타임 미참조)는 배포 팩에서 제외해 크기를 줄인다.
+- **기각 대안**: (i) 코어에 전체 번들 — 매 `npm i -g`가 100MB+, 사용자 적대적. (ii) 축소 서브셋만 코어 번들 — 코어 code⊥asset 분리 위반 + 부분 자산으로 tier/애니메이션 결손. (iii) 로컬 경로 opt-in만(`ORC_CAMP_ASSET_PACK`) — 일반 사용자는 여전히 placeholder(env override는 보조 수단으로 유지).
+- **영향**: [[SPEC-700-packaging-release]] §2.7(전환 반영), [[SPEC-300-asset-rendering]] §3.8. 신규 패키지 `orc-camp-assets`(asset-pack dir), 코어 서버 `/asset-pack/*` 라우트 + 팩 해석 모듈, `doctor` 진단에 asset-pack source 노출, 코어 minor bump. `ATTRIBUTION.md`는 표시 의무가 없으므로 provenance 정보로만 유지.
+- **근거 spec**: [[SPEC-700-packaging-release]], [[SPEC-300-asset-rendering]].

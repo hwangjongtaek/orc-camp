@@ -1,0 +1,38 @@
+{
+  "name": "orc-camp-assets",
+  "version": "0.1.0",
+  "description": "Optional PixelLab.ai pixel-art asset pack for the orc-camp dashboard (sprites, portraits, backgrounds, tiles, objects, UI). Install globally alongside orc-camp to render real sprites instead of CSS placeholders.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "keywords": [
+    "orc-camp",
+    "pixel-art",
+    "assets",
+    "asset-pack",
+    "pixellab",
+    "sprites"
+  ],
+  "homepage": "https://github.com/hwangjongtaek/orc-camp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hwangjongtaek/orc-camp.git",
+    "directory": "asset-packs/orc-camp-default"
+  },
+  "bugs": {
+    "url": "https://github.com/hwangjongtaek/orc-camp/issues"
+  },
+  "files": [
+    "manifest.json",
+    "palette.json",
+    "LICENSE.md",
+    "ATTRIBUTION.md",
+    "sprites",
+    "portraits",
+    "backgrounds",
+    "tiles",
+    "objects",
+    "ui"
+  ],
+  "orcCamp": {
+    "assetPack": "orc-camp-default"
+  }
+}

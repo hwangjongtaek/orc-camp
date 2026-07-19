@@ -10,6 +10,8 @@ import { tmuxExec as defaultTmuxExec } from '../tmux/exec';
 import { isPortAvailable, PREFERRED_PORT } from './net';
 import { isNoServerStderr, parseVersion } from '../tmux/inventory';
 import { resolveConfigDir, resolveStateDir, SettingsStore } from './settings';
+import { resolveAssetPackDir, type AssetPackSource } from './asset-pack';
+import { APP_VERSION } from './version';
 import { DebugLog, resolveLogLevel, type DebugLogEntry } from './debug-log';
 import type { TmuxExecFn } from '../types';
 
@@ -117,7 +119,11 @@ export interface InstallHealth {
   nodeFloorSatisfied: boolean; // current Node >= floor
   binResolved: boolean; // `orc-camp` resolves on PATH
   dashboardAssetsPresent: boolean; // dist/dashboard static assets bundled
-  assetPackBundled: boolean; // asset-pack PNGs bundled (license gate → false, D-009/SPEC-700 §2.7)
+  assetPackBundled: boolean; // asset-pack PNGs bundled INTO core (always false — D-054 ships them separately)
+  // D-054 — the optional `orc-camp-assets` pack the server serves at /asset-pack/*.
+  assetPackAvailable: boolean; // a pack was resolved (env or installed package)
+  assetPackSource: AssetPackSource | null; // 'env' | 'package' | null (placeholders)
+  assetPackDir: string | null; // resolved pack directory, or null
 }
 
 export interface DoctorDiagnostics {
@@ -175,12 +181,16 @@ function existsRelToModule(rel: string): boolean {
 
 function buildInstallHealth(env: NodeJS.ProcessEnv): InstallHealth {
   const floorMajor = Number.parseInt(NODE_FLOOR.match(/\d+/)?.[0] ?? '0', 10) || 0;
+  const pack = resolveAssetPackDir(env);
   return {
     nodeFloor: NODE_FLOOR,
     nodeFloorSatisfied: nodeMajor(process.versions.node) >= floorMajor,
     binResolved: binResolves(env),
     dashboardAssetsPresent: existsRelToModule('./dashboard/index.html') || existsRelToModule('./dashboard'),
     assetPackBundled: existsRelToModule('./asset-packs/orc-camp-default/manifest.json') || existsRelToModule('./asset-packs'),
+    assetPackAvailable: pack !== null,
+    assetPackSource: pack?.source ?? null,
+    assetPackDir: pack?.dir ?? null,
   };
 }
 
@@ -221,7 +231,7 @@ export async function buildDiagnostics(opts: DoctorOptions = {}): Promise<Doctor
   const topCodes = [...codeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([code, count]) => ({ code, count }));
 
   return {
-    environment: { appVersion: '0.1.0', nodeVersion: process.version, os: `${platform()} ${release()}`, arch: arch(), tmuxVersion },
+    environment: { appVersion: APP_VERSION, nodeVersion: process.version, os: `${platform()} ${release()}`, arch: arch(), tmuxVersion },
     installHealth: buildInstallHealth(env),
     log: { path: dl.path(), writable: checkWritableDir(sdir).ok, sizeBytes: dl.sizeBytes(), level: dl.getLevel(), rotation: dl.rotation() },
     recentErrors: { windowEntries: entries.length, counts, lastErrorAt, topCodes },
