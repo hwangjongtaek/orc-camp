@@ -98,6 +98,22 @@ orc-camp scan       # 읽기 전용 발견
 orc-camp doctor     # 환경 점검
 ```
 
+### 픽셀 에셋(스프라이트) 활성화
+
+코어 `orc-camp` 패키지는 **코드만** 담는다(가볍게 유지). 픽셀 아트 에셋 팩은 **별도 optional 패키지 `orc-camp-assets`**로 배포되며, 없으면 대시보드는 placeholder(실루엣·그라디언트)로 렌더된다. 실제 스프라이트를 보려면 팩을 함께 설치한다:
+
+```bash
+npm install -g orc-camp-assets   # 서버가 자동 감지해 /asset-pack/*로 서빙
+```
+
+로컬에 팩 디렉터리가 있으면(예: 소스 체크아웃) 환경변수로 직접 가리킬 수도 있다:
+
+```bash
+ORC_CAMP_ASSET_PACK=/path/to/asset-packs/orc-camp-default orc-camp
+```
+
+`orc-camp doctor --json`의 `installHealth.assetPack*` 필드로 현재 팩 감지 상태를 확인할 수 있고, `serve` 시작 로그의 `pixel assets: on/off` 줄로도 표시된다.
+
 ### 대시보드 개발 (Vite)
 
 UI를 개발할 때는 API 서버와 Vite dev 서버를 함께 띄운다:
@@ -158,10 +174,10 @@ orc가 누적해서 더 많은 LLM token/cost를 소비할수록(측정이 어�
 | 대상 | 라이선스 | 파일 |
 | --- | --- | --- |
 | **런타임 코드** (`src/`, `web/`, `bin/`, `dist/`) | **MIT** | [`LICENSE`](LICENSE) |
-| **픽셀 아트 에셋 팩** (`asset-packs/`) | PixelLab.ai 약관 (**상업 사용·재배포·표기 조건 미확인 / TBD**) | [`asset-packs/orc-camp-default/LICENSE.md`](asset-packs/orc-camp-default/LICENSE.md) |
+| **픽셀 아트 에셋 팩** (`asset-packs/` → `orc-camp-assets`) | PixelLab.ai 유료 플랜 약관 (**상업 사용·재배포 허용 · 표기 불필요**) | [`asset-packs/orc-camp-default/LICENSE.md`](asset-packs/orc-camp-default/LICENSE.md) |
 
 - MIT 라이선스는 **런타임 코드에만** 적용된다.
-- `asset-packs/`의 PixelLab.ai 생성 픽셀 아트는 [PixelLab 서비스 약관](https://pixellab.ai/termsofservice)을 따르며, 상업 사용·재배포·표기 조건이 확정될 때까지 **npm 배포 산출물에 포함하지 않는다**(결정 D-009). 라이선스 확정 전에는 에셋 팩을 제품 워크스페이스 밖으로 공개하지 않는다.
-- 대시보드는 에셋이 없어도 placeholder로 동일한 레이아웃·인터랙션을 유지한다.
+- `asset-packs/`의 픽셀 아트는 PixelLab.ai **유료 플랜**으로 생성됐고 [PixelLab 서비스 약관](https://pixellab.ai/termsofservice)에 따라 **상업 사용·재배포가 허용되며 저작자 표시가 필요 없다**(결정 [D-054](docs/product/08-Decisions.md)). MIT가 아니므로 별도 라이선스로 관리한다.
+- 에셋은 코어 패키지에 번들하지 않고 **별도 optional 패키지 `orc-camp-assets`**로 배포한다(코어는 코드-only 유지, D-009 code⊥asset 분리 불변식 보존). 대시보드는 에셋이 없어도 placeholder로 동일한 레이아웃·인터랙션을 유지한다.
 
 © 2026 Orc Camp contributors. Licensed under the MIT License.

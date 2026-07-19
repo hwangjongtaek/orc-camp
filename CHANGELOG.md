@@ -8,6 +8,26 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-19
+
+### Added
+
+- **픽셀 에셋 서빙 (`/asset-pack/*`)** — 로컬 서버가 선택적 에셋 팩을 서빙한다. 팩은 `ORC_CAMP_ASSET_PACK`
+  환경변수(명시 경로) 또는 설치된 `orc-camp-assets` 패키지에서 자동 해석된다. 팩이 있으면 실제 스프라이트,
+  없으면 종전대로 CSS placeholder로 렌더된다(SPEC-300 §3.8 parity). 이전에는 dev(Vite)에서만 에셋이
+  떴고 전역 설치본에서는 placeholder만 나왔다.
+- **`orc-camp-assets` 별도 패키지** — 픽셀 아트 팩을 코어와 분리된 optional npm 패키지로 배포한다. 코어
+  `orc-camp`는 코드-only(~250KB)를 유지하고, 이미지를 원하는 사용자만 `npm i -g orc-camp-assets`로 opt-in한다.
+- **`serve` 시작 로그**에 `pixel assets: on/off` 상태 표시, **`doctor`** 진단에 `installHealth.assetPack*`
+  (available/source/dir) 필드 추가.
+
+### Changed
+
+- **PixelLab.ai 에셋 라이선스 확정 (D-054)** — 유료 플랜으로 생성한 에셋 팩의 상업 사용·재배포를 허용하고
+  저작자 표시를 불필요로 명시(`manifest.json#license`, `LICENSE.md`). 코어 패키지의 code⊥asset 분리
+  license 게이트(D-009)는 그대로 유지된다(에셋은 별도 패키지로 배포).
+- 앱 버전을 `package.json`에서 단일 소스로 읽도록 중앙화(`--version`·`doctor`·`serve` 간 drift 제거).
+
 ## [0.1.0] - 2026-07-18
 
 첫 공개 릴리스. 실행 중인 tmux session을 *camp*로, 그 안의 AI agent session(Claude Code · Codex)을
@@ -53,5 +73,6 @@
 - read-only 불변식: 상태 변경 tmux 명령을 spawn하지 않으며, 프로세스 조회도 고정 argv·`shell:false`.
 - 비-영속 잔존 없음: startup token은 메모리 전용, terminal 원문은 비저장 — uninstall 잔존물에 secret/원문 없음.
 
-[Unreleased]: https://github.com/hwangjongtaek/orc-camp/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/hwangjongtaek/orc-camp/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/hwangjongtaek/orc-camp/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/hwangjongtaek/orc-camp/releases/tag/v0.1.0

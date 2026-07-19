@@ -12,6 +12,8 @@ import { PREVIEW_LINES, type ProcessSpawn } from '../types';
 import { createDefaultDeps, type ScanRuntimeDeps } from '../scan';
 import { SnapshotRuntime } from './runtime';
 import { createHttpServer } from './http';
+import { resolveAssetPackDir } from './asset-pack';
+import { APP_VERSION } from './version';
 import { bindWithFallback, PREFERRED_PORT, isLoopback } from './net';
 import { generateToken } from './token';
 import { ControlService, makeControlExec } from './control';
@@ -44,6 +46,7 @@ export interface StartOptions {
   devOrigins?: string[];
   heartbeatMs?: number;
   dashboardDir?: string | null; // static dashboard root override (tests); default = bundle-relative
+  assetPackDir?: string | null; // asset pack root override (tests); default = resolved (env/package)
 }
 
 export interface ServerHandle {
@@ -83,7 +86,7 @@ export async function startServer(opts: StartOptions = {}): Promise<ServerHandle
     allowExternal: opts.allowExternal ?? false,
     devOrigins: opts.devOrigins ?? DEV_ORIGINS,
   };
-  const server = createHttpServer({ runtime, security, token, now, settings: store, control, broadcast, passthrough, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}), ...(opts.dashboardDir !== undefined ? { dashboardDir: opts.dashboardDir } : {}) });
+  const server = createHttpServer({ runtime, security, token, now, settings: store, control, broadcast, passthrough, ...(opts.heartbeatMs !== undefined ? { heartbeatMs: opts.heartbeatMs } : {}), ...(opts.dashboardDir !== undefined ? { dashboardDir: opts.dashboardDir } : {}), ...(opts.assetPackDir !== undefined ? { assetPackDir: opts.assetPackDir } : {}) });
 
   const { port, fellBack } = await bindWithFallback(server, host, preferred, opts.explicitPort ?? false);
   security.port = port; // fix CORS/Host to the actual port (single source, §3.4)
@@ -228,6 +231,14 @@ export async function serveCommand(argv: string[], opts: ServeCommandOptions): P
   if (handle.fellBack) io.stderr(`preferred port busy; using ${handle.port}\n`);
   if (!isLoopback(args.host)) io.stderr(`WARNING: bound to ${args.host} — anyone on your network with the token URL can control your tmux\n`);
 
+  // SPEC-300 §3.8 / D-054 — tell the user whether real sprites or placeholders will render.
+  const pack = resolveAssetPackDir(process.env, opts.startOpts?.assetPackDir);
+  io.stderr(
+    pack
+      ? `pixel assets: on (${pack.source === 'package' ? 'orc-camp-assets package' : pack.dir})\n`
+      : 'pixel assets: off — placeholders active. Install real sprites with: npm i -g orc-camp-assets\n',
+  );
+
   if (opts.open && !args.noOpen && handle.settings.current().browserAutoOpen) {
     const ok = await openBrowser(handle.url, spawn);
     io.stderr(ok ? 'opened dashboard in your default browser\n' : `could not open a browser; open this URL manually: ${handle.url}\n`);
@@ -244,7 +255,7 @@ export async function serveCommand(argv: string[], opts: ServeCommandOptions): P
 }
 
 function version(): string {
-  return '0.1.0';
+  return APP_VERSION;
 }
 
 const SERVE_USAGE = `orc-camp serve — start the local Orc Camp server (read-only tmux + REST API)

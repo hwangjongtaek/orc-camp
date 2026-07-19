@@ -1,6 +1,6 @@
 {
   "name": "orc-camp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local-first CLI dashboard that visualizes tmux sessions as camps and Claude Code / Codex agent sessions as orcs. Read-only discovery, status inference, and a localhost pixel dashboard.",
   "type": "module",
   "license": "MIT",

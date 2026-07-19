@@ -8,6 +8,7 @@ import { run } from './cli';
 import { serveCommand } from './server/serve';
 import { doctorCommand } from './server/doctor';
 import { purgeCommand } from './server/purge';
+import { APP_VERSION } from './server/version';
 
 const TOP_USAGE = `orc-camp — visualize tmux camps and AI-agent orcs (local-first)
 
@@ -25,7 +26,7 @@ export async function main(argv: string[]): Promise<number> {
 
   if (first === undefined || first.startsWith('-')) {
     if (first === '--version' || first === '-V') {
-      process.stdout.write('0.1.0\n');
+      process.stdout.write(APP_VERSION + '\n');
       return 0;
     }
     if (first === '--help' || first === '-h') {
