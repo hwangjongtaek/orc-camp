@@ -398,7 +398,7 @@
             "tier": 2,
             "label": "Ember Champion",
             "suffix": "-champion",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "55edad33-8b53-4a4d-a2af-0a9e75f503ee",
             "root": "sprites/orc-high-warchief-mascot/tiers/champion/Orc_High_Warchief_Mascot_Champion",
             "frame_size": [232, 232],
@@ -415,7 +415,98 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "coverage": "south-only",
+                "folders": {
+                  "south": "animations/error/south"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",
@@ -427,7 +518,7 @@
             "tier": 3,
             "label": "Legendary Warlord",
             "suffix": "-warlord",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "c748be94-f87a-4b68-a4f1-c7207cfd1c11",
             "root": "sprites/orc-high-warchief-mascot/tiers/warlord/Orc_High_Warchief_Mascot_Warlord",
             "frame_size": [232, 232],
@@ -444,7 +535,98 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "coverage": "south-only",
+                "folders": {
+                  "south": "animations/error/south"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",
@@ -670,6 +852,54 @@
                   "north-west": "animations/active/north-west",
                   "south-west": "animations/active/south-west"
                 }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
               }
             },
             "reduced_motion": {
@@ -682,7 +912,7 @@
             "tier": 2,
             "label": "Tempest Shaman",
             "suffix": "-tempest",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "b4a58ffe-8d11-455e-9d24-65494e44f9ab",
             "root": "sprites/orc-claude-storm-shaman/tiers/tempest/Orc_Claude_Storm_Shaman_Tempest",
             "frame_size": [232, 232],
@@ -699,7 +929,104 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",
@@ -710,7 +1037,7 @@
             "tier": 3,
             "label": "Stormcaller Archon",
             "suffix": "-archon",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "573066bf-c80d-40e8-815c-a7fcde3c7b7c",
             "root": "sprites/orc-claude-storm-shaman/tiers/archon/Orc_Claude_Storm_Shaman_Archon",
             "frame_size": [232, 232],
@@ -727,7 +1054,104 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",
@@ -953,6 +1377,54 @@
                   "north-west": "animations/active/north-west",
                   "south-west": "animations/active/south-west"
                 }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
               }
             },
             "reduced_motion": {
@@ -965,7 +1437,7 @@
             "tier": 2,
             "label": "Master Artificer",
             "suffix": "-artificer",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "6b86fb49-7cf7-4e8a-9783-394c1bc361a3",
             "root": "sprites/orc-codex-field-engineer/tiers/artificer/Orc_Codex_Field_Engineer_Artificer",
             "frame_size": [232, 232],
@@ -982,7 +1454,104 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",
@@ -993,7 +1562,7 @@
             "tier": 3,
             "label": "Grand Forgewright",
             "suffix": "-forgewright",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "18e1005f-c4e1-4e4a-9a2a-4f3956f703af",
             "root": "sprites/orc-codex-field-engineer/tiers/forgewright/Orc_Codex_Field_Engineer_Forgewright",
             "frame_size": [232, 232],
@@ -1010,7 +1579,104 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",
@@ -1235,6 +1901,54 @@
                   "north-west": "animations/active/north-west",
                   "south-west": "animations/active/south-west"
                 }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
               }
             },
             "reduced_motion": {
@@ -1247,7 +1961,7 @@
             "tier": 2,
             "label": "Fel Reaver",
             "suffix": "-felreaver",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "50828e10-a3c7-4153-b2b7-917559fc8068",
             "root": "sprites/orc-unknown/tiers/felreaver/Orc_Unknown_Grunt_Felreaver",
             "frame_size": [228, 228],
@@ -1264,7 +1978,104 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",
@@ -1276,7 +2087,7 @@
             "tier": 3,
             "label": "Fel Ascendant",
             "suffix": "-felascendant",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "740ad695-ba90-472a-a05e-6c5aaf7ac307",
             "root": "sprites/orc-unknown/tiers/felascendant/Orc_Unknown_Grunt_Felascendant",
             "frame_size": [228, 228],
@@ -1293,7 +2104,104 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",
@@ -1519,6 +2427,54 @@
                   "north-west": "animations/active/north-west",
                   "south-west": "animations/active/south-west"
                 }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
               }
             },
             "reduced_motion": {
@@ -1531,7 +2487,7 @@
             "tier": 2,
             "label": "Siege Marshal",
             "suffix": "-marshal",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "7c2eacea-9f1d-4706-a104-739712400b3f",
             "root": "sprites/orc-iron-commander/tiers/marshal/Orc_Iron_Commander_Marshal",
             "frame_size": [236, 236],
@@ -1548,7 +2504,104 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",
@@ -1560,7 +2613,7 @@
             "tier": 3,
             "label": "Iron Sovereign",
             "suffix": "-sovereign",
-            "status": "staged",
+            "status": "available",
             "pixellab_character_id": "7ca301a7-5127-4d71-a836-2f0b4ddd516d",
             "root": "sprites/orc-iron-commander/tiers/sovereign/Orc_Iron_Commander_Sovereign",
             "frame_size": [236, 236],
@@ -1577,7 +2630,104 @@
               "north-west": "rotations/north-west.png",
               "south-west": "rotations/south-west.png"
             },
-            "animations": {},
+            "animations": {
+              "idle": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/idle/south",
+                  "east": "animations/idle/east",
+                  "north": "animations/idle/north",
+                  "west": "animations/idle/west",
+                  "south-east": "animations/idle/south-east",
+                  "north-east": "animations/idle/north-east",
+                  "north-west": "animations/idle/north-west",
+                  "south-west": "animations/idle/south-west"
+                }
+              },
+              "roaming": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/roaming/south",
+                  "east": "animations/roaming/east",
+                  "north": "animations/roaming/north",
+                  "west": "animations/roaming/west",
+                  "south-east": "animations/roaming/south-east",
+                  "north-east": "animations/roaming/north-east",
+                  "north-west": "animations/roaming/north-west",
+                  "south-west": "animations/roaming/south-west"
+                }
+              },
+              "active": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 8,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/active/south",
+                  "east": "animations/active/east",
+                  "north": "animations/active/north",
+                  "west": "animations/active/west",
+                  "south-east": "animations/active/south-east",
+                  "north-east": "animations/active/north-east",
+                  "north-west": "animations/active/north-west",
+                  "south-west": "animations/active/south-west"
+                }
+              },
+              "waiting": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 4,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/waiting/south",
+                  "east": "animations/waiting/east",
+                  "north": "animations/waiting/north",
+                  "west": "animations/waiting/west",
+                  "south-east": "animations/waiting/south-east",
+                  "north-east": "animations/waiting/north-east",
+                  "north-west": "animations/waiting/north-west",
+                  "south-west": "animations/waiting/south-west"
+                }
+              },
+              "stale": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 3,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/stale/south",
+                  "east": "animations/stale/east",
+                  "north": "animations/stale/north",
+                  "west": "animations/stale/west",
+                  "south-east": "animations/stale/south-east",
+                  "north-east": "animations/stale/north-east",
+                  "north-west": "animations/stale/north-west",
+                  "south-west": "animations/stale/south-west"
+                }
+              },
+              "error": {
+                "pixellab_engine": "v3",
+                "frames": 9,
+                "fps": 6,
+                "frame_pattern": "frame_%03d.png",
+                "folders": {
+                  "south": "animations/error/south",
+                  "east": "animations/error/east",
+                  "north": "animations/error/north",
+                  "west": "animations/error/west",
+                  "south-east": "animations/error/south-east",
+                  "north-east": "animations/error/north-east",
+                  "north-west": "animations/error/north-west",
+                  "south-west": "animations/error/south-west"
+                }
+              }
+            },
             "reduced_motion": {
               "fallback_state": "idle",
               "fallback_direction": "south",

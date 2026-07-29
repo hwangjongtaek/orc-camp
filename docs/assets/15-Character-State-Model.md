@@ -106,7 +106,7 @@ base 정체성(유지): blackened iron armor, 뿔 투구, 붉은 망토, generic
 ### 2.7 IP-safety (모든 character·tier 공통)
 
 [[11-PixelLab-Asset-Setup]] IP Safety Rules를 그대로 따른다. 고유명사(World of Warcraft/Grommash/Thrall/Illidan 등) 금지, 특정 게임 캐릭터의 정확한 갑옷·무기·문양·색 조합 재현 금지, 파일명/manifest key/label은 original archetype만. tier가 올라가도 **"기존 게임 캐릭터로 오인될 가능성"** 체크를 배포 전 자산 리뷰에 포함한다(특히 storm-shaman 고티어가 유명 shaman, mascot 고티어가 유명 warchief, iron-commander 고티어가 유명 warchief의 signature hammer(Doomhammer), **unknown 고티어가 유명 demon hunter(blindfold+twin warglaives)**에 수렴하지 않도록).
-- **blocking 게이트(확정)**: **mascot T2/T3, storm-shaman T3, iron-commander T2/T3, unknown T2/T3**는 base/컨셉이 유명 캐릭터 archetype 재해석([[13-PixelLab-Asset-Registry]]: mascot=Grommash, iron-commander=Orgrim Doomhammer, **unknown=Illidan-class demon hunter**)이므로 수렴 위험이 가장 크다 — 이 variant들은 배포 전 IP 리뷰를 **필수 통과(blocking)** 해야 manifest `status:"available"`로 승격한다. 특히 **unknown은 눈가리개+한 쌍의 warglaive+특정 뿔/문신 조합을 재현하지 않는지** 확인한다. 통과 못 하면 재생성하거나 해당 tier를 `status:"staged"/"planned"`로 보류(런타임은 [[SPEC-302-mascot-prestige-tiers]] §3.3로 하위 tier/base 폴백).
+- **blocking 게이트(확정)**: **mascot T2/T3, storm-shaman T3, iron-commander T2/T3, unknown T2/T3**는 base/컨셉이 유명 캐릭터 archetype 재해석([[13-PixelLab-Asset-Registry]]: mascot=Grommash, iron-commander=Orgrim Doomhammer, **unknown=Illidan-class demon hunter**)이므로 수렴 위험이 가장 크다 — 이 variant들은 배포 전 IP 리뷰를 **필수 통과(blocking)** 해야 manifest `status:"available"`로 승격한다. 특히 **unknown은 눈가리개+한 쌍의 warglaive+특정 뿔/문신 조합을 재현하지 않는지** 확인한다. 통과 못 하면 재생성하거나 해당 tier를 `status:"staged"/"planned"`로 보류(런타임은 [[SPEC-302-mascot-prestige-tiers]] §3.3로 하위 tier/base 폴백). **게이트 통과 기록**: mascot T2/T3는 2026-06-29/30 owner 승인([[13-PixelLab-Asset-Registry]] item 10 표), 나머지 storm-shaman T3·iron-commander T2/T3·unknown T2/T3는 2026-07-29 owner 승인(§4.4 Phase 2b) — **blocking 게이트 대상 전체 통과 완료, 잔여 없음**.
 
 ---
 
@@ -296,15 +296,16 @@ Make this the most imposing, legendary version: blackened war-plate with glowing
   - stale(8방향): `slumping tiredly with low energy, slow heavy idle, the battle axe lowered but still held in hand`
   - error(south-only): `staggering with a sharp alarm reaction, tense shoulders recoiling, keeping the battle axe gripped`
 - **점진 도입 / PHASE 구성([[SPEC-302-mascot-prestige-tiers]] §3.6 — 2026-06-30, budget 소진 대응)**: budget이 당장 복구되지 않아 **T1만 활용하는 phase로 고정**.
-  - **Phase 1(현재·배포)**: delivered 5종 전부 **T1 = `available`**. T1 = 8방향 rotation + **idle·active·roaming**(8프레임 v3) animation; **mascot T1만 waiting·stale·error까지 풀세트**, 나머지 4종은 그 3상태는 `static_tier` 정지 폴백(§3.4). 런타임은 usage가 높아도 §3.3 하향 폴백으로 항상 T1 표시 = 실질 T1만 사용.
-  - **Phase 2(다음·budget 복구 후)**: 각 character **T2·T3**(현 `staged`) animation 생성(T3 active 극단적 화려) + blocking IP 리뷰 통과 후 `available` 승격, 그리고 전 character **waiting·stale·error** animation 보강. mascot T2(champion)는 망토 개선 재생성 완료 상태로 Phase 2 대기, unknown은 fel demon-hunter 쌍검+T3 악마날개 개정 완료.
+  - **Phase 1(완료)**: delivered 5종 전부 **T1 = `available`**. T1 = 8방향 rotation + **idle·active·roaming**(8프레임 v3) animation; 당초 mascot T1만 waiting·stale·error까지 풀세트였던 갭은 **2026-07-27 구독 리셋(5000/5000, Tier 2) 후 해소** — storm-shaman·codex·unknown·iron-commander T1도 waiting·stale·error 8방향 생성·반영 완료(기록: [[13-PixelLab-Asset-Registry]] item 10). **T1 = 5종 전부 6-state(idle/roaming/active/waiting/stale/error) 완비.**
+  - **Phase 2(완료, 2026-07-28)**: blocking IP 리뷰를 통과한 **5개 tier** 전부 6-state(idle/roaming/active/waiting/stale/error, 8방향, T3 active 극단적 화려) animation 생성·`manifest.json` 반영·`available` 승격 완료 — `orc-high-warchief-mascot` T2(champion)·T3(warlord), `orc-claude-storm-shaman` T2(tempest), `orc-codex-field-engineer` T2(artificer)·T3(forgewright)(기록: [[13-PixelLab-Asset-Registry]] item 11). **§2.7 blocking IP 리뷰 미통과 tier(`orc-claude-storm-shaman` T3 archon, `orc-unknown` T2 felreaver·T3 felascendant, `orc-iron-commander` T2 marshal·T3 sovereign)는 Phase 2 범위에서 명시적으로 제외** — owner IP 승인 전까지 `staged` 유지, 생성 보류.
+  - **Phase 2b(완료, 2026-07-29, owner IP 승인 후)**: 사용자(owner)가 §2.7 blocking 게이트 대상 5개 tier의 IP를 명시적으로 승인 — 나머지 5개 tier 전부 6-state animation 생성·manifest 반영·`available` 승격 완료: `orc-claude-storm-shaman` T3(archon), `orc-unknown` T2(felreaver)·T3(felascendant), `orc-iron-commander` T2(marshal)·T3(sovereign)(기록: [[13-PixelLab-Asset-Registry]] item 12). **이로써 5종 character 전 tier(T0~T3) × 6-state animation이 완비**되었다. unknown 쌍검 dual-wield 규칙은 §4.1 IP 제약을 그대로 적용해 준수(서쪽/동쪽 순수 profile 각도에서 한쪽 팔 자연 occlusion 발생 — Phase 2 QA와 동일하게 재생성 없이 채택). iron-commander·mascot 계열은 §2.7 "기존 유명 캐릭터 오인 방지" 문구(disperse 제약)를 rotation 생성 시점에 이미 prompt에 포함했으므로 animation 단계에서 추가 조치 불필요.
 
 ---
 
 ## 5. 확장 여지 (deferred)
 
 - ~~agent별 character로 tier 일반화~~ → **본 버전에서 완료**(§2.2~2.6: delivered 5종 — mascot·storm-shaman·codex·unknown·iron-commander 4단계 설계).
-- ~~tier별 전용 `active`(및 기타 state) **animation**(모션) 생성~~ → **착수(2026-06-29, §4.4)**: 8-frame v3로 mascot부터 제작 중(T1 먼저). 잔여: champion·warlord animation + 나머지 4 character animation, manifest `animations` 연결.
+- ~~tier별 전용 `active`(및 기타 state) **animation**(모션) 생성~~ → **완료(§4.4)**: T1 5종 전부(Phase 1) + T2·T3 10종 전부(Phase 2 2026-07-28 + Phase 2b 2026-07-29, owner IP 승인 후) 6-state animation 생성·manifest 연결 완료. **5종 character 전 tier(T0~T3, 총 20 variant) 6-state animation 완비 — 잔여 없음.**
 - `orc-iron-commander`의 **control/interrupt 상징** 역할의 전용 visual/state(usage·prestige와 **무관한 별개 축**, [[SPEC-400-control-actions]] 소관) — 도입 여부 검토(현재 SPEC-400은 iron-commander 스프라이트를 control UI에 쓰지 않음).
 - camp 전체 누적(모든 orc 합산) 축 옵션, tier 강등(세션 종료 시 reset) 정책.
 - tier 전환 시 연출(transition flash) — reduced-motion 예외 포함.
