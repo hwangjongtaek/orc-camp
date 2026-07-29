@@ -8,6 +8,27 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-29
+
+런타임 코드 변경 없이 **API/동작 안정화 선언**으로 1.0.0을 태깅한다. `0.1.0`(첫 공개 릴리스)에서 핵심 기능
+(scan·상태 추론·로컬 대시보드 서버·Campfire SPA·Terminal Workspace·제어 액션·privacy redaction·설정
+지속화·doctor 진단)이 이미 완비됐고, `0.2.0`에서 asset-pack 배포 분리가 더해진 뒤로 회귀 없이 안정적으로
+운용되어 SemVer상 "안정 API 진입점"으로 확정한다.
+
+### Changed
+
+- README를 영문으로 재작성하고 published-package 설치 안내를 갱신.
+- README 히어로 이미지를 메인 포스터로 교체.
+
+### Notes
+
+- `src/`·`web/`·`bin/`·`scripts/`의 런타임 코드는 `0.2.0` 이후 변경 없음(diff 0). 이번 릴리스는 기능
+  추가가 아니라 버전 정책상 안정성 선언이다.
+- `asset-packs/orc-camp-default`(별도 npm 패키지 `orc-camp-assets`)는 이 CHANGELOG 범위 밖이며 독립적으로
+  버전 관리한다([[13-PixelLab-Asset-Registry]] 참고 — 이번 세션에서 5개 캐릭터 전 tier 애니메이션 완비).
+- release gate 확인(SPEC-700 §2.5/§2.7): `typecheck`·`build`·`test:unit`(302)·`test:integration`(126) 전부
+  통과, `npm pack --dry-run` tarball에 `asset-packs/`·PNG 0개(license gate 유지) 확인.
+
 ## [0.2.0] - 2026-07-19
 
 ### Added
